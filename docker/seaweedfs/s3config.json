@@ -1,0 +1,14 @@
+{
+  "identities": [
+    {
+      "name": "gym-local",
+      "credentials": [
+        {
+          "accessKey": "gym-local-key",
+          "secretKey": "gym-local-secret"
+        }
+      ],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

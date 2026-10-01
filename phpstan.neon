@@ -1,0 +1,8 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app/
+    # Start at 6 and raise the level as the codebase matures. Never lower it.
+    level: 6

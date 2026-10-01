@@ -1,0 +1,108 @@
+# Local development environment for the gym platform.
+#
+# Compose automatically reads variables from the project's .env file (the same
+# file Laravel uses), so database credentials live in ONE place.
+# ${VAR:-default} means "use VAR from .env, or this default if it is missing".
+
+name: gym
+
+# A YAML anchor: shared settings for every container that runs our PHP code.
+x-php: &php
+  build:
+    context: .
+    dockerfile: docker/php/Dockerfile
+    target: dev
+    args:
+      UID: ${UID:-1000}
+      GID: ${GID:-1000}
+  image: gym-php:dev
+  volumes:
+    - .:/var/www/html
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  # PHP-FPM: runs the web application (default command of the image: php-fpm).
+  app:
+    <<: *php
+
+  # Background jobs: SMS, reminders, receipts. Replaced by Horizon in a later lesson.
+  queue:
+    <<: *php
+    command: php artisan queue:work --tries=3 --timeout=90
+
+  # Recurring tasks: expire memberships, send reminders.
+  scheduler:
+    <<: *php
+    command: php artisan schedule:work
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "127.0.0.1:${FORWARD_APP_PORT:-8080}:80"
+    volumes:
+      - ./public:/var/www/html/public:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-gym}
+      POSTGRES_USER: ${DB_USERNAME:-gym}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    ports:
+      - "127.0.0.1:${FORWARD_DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "127.0.0.1:${FORWARD_REDIS_PORT:-6379}:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # Catches every outgoing email. Web UI: http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:v1
+    ports:
+      - "127.0.0.1:${FORWARD_MAILPIT_UI_PORT:-8025}:8025"
+    restart: unless-stopped
+
+  # S3-compatible object storage (member photos, receipts, payment proofs).
+  # Replaces MinIO, whose images were removed from Docker Hub. See ADR 0002.
+  # After the first `docker compose pull`, pin this to the exact version you got.
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    command: mini -dir=/data -s3.config=/etc/seaweedfs/s3config.json
+    ports:
+      - "127.0.0.1:${FORWARD_S3_PORT:-8333}:8333"
+    volumes:
+      - seaweeddata:/data
+      - ./docker/seaweedfs/s3config.json:/etc/seaweedfs/s3config.json:ro
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  seaweeddata:
