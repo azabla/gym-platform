@@ -23,6 +23,8 @@ All ports are bound to `127.0.0.1`, so nobody else on your Wi-Fi can reach your 
 
 ## First-time setup (from an empty folder)
 
+The current repository already contains the Laravel scaffold. Use [Cloning an existing checkout](#cloning-an-existing-checkout) below; this section records how the initial scaffold was created.
+
 These steps create the Laravel project. They are done once. A teammate cloning the finished repository follows "Cloning an existing checkout" below instead.
 
 **1. Add the Docker files.** Put `compose.yaml`, `Makefile`, `.dockerignore`, `phpstan.neon` and the `docker/` folder in the project root. Then initialise Git:
@@ -142,9 +144,9 @@ git commit -m "Scaffold Laravel app with Docker development environment"
 git clone <repo> gym-platform && cd gym-platform
 cp .env.example .env
 make build
+docker compose run --rm --no-deps app composer install --no-interaction
+docker compose run --rm --no-deps app php artisan key:generate --no-interaction
 make up
-make composer c=install
-make artisan c="key:generate"
 make bucket
 make artisan c=migrate
 make test
@@ -183,6 +185,10 @@ make down        # end of day (data is kept in volumes)
 ```
 
 The queue worker loads your code once and keeps it in memory. That is why it needs `make workers` after code changes, while web requests pick changes up immediately.
+
+The Redis queue reserves jobs for 120 seconds, longer than the worker's 90-second timeout. This gives a timed-out worker time to stop before another worker retries the job.
+
+Use the Docker/Make commands above for this setup. The scaffold's `composer run dev` and `composer run setup` commands assume PHP and Node tooling on the host and are not needed to run the default welcome page through Docker.
 
 ## Troubleshooting
 

@@ -2,7 +2,7 @@
 
 ## Getting started
 
-See [development-setup.md](development-setup.md). Short version: `make build && make up`, then `make` lists every command.
+Laravel is scaffolded and dependencies are locked in `composer.lock`. For a new checkout, follow [Cloning an existing checkout](development-setup.md#cloning-an-existing-checkout). After that initial setup, `make up` starts the environment and `make` lists every command.
 
 ## Where things live
 

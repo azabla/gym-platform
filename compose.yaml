@@ -91,9 +91,9 @@ services:
 
   # S3-compatible object storage (member photos, receipts, payment proofs).
   # Replaces MinIO, whose images were removed from Docker Hub. See ADR 0002.
-  # After the first `docker compose pull`, pin this to the exact version you got.
+  # Pin the downloaded image so each checkout uses the same storage build.
   seaweedfs:
-    image: chrislusf/seaweedfs:latest
+    image: chrislusf/seaweedfs@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d
     command: mini -dir=/data -s3.config=/etc/seaweedfs/s3config.json
     ports:
       - "127.0.0.1:${FORWARD_S3_PORT:-8333}:8333"
