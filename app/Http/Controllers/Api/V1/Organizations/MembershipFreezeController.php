@@ -23,8 +23,9 @@ class MembershipFreezeController extends Controller
     public function store(FreezeMembershipRequest $request, Membership $membership, CurrentStaff $currentStaff): JsonResponse
     {
         $membership->freeze($request->startsOn(), $request->endsOn(), $request->string('reason')->toString(), $currentStaff->get());
+        MembershipResource::loadDetails($membership);
 
-        return (new MembershipResource($membership->load(MembershipResource::RELATIONS)))
+        return (new MembershipResource($membership))
             ->response()
             ->setStatusCode(Response::HTTP_CREATED);
     }
@@ -35,7 +36,8 @@ class MembershipFreezeController extends Controller
     public function end(EndFreezeRequest $request, Membership $membership, MembershipFreeze $freeze, CurrentOrganization $currentOrganization): MembershipResource
     {
         $membership->endFreeze($freeze, $currentOrganization->get()->today());
+        MembershipResource::loadDetails($membership);
 
-        return new MembershipResource($membership->load(MembershipResource::RELATIONS));
+        return new MembershipResource($membership);
     }
 }

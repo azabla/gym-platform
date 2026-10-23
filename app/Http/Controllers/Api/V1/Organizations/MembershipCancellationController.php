@@ -17,7 +17,8 @@ class MembershipCancellationController extends Controller
     public function store(CancelMembershipRequest $request, Membership $membership, CurrentStaff $currentStaff): MembershipResource
     {
         $membership->cancel($currentStaff->get(), $request->string('reason')->toString());
+        MembershipResource::loadDetails($membership);
 
-        return new MembershipResource($membership->load(MembershipResource::RELATIONS));
+        return new MembershipResource($membership);
     }
 }

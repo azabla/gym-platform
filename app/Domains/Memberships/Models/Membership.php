@@ -210,10 +210,14 @@ class Membership extends Model
         $this->save();
     }
 
-    /** @return BelongsTo<Member, $this> */
+    /**
+     * The member it was sold to, even if they have been archived since.
+     *
+     * @return BelongsTo<Member, $this>
+     */
     public function member(): BelongsTo
     {
-        return $this->belongsTo(Member::class);
+        return $this->belongsTo(Member::class)->withTrashed();
     }
 
     /**

@@ -22,10 +22,11 @@ class MembershipController extends Controller
 
         $memberships = Membership::query()
             ->whereBelongsTo($member)
-            ->with(MembershipResource::RELATIONS)
             ->orderByDesc('starts_on')
             ->orderByDesc('id')
             ->paginate(25);
+
+        MembershipResource::loadDetails(...$memberships->items());
 
         return MembershipResource::collection($memberships);
     }
@@ -37,8 +38,9 @@ class MembershipController extends Controller
     public function store(StoreMembershipRequest $request, Member $member, CurrentStaff $currentStaff): MembershipResource
     {
         $membership = Membership::sell($member, $request->plan(), $request->startsOn(), $currentStaff->get(), $request->discount());
+        MembershipResource::loadDetails($membership);
 
-        return new MembershipResource($membership->load(MembershipResource::RELATIONS));
+        return new MembershipResource($membership);
     }
 
     /**
@@ -48,6 +50,8 @@ class MembershipController extends Controller
     {
         Gate::authorize('view', $membership);
 
-        return new MembershipResource($membership->load(MembershipResource::RELATIONS));
+        MembershipResource::loadDetails($membership);
+
+        return new MembershipResource($membership);
     }
 }

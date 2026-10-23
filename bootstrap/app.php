@@ -1,11 +1,13 @@
 <?php
 
+use App\Domains\Billing\Exceptions\PaymentRefused;
 use App\Http\Middleware\ActAsOrganization;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -37,4 +39,10 @@ return Application::configure(basePath: dirname(__DIR__))
                 return response()->json(['message' => 'Not found.'], 404);
             }
         });
+
+        // A payment that another desk's payment made too large gets the same
+        // answer as one the request refused.
+        $exceptions->map(fn (PaymentRefused $exception) => ValidationException::withMessages([
+            $exception->field => $exception->getMessage(),
+        ]));
     })->create();
