@@ -131,3 +131,8 @@ Before relying on a package's API, confirm its installed version:
 - After the feature tests pass, ask the user to run the complete suite with `php artisan test --compact`.
 
 </laravel-boost-guidelines>
+
+## Commits
+
+- Commit with the developer's own git identity (`git config user.name` and `user.email`), never as an AI assistant.
+- Never add AI co-author lines (such as `Co-Authored-By: Claude …`) or AI session links to commit messages or pull request descriptions.

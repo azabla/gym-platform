@@ -23,20 +23,28 @@ arch('the Shared kernel is plain PHP with no framework dependency')
     ->not->toUse('Illuminate');
 
 arch('value objects are final and readonly')
-    ->expect('App\Domains\Shared\Money\Money')
+    ->expect([
+        'App\Domains\Shared\Money\Money',
+        'App\Domains\Shared\PhoneNumber\PhoneNumber',
+    ])
     ->toBeFinal()
     ->toBeReadonly();
 
 arch('organization-owned models are scoped to the current organization')
     ->expect([
         'App\Domains\Organizations\Models',
+        'App\Domains\Members\Models',
     ])
     ->toUseTrait(BelongsToOrganization::class)
     ->ignoring(Organization::class);
 
-arch('the Identity domain does not depend on Organizations')
+arch('the Identity domain does not depend on Organizations or Members')
     ->expect('App\Domains\Identity')
-    ->not->toUse('App\Domains\Organizations');
+    ->not->toUse(['App\Domains\Organizations', 'App\Domains\Members']);
+
+arch('the Organizations domain does not depend on Members')
+    ->expect('App\Domains\Organizations')
+    ->not->toUse('App\Domains\Members');
 
 arch('domains do not depend on the HTTP layer')
     ->expect('App\Domains')
