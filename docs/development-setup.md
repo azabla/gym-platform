@@ -190,6 +190,42 @@ The Redis queue reserves jobs for 120 seconds, longer than the worker's 90-secon
 
 Use the Docker/Make commands above for this setup. The scaffold's `composer run dev` and `composer run setup` commands assume PHP and Node tooling on the host and are not needed to run the default welcome page through Docker.
 
+## Trying the API
+
+After pulling changes that add packages or migrations, install and rebuild the database with the demo data:
+
+```bash
+make composer c=install
+make fresh
+```
+
+`make fresh` seeds Demo Gym (`demo-gym`) with two branches and two users, both with the password `password`:
+
+- `owner@demo-gym.test`, the Owner, who works at both branches;
+- `frontdesk@demo-gym.test`, a Receptionist limited to Main Branch.
+
+```bash
+# Sign in and keep the token
+TOKEN=$(curl -s http://localhost:8080/api/v1/auth/tokens \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' \
+  -d '{"email":"owner@demo-gym.test","password":"password","device_name":"curl"}' \
+  | sed -E 's/.*"token":"([^"]+)".*/\1/')
+
+# Who am I, and which gyms do I work at?
+curl -s http://localhost:8080/api/v1/me \
+  -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
+
+# The branches I work at in Demo Gym
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/branches \
+  -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
+
+# Sign out (revokes the token)
+curl -s -X DELETE http://localhost:8080/api/v1/auth/tokens/current \
+  -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
+```
+
+Sign in as `frontdesk@demo-gym.test` instead and the branch list shrinks to Main Branch. See ADR 0004 for how sign-in and gym selection work.
+
 ## Troubleshooting
 
 **"port is already allocated".** Something on your machine already uses that port (often a local PostgreSQL). Set a different one in `.env`, for example `FORWARD_DB_PORT=5433`, then `make up`.

@@ -12,6 +12,8 @@ app/Domains/<Domain>/      Business code, one folder per domain
 app/Domains/Shared/        Small, framework-free building blocks used by every domain (Money, ...)
 app/Domains/Identity/      Users: identities that can log in, independent of any gym
 app/Domains/Organizations/ Gyms, branches and staff; Tenancy/ keeps each gym's data separate
+app/Http/                  The API: controllers, form requests, middleware and resources (v1)
+routes/api.php             API routes, versioned under /api/v1
 tests/Unit/Domains/...     Unit tests, mirroring app/Domains
 tests/Feature/...          Tests that boot Laravel and touch the database
 docs/adr/                  Architecture Decision Records (why we chose what we chose)
@@ -28,6 +30,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 5. Named constructors (`Money::of()`, `Money::ofMinor()`) instead of public constructors, so every way of creating an object is explicit and validated.
 6. Gym-owned models use `BelongsToOrganization`, so every query is limited to the current organization (enforced by `tests/Unit/ArchitectureTest.php`). `organization_id` is never mass assignable. See ADR 0003.
 7. Tables that link two gym-owned records carry `organization_id` and use composite foreign keys, so the database refuses links between gyms.
+8. Gym-specific API routes sit under `/api/v1/organizations/{slug}` inside the `organization` middleware group. See ADR 0004.
 
 ## Glossary
 
@@ -51,6 +54,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0001](adr/0001-money-as-integer-minor-units.md) | Represent money as integer minor units |
 | [0002](adr/0002-docker-development-environment.md) | Custom Docker Compose development environment |
 | [0003](adr/0003-multi-tenancy-with-organization-scoping.md) | Multi-tenancy with organization scoping |
+| [0004](adr/0004-api-sign-in-and-organization-per-request.md) | API sign-in and choosing the organization per request |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 
