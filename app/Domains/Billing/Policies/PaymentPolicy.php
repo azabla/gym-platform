@@ -13,8 +13,9 @@ use App\Domains\Organizations\Tenancy\CurrentStaff;
 /**
  * Owners, managers, accountants and receptionists take payments and may see
  * the gym's payments and receipts; trainers don't handle money. Only owners,
- * managers and accountants may date a payment in the past, so takings can't
- * be moved to another day once the drawer is counted. See ADR 0008.
+ * managers and accountants may refund, void a payment or date one in the
+ * past, so the front desk can't quietly take money back out or move takings
+ * to another day once the drawer is counted. See ADR 0008.
  */
 final class PaymentPolicy
 {
@@ -46,6 +47,22 @@ final class PaymentPolicy
     public function create(User $user): bool
     {
         return $this->hasRole($this->staffFor($user), self::ROLES_THAT_TAKE_PAYMENTS);
+    }
+
+    /**
+     * Give money back to a member whose membership was cancelled.
+     */
+    public function refund(User $user): bool
+    {
+        return $this->hasRole($this->staffFor($user), self::OWNERS_MANAGERS_AND_ACCOUNTANTS);
+    }
+
+    /**
+     * Void a payment or refund that was recorded by mistake.
+     */
+    public function void(User $user, Payment $payment): bool
+    {
+        return $this->hasRole($this->staffFor($user, $payment), self::OWNERS_MANAGERS_AND_ACCOUNTANTS);
     }
 
     /**

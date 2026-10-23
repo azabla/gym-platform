@@ -45,20 +45,69 @@ class Payment extends Model
     /**
      * Record money the member paid towards the membership: by the given method,
      * at the branch, on the gym's date it was paid. The membership is locked
-     * first, so two desks can't both take its last payment, and the payment
-     * can't be more than the balance due.
+     * first, so two desks can't both take its last payment. See refusalToReceive().
      */
     public static function receive(Membership $membership, Money $amount, PaymentMethod $method, ?string $reference, Branch $branch, CarbonImmutable $paidOn, Staff $receivedBy): self
     {
         return DB::transaction(function () use ($membership, $amount, $method, $reference, $branch, $paidOn, $receivedBy): self {
-            $balance = static::balanceOf(self::lock($membership));
+            $refusal = static::refusalToReceive(self::lock($membership), $amount);
 
-            if ($amount->isGreaterThan($balance->balanceDue)) {
-                throw PaymentRefused::moreThanBalanceDue($balance->balanceDue);
+            if ($refusal !== null) {
+                throw $refusal;
             }
 
             return self::record(PaymentType::Payment, $membership, $amount, $method, $reference, $branch, $paidOn, $receivedBy);
         });
+    }
+
+    /**
+     * Give money back to the member for the cancelled membership: by the given
+     * method, at the branch, on the gym's date it was given. The membership is
+     * locked first, like receive(). See refusalToRefund().
+     */
+    public static function refund(Membership $membership, Money $amount, PaymentMethod $method, ?string $reference, Branch $branch, CarbonImmutable $paidOn, Staff $refundedBy): self
+    {
+        return DB::transaction(function () use ($membership, $amount, $method, $reference, $branch, $paidOn, $refundedBy): self {
+            $refusal = static::refusalToRefund(self::lock($membership), $amount);
+
+            if ($refusal !== null) {
+                throw $refusal;
+            }
+
+            return self::record(PaymentType::Refund, $membership, $amount, $method, $reference, $branch, $paidOn, $refundedBy);
+        });
+    }
+
+    /**
+     * Why the member can't pay this amount towards the membership, or null when
+     * they can: a cancelled membership owes nothing more, and a payment can't
+     * be more than the balance due.
+     */
+    public static function refusalToReceive(Membership $membership, Money $amount): ?PaymentRefused
+    {
+        if ($membership->cancelled_at !== null) {
+            return PaymentRefused::membershipCancelled();
+        }
+
+        $balanceDue = static::balanceOf($membership)->balanceDue;
+
+        return $amount->isGreaterThan($balanceDue) ? PaymentRefused::moreThanBalanceDue($balanceDue) : null;
+    }
+
+    /**
+     * Why this amount can't be refunded for the membership, or null when it can:
+     * only a cancelled membership is refunded, and never for more than was paid
+     * towards it.
+     */
+    public static function refusalToRefund(Membership $membership, Money $amount): ?PaymentRefused
+    {
+        if ($membership->cancelled_at === null) {
+            return PaymentRefused::membershipNotCancelled();
+        }
+
+        $amountPaid = static::balanceOf($membership)->amountPaid;
+
+        return $amount->isGreaterThan($amountPaid) ? PaymentRefused::moreThanAmountPaid($amountPaid) : null;
     }
 
     /**
@@ -195,6 +244,46 @@ class Payment extends Model
     public static function tidyReference(string $reference): string
     {
         return strtoupper((string) preg_replace('/\s+/', '', $reference));
+    }
+
+    /**
+     * Void the payment or refund, because it was recorded by mistake. It stays
+     * on record, with who voided it and why, but no longer counts. Its
+     * membership is locked first, like receive(). See refusalToVoid().
+     */
+    public function void(Staff $voidedBy, string $reason): void
+    {
+        DB::transaction(function () use ($voidedBy, $reason): void {
+            self::lock($this->membership);
+            $refusal = $this->refresh()->refusalToVoid();
+
+            if ($refusal !== null) {
+                throw $refusal;
+            }
+
+            $this->voided_at = CarbonImmutable::now();
+            $this->voidedBy()->associate($voidedBy);
+            $this->void_reason = $reason;
+            $this->save();
+        });
+    }
+
+    /**
+     * Why the payment can't be voided, or null when it can: it mustn't be
+     * voided already, and voiding a payment mustn't leave more refunded than
+     * paid towards its membership. Void the refund first.
+     */
+    public function refusalToVoid(): ?PaymentRefused
+    {
+        if ($this->voided_at !== null) {
+            return PaymentRefused::alreadyVoided();
+        }
+
+        if ($this->type === PaymentType::Payment && $this->amount->isGreaterThan(static::balanceOf($this->membership)->amountPaid)) {
+            return PaymentRefused::voidLeavesMoreRefundedThanPaid();
+        }
+
+        return null;
     }
 
     /** @return BelongsTo<Membership, $this> */

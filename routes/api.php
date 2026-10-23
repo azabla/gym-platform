@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Organizations\MembershipController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipFreezeController;
 use App\Http\Controllers\Api\V1\Organizations\PaymentController;
 use App\Http\Controllers\Api\V1\Organizations\PlanController;
+use App\Http\Controllers\Api\V1\Organizations\RefundController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
@@ -39,7 +40,11 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     ->scopeBindings();
                 Route::post('memberships/{membership}/payments', [PaymentController::class, 'store'])
                     ->name('memberships.payments.store');
+                Route::post('memberships/{membership}/refunds', [RefundController::class, 'store'])
+                    ->name('memberships.refunds.store');
                 Route::apiResource('payments', PaymentController::class)->only(['index', 'show']);
+                Route::post('payments/{payment}/void', [PaymentController::class, 'void'])
+                    ->name('payments.void');
             });
     });
 });

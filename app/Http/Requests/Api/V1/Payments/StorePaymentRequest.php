@@ -68,7 +68,7 @@ class StorePaymentRequest extends FormRequest
     }
 
     /**
-     * The membership must still be owed at least this much.
+     * The membership's money must allow it (see refusal()).
      *
      * @return array<int, Closure(Validator): void>
      */
@@ -80,16 +80,10 @@ class StorePaymentRequest extends FormRequest
                     return;
                 }
 
-                if ($this->membership()->cancelled_at !== null) {
-                    $validator->errors()->add('membership', 'This membership is cancelled, so nothing is due on it.');
+                $refusal = $this->refusal();
 
-                    return;
-                }
-
-                $balanceDue = Payment::balanceOf($this->membership())->balanceDue;
-
-                if ($this->amount()->isGreaterThan($balanceDue)) {
-                    $validator->errors()->add('amount', PaymentRefused::balanceDueMessage($balanceDue));
+                if ($refusal !== null) {
+                    $validator->errors()->add($refusal->field, $refusal->getMessage());
                 }
             },
         ];
@@ -149,6 +143,15 @@ class StorePaymentRequest extends FormRequest
         if (! $this->filled('branch_id') && $branchesWorkedAt->count() === 1) {
             $this->merge(['branch_id' => $branchesWorkedAt->sole()->id]);
         }
+    }
+
+    /**
+     * Why the payment can't be taken, or null when it can: the membership must
+     * still be owed at least this much.
+     */
+    protected function refusal(): ?PaymentRefused
+    {
+        return Payment::refusalToReceive($this->membership(), $this->amount());
     }
 
     protected function membership(): Membership

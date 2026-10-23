@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domains\Billing\Enums\PaymentMethod;
+use App\Domains\Billing\Enums\PaymentType;
 use App\Domains\Billing\Exceptions\PaymentRefused;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Members\Models\Member;
@@ -42,6 +43,24 @@ function receiveForMembership(Membership $membership, string $amount, PaymentMet
         branch: Branch::factory()->for($membership->organization)->create(),
         paidOn: CarbonImmutable::parse('2026-10-23'),
         receivedBy: Staff::factory()->for($membership->organization)->create(),
+    );
+}
+
+/**
+ * Refund the amount for the membership in cash, at a branch of its gym, acting as that gym.
+ */
+function refundForMembership(Membership $membership, string $amount): Payment
+{
+    actingAsOrganization($membership->organization);
+
+    return Payment::refund(
+        membership: $membership,
+        amount: Money::of($amount),
+        method: PaymentMethod::Cash,
+        reference: null,
+        branch: Branch::factory()->for($membership->organization)->create(),
+        paidOn: CarbonImmutable::parse('2026-10-23'),
+        refundedBy: Staff::factory()->for($membership->organization)->create(),
     );
 }
 
@@ -91,7 +110,62 @@ it('refuses any payment for a cancelled membership', function () {
     $membership->cancel(Staff::factory()->for($gym)->create(), 'Sold by mistake.');
 
     receiveForMembership($membership, '1');
-})->throws(PaymentRefused::class, 'Nothing is due on this membership.');
+})->throws(PaymentRefused::class, 'This membership is cancelled, so nothing is due on it.');
+
+it('refunds a cancelled membership, but never more than was paid towards it', function () {
+    $gym = Organization::factory()->create();
+    $membership = membershipSoldFor('2,500', $gym);
+    receiveForMembership($membership, '1,000');
+    $membership->cancel(Staff::factory()->for($gym)->create(), 'Moved to another city.');
+
+    $refund = refundForMembership($membership, '600');
+
+    expect($refund->type)->toBe(PaymentType::Refund)
+        ->and($refund->receipt_number)->toBe(2)
+        ->and(Payment::balanceOf($membership)->amountPaid)->toEqual(Money::of('400'));
+
+    refundForMembership($membership, '500');
+})->throws(PaymentRefused::class, 'Only 400.00 ETB has been paid towards this membership.');
+
+it('refuses a refund for a membership that is not cancelled', function () {
+    $membership = membershipSoldFor('2,500', Organization::factory()->create());
+    receiveForMembership($membership, '1,000');
+
+    refundForMembership($membership, '500');
+})->throws(PaymentRefused::class, 'Only a cancelled membership can be refunded. Cancel it first.');
+
+it('voids a payment, which then no longer counts, but only once', function () {
+    $gym = Organization::factory()->create();
+    $membership = membershipSoldFor('2,500', $gym);
+    $payment = receiveForMembership($membership, '1,000');
+    $voidedBy = Staff::factory()->for($gym)->create();
+
+    $payment->void($voidedBy, 'Recorded for the wrong member.');
+
+    expect($payment->refresh()->voided_at)->not->toBeNull()
+        ->and($payment->voidedBy->is($voidedBy))->toBeTrue()
+        ->and($payment->void_reason)->toBe('Recorded for the wrong member.')
+        ->and(Payment::balanceOf($membership)->balanceDue)->toEqual(Money::of('2,500'));
+
+    $payment->void($voidedBy, 'Recorded twice.');
+})->throws(PaymentRefused::class, 'This payment is already voided.');
+
+it('voids a payment only once the refund that depends on it is voided', function () {
+    $gym = Organization::factory()->create();
+    $membership = membershipSoldFor('2,500', $gym);
+    $payment = receiveForMembership($membership, '1,000');
+    $membership->cancel(Staff::factory()->for($gym)->create(), 'Moved to another city.');
+    $refund = refundForMembership($membership, '1,000');
+    $voidedBy = Staff::factory()->for($gym)->create();
+
+    expect($payment->refusalToVoid()?->getMessage())
+        ->toBe('Voiding this payment would leave more refunded than paid. Void the refund first.');
+
+    $refund->void($voidedBy, 'Refunded by mistake.');
+    $payment->void($voidedBy, 'Recorded for the wrong member.');
+
+    expect(Payment::balanceOf($membership)->amountPaid)->toEqual(Money::zero());
+});
 
 it('stores the transaction number without spaces and in capitals', function () {
     $membership = membershipSoldFor('2,500', Organization::factory()->create());

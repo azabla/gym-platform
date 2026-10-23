@@ -339,6 +339,95 @@ it('owes nothing more once a membership is cancelled, but still shows what was p
         ->assertJsonPath('data.balance_due.amount_minor', 0);
 });
 
+it('lets an accountant void a payment recorded by mistake, which frees its transaction number', function () {
+    $payment = Payment::factory()->for($this->membership)->byTelebirr('CJ12ABC34D')->create(['amount' => Money::of('1,000')]);
+    $accountant = actingAsStaff($this->gym, StaffRole::Accountant, $this->mainBranch);
+
+    $this->postJson(route('api.v1.organizations.payments.void', ['organization' => 'demo-gym', 'payment' => $payment]), [
+        'reason' => 'Recorded for the wrong member.',
+    ])
+        ->assertOk()
+        ->assertJsonPath('data.void.voided_by.id', $accountant->id)
+        ->assertJsonPath('data.void.reason', 'Recorded for the wrong member.')
+        ->assertJsonPath('data.membership.balance_due.amount_minor', 250000);
+
+    $this->postJson(route('api.v1.organizations.payments.void', ['organization' => 'demo-gym', 'payment' => $payment]), [
+        'reason' => 'Recorded twice.',
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['payment' => 'This payment is already voided.']);
+
+    recordPayment($this->membership, ['amount' => '1,000', 'method' => 'telebirr', 'reference' => 'CJ12ABC34D'])
+        ->assertCreated();
+});
+
+it('refuses to void a payment while a refund depends on it', function () {
+    $cancelled = Membership::factory()->for($this->member)->cancelled()->create(['starts_on' => '2026-12-01', 'ends_on' => '2026-12-31']);
+    $payment = Payment::factory()->for($cancelled)->create(['amount' => Money::of('1,000')]);
+    Payment::factory()->for($cancelled)->refund()->create(['amount' => Money::of('1,000')]);
+    actingAsStaff($this->gym, StaffRole::Manager);
+
+    $this->postJson(route('api.v1.organizations.payments.void', ['organization' => 'demo-gym', 'payment' => $payment]), [
+        'reason' => 'Recorded for the wrong member.',
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['payment' => 'Voiding this payment would leave more refunded than paid. Void the refund first.']);
+});
+
+it('lets a manager refund part of a cancelled membership, but not more than was paid', function () {
+    $cancelled = Membership::factory()->for($this->member)->for($this->monthly)->cancelled()->create(['starts_on' => '2026-12-01', 'ends_on' => '2026-12-31']);
+    Payment::factory()->for($cancelled)->create(['amount' => Money::of('2,500')]);
+    $manager = actingAsStaff($this->gym, StaffRole::Manager, $this->mainBranch);
+
+    $this->postJson(route('api.v1.organizations.memberships.refunds.store', ['organization' => 'demo-gym', 'membership' => $cancelled]), [
+        'amount' => '1,000',
+        'method' => 'telebirr',
+        'reference' => 'RF56XYZ78A',
+    ])
+        ->assertCreated()
+        ->assertJsonPath('data.type', 'refund')
+        ->assertJsonPath('data.amount.amount_minor', 100000)
+        ->assertJsonPath('data.reference', 'RF56XYZ78A')
+        ->assertJsonPath('data.branch.name', 'Main Branch')
+        ->assertJsonPath('data.received_by.id', $manager->id)
+        ->assertJsonPath('data.membership.amount_paid.amount_minor', 150000)
+        ->assertJsonPath('data.membership.balance_due.amount_minor', 0);
+
+    $this->postJson(route('api.v1.organizations.memberships.refunds.store', ['organization' => 'demo-gym', 'membership' => $cancelled]), [
+        'amount' => '2,000',
+        'method' => 'cash',
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['amount' => 'Only 1,500.00 ETB has been paid towards this membership.']);
+});
+
+it('refuses a refund for a membership that is not cancelled', function () {
+    Payment::factory()->for($this->membership)->create(['amount' => Money::of('1,000')]);
+    actingAsStaff($this->gym, StaffRole::Accountant, $this->mainBranch);
+
+    $this->postJson(route('api.v1.organizations.memberships.refunds.store', ['organization' => 'demo-gym', 'membership' => $this->membership]), [
+        'amount' => '500',
+        'method' => 'cash',
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['membership' => 'Only a cancelled membership can be refunded. Cancel it first.']);
+});
+
+it('does not let receptionists void payments or give refunds', function () {
+    $payment = Payment::factory()->for($this->membership)->create(['amount' => Money::of('1,000')]);
+    $cancelled = Membership::factory()->for($this->member)->cancelled()->create(['starts_on' => '2026-12-01', 'ends_on' => '2026-12-31']);
+    actingAsStaff($this->gym, StaffRole::Receptionist, $this->mainBranch);
+
+    $this->postJson(route('api.v1.organizations.payments.void', ['organization' => 'demo-gym', 'payment' => $payment]), [
+        'reason' => 'Recorded by mistake.',
+    ])->assertForbidden();
+
+    $this->postJson(route('api.v1.organizations.memberships.refunds.store', ['organization' => 'demo-gym', 'membership' => $cancelled]), [
+        'amount' => '100',
+        'method' => 'cash',
+    ])->assertForbidden();
+});
+
 it('answers like a refused request when another desk took the last payment first', function () {
     Route::post('api/test/payment-refused', fn () => throw PaymentRefused::moreThanBalanceDue(Money::of('500')));
 

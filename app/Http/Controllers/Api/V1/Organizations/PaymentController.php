@@ -8,6 +8,7 @@ use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Payments\ListPaymentsRequest;
 use App\Http\Requests\Api\V1\Payments\StorePaymentRequest;
+use App\Http\Requests\Api\V1\Payments\VoidPaymentRequest;
 use App\Http\Resources\V1\PaymentResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -70,6 +71,18 @@ class PaymentController extends Controller
     {
         Gate::authorize('view', $payment);
 
+        PaymentResource::loadDetails($payment);
+
+        return new PaymentResource($payment);
+    }
+
+    /**
+     * Void the payment or refund, because it was recorded by mistake, with a
+     * reason. It stays on record but no longer counts.
+     */
+    public function void(VoidPaymentRequest $request, Payment $payment, CurrentStaff $currentStaff): PaymentResource
+    {
+        $payment->void($currentStaff->get(), $request->string('reason')->toString());
         PaymentResource::loadDetails($payment);
 
         return new PaymentResource($payment);

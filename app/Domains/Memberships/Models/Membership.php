@@ -200,7 +200,8 @@ class Membership extends Model
 
     /**
      * Cancel the membership. It stays on record but no longer counts, so its days
-     * are free for another membership. Refunds come with Billing.
+     * are free for another membership, and nothing more is due on it. Money already
+     * paid towards it can be refunded in Billing.
      */
     public function cancel(Staff $cancelledBy, string $reason): void
     {
