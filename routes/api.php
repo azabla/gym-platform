@@ -39,7 +39,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     ->scopeBindings();
                 Route::post('memberships/{membership}/payments', [PaymentController::class, 'store'])
                     ->name('memberships.payments.store');
-                Route::apiResource('payments', PaymentController::class)->only(['show']);
+                Route::apiResource('payments', PaymentController::class)->only(['index', 'show']);
             });
     });
 });

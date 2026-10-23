@@ -184,7 +184,7 @@ it('refuses a date in the future', function () {
         ->assertJsonValidationErrors(['paid_on' => 'A payment can\'t be dated in the future.']);
 });
 
-it('does not let trainers take payments or see receipts', function () {
+it('does not let trainers take payments or see them', function () {
     $payment = Payment::factory()->for($this->membership)->create();
     actingAsStaff($this->gym, StaffRole::Trainer);
 
@@ -192,7 +192,82 @@ it('does not let trainers take payments or see receipts', function () {
 
     $this->getJson(route('api.v1.organizations.payments.show', ['organization' => 'demo-gym', 'payment' => $payment]))
         ->assertForbidden();
+
+    $this->getJson(route('api.v1.organizations.payments.index', ['organization' => 'demo-gym']))
+        ->assertForbidden();
 });
+
+it('lists the gym\'s payments and refunds newest first, with totals that leave out voided payments', function () {
+    $abebesMembership = Membership::factory()
+        ->for(Member::factory()->for($this->mainBranch, 'homeBranch')->state(['full_name' => 'Abebe Kebede']))
+        ->for($this->monthly)
+        ->create();
+    Payment::factory()->for($this->membership)->create(['amount' => Money::of('1,000'), 'paid_on' => '2026-10-21']);
+    Payment::factory()->for($this->membership)->byTelebirr('CJ12ABC34D')->create(['amount' => Money::of('1,500'), 'paid_on' => '2026-10-22']);
+    Payment::factory()->for($abebesMembership)->create(['amount' => Money::of('2,500'), 'paid_on' => '2026-10-23']);
+    Payment::factory()->for($abebesMembership)->refund()->create(['amount' => Money::of('500'), 'paid_on' => '2026-10-23']);
+    Payment::factory()->for($abebesMembership)->voided()->create(['amount' => Money::of('100'), 'paid_on' => '2026-10-23']);
+    Payment::factory()->create();
+    actingAsStaff($this->gym, StaffRole::Receptionist);
+
+    $this->getJson(route('api.v1.organizations.payments.index', ['organization' => 'demo-gym']))
+        ->assertOk()
+        ->assertJsonPath('data.*.amount.amount_minor', [10000, 50000, 250000, 150000, 100000])
+        ->assertJsonPath('data.*.member.full_name', ['Abebe Kebede', 'Abebe Kebede', 'Abebe Kebede', 'Hana Girma', 'Hana Girma'])
+        ->assertJsonPath('data.0.void.reason', 'Recorded twice.')
+        ->assertJsonPath('data.1.type', 'refund')
+        ->assertJsonPath('data.1.void', null)
+        ->assertJsonPath('meta.totals.received.amount_minor', 500000)
+        ->assertJsonPath('meta.totals.refunded.amount_minor', 50000)
+        ->assertJsonPath('meta.totals.net.amount_minor', 450000)
+        ->assertJsonPath('meta.totals.by_method.cash.amount_minor', 300000)
+        ->assertJsonPath('meta.totals.by_method.telebirr.amount_minor', 150000)
+        ->assertJsonPath('meta.totals.by_method.cbe_birr.amount_minor', 0)
+        ->assertJsonPath('meta.totals.by_method.bank_transfer.amount_minor', 0);
+});
+
+it('adds up every page of payments, not just the one shown', function () {
+    Payment::factory()->count(26)->for($this->membership)->create(['amount' => Money::of('10'), 'branch_id' => $this->mainBranch->id]);
+    actingAsStaff($this->gym, StaffRole::Accountant);
+
+    $this->getJson(route('api.v1.organizations.payments.index', ['organization' => 'demo-gym']))
+        ->assertJsonCount(25, 'data')
+        ->assertJsonPath('meta.total', 26)
+        ->assertJsonPath('meta.totals.received.amount_minor', 26000);
+});
+
+it('filters payments by the day paid, branch, method and member', function () {
+    $abebe = Member::factory()->for($this->mainBranch, 'homeBranch')->create();
+    $abebesMembership = Membership::factory()->for($abebe)->for($this->monthly)->create();
+    Payment::factory()->for($this->membership)->create(['amount' => Money::of('1,000'), 'paid_on' => '2026-10-21', 'branch_id' => $this->mainBranch->id]);
+    Payment::factory()->for($this->membership)->byTelebirr('CJ12ABC34D')->create(['amount' => Money::of('1,500'), 'paid_on' => '2026-10-22', 'branch_id' => $this->boleBranch->id]);
+    Payment::factory()->for($abebesMembership)->create(['amount' => Money::of('2,500'), 'paid_on' => '2026-10-23', 'branch_id' => $this->mainBranch->id]);
+    actingAsStaff($this->gym, StaffRole::Accountant);
+
+    $amountsListedFor = fn (array $filters) => $this->getJson(route('api.v1.organizations.payments.index', ['organization' => 'demo-gym', ...$filters]))
+        ->assertOk()
+        ->json('data.*.amount.amount_minor');
+
+    expect($amountsListedFor(['from' => '2026-10-22']))->toBe([250000, 150000])
+        ->and($amountsListedFor(['to' => '2026-10-21']))->toBe([100000])
+        ->and($amountsListedFor(['from' => '2026-10-22', 'to' => '2026-10-22']))->toBe([150000])
+        ->and($amountsListedFor(['branch_id' => $this->boleBranch->id]))->toBe([150000])
+        ->and($amountsListedFor(['method' => 'cash']))->toBe([250000, 100000])
+        ->and($amountsListedFor(['member_id' => $abebe->id]))->toBe([250000]);
+});
+
+it('reports a bad filter', function (array $filters, string $field) {
+    actingAsStaff($this->gym, StaffRole::Accountant);
+
+    $this->getJson(route('api.v1.organizations.payments.index', ['organization' => 'demo-gym', ...$filters]))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors([$field]);
+})->with([
+    'a day in another format' => [['from' => '23/10/2026'], 'from'],
+    'a last day before the first' => [['from' => '2026-10-23', 'to' => '2026-10-22'], 'to'],
+    'an unknown method' => [['method' => 'paypal'], 'method'],
+    'a branch that is not a number' => [['branch_id' => 'main'], 'branch_id'],
+]);
 
 it('cannot take a payment for a membership of another gym', function () {
     $otherGymsMembership = Membership::factory()->create();

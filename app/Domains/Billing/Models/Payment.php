@@ -14,6 +14,7 @@ use App\Domains\Memberships\Models\Membership;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
+use App\Domains\Shared\Money\Currency;
 use App\Domains\Shared\Money\Money;
 use Carbon\CarbonImmutable;
 use Database\Factories\PaymentFactory;
@@ -126,6 +127,51 @@ class Payment extends Model
     }
 
     /**
+     * What the payments the query finds add up to, leaving out voided ones:
+     * the total received, the total refunded, the net, and the net for each
+     * method. Every method is listed, even with nothing taken.
+     *
+     * @param  Builder<self>  $payments
+     * @return array{received: Money, refunded: Money, net: Money, by_method: array<string, Money>}
+     */
+    public static function totalsOf(Builder $payments): array
+    {
+        $sums = (clone $payments)
+            ->counted()
+            ->groupBy('method', 'type', 'currency')
+            ->selectRaw('method, type, currency, SUM(amount_minor) AS total_minor')
+            ->toBase()
+            ->get();
+
+        $received = Money::zero();
+        $refunded = Money::zero();
+        $netByMethod = [];
+
+        foreach (PaymentMethod::cases() as $method) {
+            $netByMethod[$method->value] = Money::zero();
+        }
+
+        foreach ($sums as $sum) {
+            $total = Money::ofMinor((int) $sum->total_minor, Currency::from($sum->currency));
+
+            if ($sum->type === PaymentType::Refund->value) {
+                $refunded = $refunded->add($total);
+                $netByMethod[$sum->method] = $netByMethod[$sum->method]->subtract($total);
+            } else {
+                $received = $received->add($total);
+                $netByMethod[$sum->method] = $netByMethod[$sum->method]->add($total);
+            }
+        }
+
+        return [
+            'received' => $received,
+            'refunded' => $refunded,
+            'net' => $received->subtract($refunded),
+            'by_method' => $netByMethod,
+        ];
+    }
+
+    /**
      * The gym's next receipt number. The upsert locks the gym's counter until
      * the transaction ends, so two payments never get the same number, and a
      * payment that fails rolls its number back, so none is skipped. Call it
@@ -171,6 +217,12 @@ class Payment extends Model
     public function receivedBy(): BelongsTo
     {
         return $this->belongsTo(Staff::class, 'received_by_staff_id');
+    }
+
+    /** @return BelongsTo<Staff, $this> */
+    public function voidedBy(): BelongsTo
+    {
+        return $this->belongsTo(Staff::class, 'voided_by_staff_id');
     }
 
     /**

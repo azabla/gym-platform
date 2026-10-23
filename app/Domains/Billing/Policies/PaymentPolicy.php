@@ -33,6 +33,11 @@ final class PaymentPolicy
 
     public function __construct(private CurrentStaff $currentStaff) {}
 
+    public function viewAny(User $user): bool
+    {
+        return $this->hasRole($this->staffFor($user), self::ROLES_THAT_TAKE_PAYMENTS);
+    }
+
     public function view(User $user, Payment $payment): bool
     {
         return $this->hasRole($this->staffFor($user, $payment), self::ROLES_THAT_TAKE_PAYMENTS);
