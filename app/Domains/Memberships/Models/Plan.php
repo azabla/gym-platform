@@ -7,6 +7,7 @@ namespace App\Domains\Memberships\Models;
 use App\Casts\AsMoney;
 use App\Domains\Memberships\Enums\DurationUnit;
 use App\Domains\Memberships\Policies\PlanPolicy;
+use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
 use App\Domains\Shared\Money\Money;
 use Carbon\CarbonImmutable;
@@ -16,12 +17,15 @@ use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Something a gym sells: a price and a length in days or months, such as
  * "Monthly, 2,500 ETB". Archiving a plan (a soft delete) stops new sales, while
- * memberships already sold keep their own dates and price. See ADR 0006.
+ * memberships already sold keep their own dates and price. A plan is valid at
+ * every branch of its gym, or only at chosen ones. See ADR 0006 and ADR 0007.
  *
  * @property Money $price Stored in the price_minor and currency columns.
  */
@@ -32,6 +36,44 @@ class Plan extends Model
 {
     /** @use HasFactory<PlanFactory> */
     use BelongsToOrganization, HasFactory, SoftDeletes;
+
+    /**
+     * The same default as the database column, so a new plan knows it before it is saved.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'available_at_all_branches' => true,
+    ];
+
+    /**
+     * The branches this plan is limited to. Ignored while it is available at all branches.
+     *
+     * @return BelongsToMany<Branch, $this>
+     */
+    public function branches(): BelongsToMany
+    {
+        return $this->belongsToMany(Branch::class);
+    }
+
+    public function makeAvailableAtAllBranches(): void
+    {
+        DB::transaction(function (): void {
+            $this->branches()->detach();
+            $this->forceFill(['available_at_all_branches' => true])->save();
+        });
+    }
+
+    public function makeAvailableOnlyAt(Branch ...$branches): void
+    {
+        DB::transaction(function () use ($branches): void {
+            $this->forceFill(['available_at_all_branches' => false])->save();
+            $this->branches()->syncWithPivotValues(
+                array_map(fn (Branch $branch): int => $branch->getKey(), $branches),
+                ['organization_id' => $this->organization_id],
+            );
+        });
+    }
 
     /**
      * The last day of a membership of this plan that starts on the given day.
@@ -62,6 +104,7 @@ class Plan extends Model
             'price' => AsMoney::class.':price_minor,currency',
             'duration_count' => 'integer',
             'duration_unit' => DurationUnit::class,
+            'available_at_all_branches' => 'boolean',
         ];
     }
 }

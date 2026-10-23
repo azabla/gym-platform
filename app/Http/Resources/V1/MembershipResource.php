@@ -14,6 +14,12 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class MembershipResource extends JsonResource
 {
     /**
+     * The relations a full membership response shows. Without them, the
+     * response leaves out who sold or cancelled it and its branches.
+     */
+    public const RELATIONS = ['plan', 'branches', 'soldBy.user', 'cancelledBy.user'];
+
+    /**
      * Transform the resource into an array. The status is for today where the gym is.
      *
      * @return array<string, mixed>
@@ -31,6 +37,8 @@ class MembershipResource extends JsonResource
             'starts_on' => $this->starts_on->toDateString(),
             'ends_on' => $this->ends_on->toDateString(),
             'price' => $this->price,
+            'valid_at_all_branches' => $this->valid_at_all_branches,
+            'branches' => BranchResource::collection($this->whenLoaded('branches')),
             'sold_by' => $this->whenLoaded('soldBy', fn (Staff $staff) => $this->staffMember($staff)),
             'sold_at' => $this->created_at?->toIso8601String(),
             'cancellation' => $this->cancelled_at === null ? null : [

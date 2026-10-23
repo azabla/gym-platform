@@ -96,3 +96,17 @@ it('refuses an end before the start, a negative price or half a cancellation', f
     'a negative price' => [['price' => Money::of('-1')]],
     'a cancellation without a reason' => [['cancelled_at' => '2026-03-15 10:00:00']],
 ])->throws(QueryException::class, 'violates check constraint');
+
+it('stays valid at the branches its plan had when it was sold', function () {
+    $organization = actingAsOrganization(Organization::factory()->create());
+    $bole = Branch::factory()->for($organization)->create();
+    $member = Member::factory()->for($bole, 'homeBranch')->create();
+    $plan = Plan::factory()->for($organization)->create();
+    $plan->makeAvailableOnlyAt($bole);
+
+    $membership = Membership::sell($member, $plan, CarbonImmutable::parse('2026-03-15'), Staff::factory()->for($organization)->create());
+    $plan->makeAvailableAtAllBranches();
+
+    expect($membership->refresh()->valid_at_all_branches)->toBeFalse()
+        ->and($membership->branches->modelKeys())->toBe([$bole->id]);
+});

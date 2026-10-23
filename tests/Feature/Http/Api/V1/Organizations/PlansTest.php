@@ -41,9 +41,48 @@ it('creates a plan', function () {
         ->assertJsonPath('data.name', 'Monthly')
         ->assertJsonPath('data.description', 'Gym floor and group classes.')
         ->assertJsonPath('data.price', ['amount_minor' => 250000, 'currency' => 'ETB', 'formatted' => '2,500.00 ETB'])
-        ->assertJsonPath('data.duration', ['count' => 1, 'unit' => 'month']);
+        ->assertJsonPath('data.duration', ['count' => 1, 'unit' => 'month'])
+        ->assertJsonPath('data.available_at_all_branches', true)
+        ->assertJsonPath('data.branches', []);
 
     expect(Plan::query()->acrossOrganizations()->sole()->organization_id)->toBe($this->gym->id);
+});
+
+it('limits a plan to chosen branches of the gym', function () {
+    $bole = Branch::factory()->for($this->gym)->create(['name' => 'Bole Branch']);
+    Branch::factory()->for($this->gym)->create(['name' => 'Main Branch']);
+    actingAsStaff($this->gym, StaffRole::Owner);
+
+    $this->postJson(route('api.v1.organizations.plans.store', ['organization' => 'demo-gym']), [
+        ...$this->monthlyPlanDetails,
+        'branch_ids' => [$bole->id],
+    ])
+        ->assertCreated()
+        ->assertJsonPath('data.available_at_all_branches', false)
+        ->assertJsonPath('data.branches.*.name', ['Bole Branch']);
+});
+
+it('refuses a branch of another gym', function () {
+    $otherGymsBranch = Branch::factory()->create();
+    actingAsStaff($this->gym, StaffRole::Owner);
+
+    $this->postJson(route('api.v1.organizations.plans.store', ['organization' => 'demo-gym']), [
+        ...$this->monthlyPlanDetails,
+        'branch_ids' => [$otherGymsBranch->id],
+    ])->assertUnprocessable()->assertJsonValidationErrors(['branch_ids.0']);
+});
+
+it('makes a plan valid at all branches again', function () {
+    $plan = Plan::factory()->for($this->gym)->create();
+    $plan->makeAvailableOnlyAt(Branch::factory()->for($this->gym)->create());
+    actingAsStaff($this->gym, StaffRole::Manager);
+
+    $this->patchJson(route('api.v1.organizations.plans.update', ['organization' => 'demo-gym', 'plan' => $plan]), [
+        'branch_ids' => null,
+    ])
+        ->assertOk()
+        ->assertJsonPath('data.available_at_all_branches', true)
+        ->assertJsonPath('data.branches', []);
 });
 
 it('lets only owners and managers create, edit and archive plans', function (StaffRole $role) {

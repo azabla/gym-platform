@@ -53,6 +53,17 @@ it('sells a plan to a member, starting today', function () {
         ->assertJsonPath('data.cancellation', null);
 });
 
+it('sells a branch-only plan as a membership valid at those branches', function () {
+    $boleBranch = Branch::factory()->for($this->gym)->create(['name' => 'Bole Branch']);
+    $this->monthly->makeAvailableOnlyAt($boleBranch);
+    actingAsStaff($this->gym, StaffRole::Receptionist);
+
+    sellMembership($this->member, ['plan_id' => $this->monthly->id])
+        ->assertCreated()
+        ->assertJsonPath('data.valid_at_all_branches', false)
+        ->assertJsonPath('data.branches.*.name', ['Bole Branch']);
+});
+
 it('starts a new membership the day after the current one ends', function () {
     Membership::factory()->for($this->member)->create(['starts_on' => '2026-10-01', 'ends_on' => '2026-10-31']);
     actingAsStaff($this->gym, StaffRole::Receptionist);

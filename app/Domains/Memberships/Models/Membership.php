@@ -8,6 +8,7 @@ use App\Casts\AsMoney;
 use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Enums\MembershipStatus;
 use App\Domains\Memberships\Policies\MembershipPolicy;
+use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
 use App\Domains\Shared\Money\Money;
@@ -21,12 +22,14 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Facades\DB;
 
 /**
  * A plan sold to a member for set dates, from starts_on through ends_on. The
- * price is copied from the plan when it is sold. A member has at most one
- * membership on any day (cancelled ones don't count), which the database
- * enforces. See ADR 0006.
+ * price and the branches it is valid at are copied from the plan when it is
+ * sold. A member has at most one membership on any day (cancelled ones don't
+ * count), which the database enforces. See ADR 0006 and ADR 0007.
  *
  * @property Money $price Stored in the price_minor and currency columns.
  */
@@ -38,22 +41,42 @@ class Membership extends Model
     use BelongsToOrganization, HasFactory;
 
     /**
+     * The same default as the database column, so a new membership knows it before it is saved.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'valid_at_all_branches' => true,
+    ];
+
+    /**
      * Sell the plan to the member, starting on the given day. The membership
-     * belongs to the member's gym, and its end date and price come from the plan.
+     * belongs to the member's gym, and its end date, price and branches come
+     * from the plan.
      */
     public static function sell(Member $member, Plan $plan, CarbonImmutable $startsOn, Staff $soldBy): self
     {
-        $membership = new self;
-        $membership->organization()->associate($member->organization_id);
-        $membership->member()->associate($member);
-        $membership->plan()->associate($plan);
-        $membership->soldBy()->associate($soldBy);
-        $membership->starts_on = $startsOn;
-        $membership->ends_on = $plan->endsOnFor($startsOn);
-        $membership->price = $plan->price;
-        $membership->save();
+        return DB::transaction(function () use ($member, $plan, $startsOn, $soldBy): self {
+            $membership = new self;
+            $membership->organization()->associate($member->organization_id);
+            $membership->member()->associate($member);
+            $membership->plan()->associate($plan);
+            $membership->soldBy()->associate($soldBy);
+            $membership->starts_on = $startsOn;
+            $membership->ends_on = $plan->endsOnFor($startsOn);
+            $membership->price = $plan->price;
+            $membership->valid_at_all_branches = $plan->available_at_all_branches;
+            $membership->save();
 
-        return $membership;
+            if (! $plan->available_at_all_branches) {
+                $membership->branches()->syncWithPivotValues(
+                    $plan->branches->modelKeys(),
+                    ['organization_id' => $membership->organization_id],
+                );
+            }
+
+            return $membership;
+        });
     }
 
     /**
@@ -94,7 +117,7 @@ class Membership extends Model
             ->orderByRaw('CASE WHEN starts_on <= ? AND ends_on >= ? THEN 0 WHEN starts_on > ? THEN 1 ELSE 2 END', [$day, $day, $day])
             ->orderByRaw('CASE WHEN starts_on > ? THEN starts_on END', [$day])
             ->orderByDesc('ends_on')
-            ->with('plan')
+            ->with(['plan', 'branches'])
             ->get()
             ->keyBy('member_id');
     }
@@ -137,6 +160,17 @@ class Membership extends Model
     public function cancelledBy(): BelongsTo
     {
         return $this->belongsTo(Staff::class, 'cancelled_by_staff_id');
+    }
+
+    /**
+     * The branches this membership is valid at, copied from its plan when it was
+     * sold. Ignored while it is valid at all branches.
+     *
+     * @return BelongsToMany<Branch, $this>
+     */
+    public function branches(): BelongsToMany
+    {
+        return $this->belongsToMany(Branch::class);
     }
 
     public function statusOn(CarbonImmutable $day): MembershipStatus
@@ -184,6 +218,7 @@ class Membership extends Model
             'ends_on' => 'immutable_date',
             'price' => AsMoney::class.':price_minor,currency',
             'cancelled_at' => 'immutable_datetime',
+            'valid_at_all_branches' => 'boolean',
         ];
     }
 }

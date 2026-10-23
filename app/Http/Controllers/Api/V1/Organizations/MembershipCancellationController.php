@@ -18,6 +18,6 @@ class MembershipCancellationController extends Controller
     {
         $membership->cancel($currentStaff->get(), $request->string('reason')->toString());
 
-        return new MembershipResource($membership->load(['plan', 'soldBy.user', 'cancelledBy.user']));
+        return new MembershipResource($membership->load(MembershipResource::RELATIONS));
     }
 }

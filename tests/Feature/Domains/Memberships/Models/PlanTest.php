@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domains\Memberships\Enums\DurationUnit;
 use App\Domains\Memberships\Models\Plan;
+use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Shared\Money\Money;
 use Carbon\CarbonImmutable;
@@ -60,3 +61,27 @@ it('lets different gyms use the same plan name', function () {
 
     expect(Plan::query()->acrossOrganizations()->count())->toBe(2);
 });
+
+it('can be limited to some branches, and made available at all of them again', function () {
+    $organization = actingAsOrganization(Organization::factory()->create());
+    $bole = Branch::factory()->for($organization)->create();
+    Branch::factory()->for($organization)->create();
+    $plan = Plan::factory()->for($organization)->create();
+
+    $plan->makeAvailableOnlyAt($bole);
+
+    expect($plan->refresh()->available_at_all_branches)->toBeFalse()
+        ->and($plan->branches->modelKeys())->toBe([$bole->id]);
+
+    $plan->makeAvailableAtAllBranches();
+
+    expect($plan->refresh()->available_at_all_branches)->toBeTrue()
+        ->and($plan->branches)->toBeEmpty();
+});
+
+it('refuses a branch from another gym', function () {
+    $plan = Plan::factory()->create();
+    $otherGymsBranch = Branch::factory()->create();
+
+    $plan->makeAvailableOnlyAt($otherGymsBranch);
+})->throws(QueryException::class, 'violates foreign key constraint');
