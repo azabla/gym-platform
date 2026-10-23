@@ -11,6 +11,7 @@ use Database\Factories\StaffFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -72,6 +73,21 @@ class Staff extends Model
 
         return $this->works_at_all_branches
             || $this->branches()->whereKey($branch->getKey())->exists();
+    }
+
+    /**
+     * Every branch of the organization when the staff member works at all
+     * branches, otherwise only the branches they are assigned to.
+     *
+     * @return Collection<int, Branch>
+     */
+    public function branchesWorkedAt(): Collection
+    {
+        if ($this->works_at_all_branches) {
+            return $this->organization->branches()->orderBy('name')->get();
+        }
+
+        return $this->branches()->orderBy('name')->get();
     }
 
     /**

@@ -37,3 +37,7 @@ arch('organization-owned models are scoped to the current organization')
 arch('the Identity domain does not depend on Organizations')
     ->expect('App\Domains\Identity')
     ->not->toUse('App\Domains\Organizations');
+
+arch('domains do not depend on the HTTP layer')
+    ->expect('App\Domains')
+    ->not->toUse('App\Http');

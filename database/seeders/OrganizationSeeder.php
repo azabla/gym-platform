@@ -23,9 +23,14 @@ class OrganizationSeeder extends Seeder
             );
 
             $currentOrganization->run($organization, function () use ($organization): void {
-                $organization->branches()->firstOrCreate(
+                $mainBranch = $organization->branches()->firstOrCreate(
                     ['code' => 'MAIN'],
                     ['name' => 'Main Branch'],
+                );
+
+                $organization->branches()->firstOrCreate(
+                    ['code' => 'BOLE'],
+                    ['name' => 'Bole Branch'],
                 );
 
                 $owner = User::query()->firstOrCreate(
@@ -37,6 +42,15 @@ class OrganizationSeeder extends Seeder
                     ['user_id' => $owner->id],
                     ['role' => StaffRole::Owner],
                 );
+
+                $receptionist = User::query()->firstOrCreate(
+                    ['email' => 'frontdesk@demo-gym.test'],
+                    ['name' => 'Demo Receptionist', 'password' => 'password'],
+                );
+
+                $organization->staff()
+                    ->firstOrCreate(['user_id' => $receptionist->id], ['role' => StaffRole::Receptionist])
+                    ->assignToBranches($mainBranch);
             });
         });
     }
