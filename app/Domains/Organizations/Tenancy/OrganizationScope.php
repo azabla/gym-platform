@@ -15,9 +15,7 @@ use Illuminate\Database\Eloquent\Scope;
  * Fails closed: with no current organization the query throws instead of
  * silently returning every organization's rows.
  *
- * @template TModel of Model
- *
- * @implements Scope<TModel>
+ * @implements Scope<Model>
  */
 final class OrganizationScope implements Scope
 {
@@ -25,8 +23,7 @@ final class OrganizationScope implements Scope
      * Resolves CurrentOrganization on every query: a global scope is created
      * once per process, but the current organization changes per request and job.
      *
-     * @param  Builder<TModel>  $builder
-     * @param  TModel  $model
+     * @param  Builder<covariant Model>  $builder
      */
     public function apply(Builder $builder, Model $model): void
     {
