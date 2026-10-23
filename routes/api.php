@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Auth\SmsCodeController;
+use App\Http\Controllers\Api\V1\Auth\SmsTokenController;
 use App\Http\Controllers\Api\V1\Auth\TokenController;
 use App\Http\Controllers\Api\V1\ChapaCallbackController;
 use App\Http\Controllers\Api\V1\MeController;
@@ -19,6 +21,14 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::post('auth/tokens', [TokenController::class, 'store'])
         ->middleware('throttle:login')
         ->name('auth.tokens.store');
+
+    // Members sign in to their app with a code sent to their phone (ADR 0010).
+    Route::post('auth/sms-codes', [SmsCodeController::class, 'store'])
+        ->middleware('throttle:sms-codes')
+        ->name('auth.sms-codes.store');
+    Route::post('auth/sms-tokens', [SmsTokenController::class, 'store'])
+        ->middleware('throttle:sms-sign-in')
+        ->name('auth.sms-tokens.store');
 
     // Chapa calls this after a member pays; it only makes us ask Chapa (ADR 0009).
     Route::match(['get', 'post'], 'chapa/callback', ChapaCallbackController::class)
