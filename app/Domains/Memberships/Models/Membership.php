@@ -13,8 +13,11 @@ use App\Domains\Organizations\Tenancy\BelongsToOrganization;
 use App\Domains\Shared\Money\Money;
 use Carbon\CarbonImmutable;
 use Database\Factories\MembershipFactory;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -53,6 +56,61 @@ class Membership extends Model
         return $membership;
     }
 
+    /**
+     * The first day a new membership for the member can start: today, or the
+     * day after their last membership ends if that is later.
+     */
+    public static function firstFreeDayFor(Member $member, CarbonImmutable $today): CarbonImmutable
+    {
+        $lastEndsOn = static::query()->whereBelongsTo($member)->notCancelled()->max('ends_on');
+
+        if ($lastEndsOn === null) {
+            return $today;
+        }
+
+        $dayAfterLastEnds = CarbonImmutable::parse((string) $lastEndsOn)->addDay();
+
+        return $dayAfterLastEnds->greaterThan($today) ? $dayAfterLastEnds : $today;
+    }
+
+    /**
+     * For each of the members who have one, the membership that best shows where
+     * they stand today: the one valid today, otherwise the next one coming up,
+     * otherwise the last one that ended. One query for all the members, keyed by
+     * member id.
+     *
+     * @param  array<int, int>  $memberIds
+     * @return Collection<array-key, static>
+     */
+    public static function atAGlanceFor(array $memberIds, CarbonImmutable $today): Collection
+    {
+        $day = $today->toDateString();
+
+        return static::query()
+            ->selectRaw('DISTINCT ON (member_id) *')
+            ->whereIn('member_id', $memberIds)
+            ->notCancelled()
+            ->orderBy('member_id')
+            ->orderByRaw('CASE WHEN starts_on <= ? AND ends_on >= ? THEN 0 WHEN starts_on > ? THEN 1 ELSE 2 END', [$day, $day, $day])
+            ->orderByRaw('CASE WHEN starts_on > ? THEN starts_on END', [$day])
+            ->orderByDesc('ends_on')
+            ->with('plan')
+            ->get()
+            ->keyBy('member_id');
+    }
+
+    /**
+     * Cancel the membership. It stays on record but no longer counts, so its days
+     * are free for another membership. Refunds come with Billing.
+     */
+    public function cancel(Staff $cancelledBy, string $reason): void
+    {
+        $this->cancelled_at = CarbonImmutable::now();
+        $this->cancelledBy()->associate($cancelledBy);
+        $this->cancellation_reason = $reason;
+        $this->save();
+    }
+
     /** @return BelongsTo<Member, $this> */
     public function member(): BelongsTo
     {
@@ -89,6 +147,29 @@ class Membership extends Model
             $this->ends_on->isBefore($day) => MembershipStatus::Expired,
             default => MembershipStatus::Active,
         };
+    }
+
+    /**
+     * Memberships that count: not cancelled.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function notCancelled(Builder $query): void
+    {
+        $query->whereNull('cancelled_at');
+    }
+
+    /**
+     * Memberships with at least one day from the first day through the last.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function overlapping(Builder $query, CarbonImmutable $firstDay, CarbonImmutable $lastDay): void
+    {
+        $query->where('starts_on', '<=', $lastDay->toDateString())
+            ->where('ends_on', '>=', $firstDay->toDateString());
     }
 
     /**

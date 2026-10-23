@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 use App\Domains\Members\Models\Member;
+use App\Domains\Memberships\Models\Membership;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Organization;
+use Carbon\CarbonImmutable;
 
 beforeEach(function () {
     $this->gym = Organization::factory()->create(['slug' => 'demo-gym']);
@@ -83,7 +85,8 @@ it('registers a member', function () {
         ->assertJsonPath('data.gender', 'male')
         ->assertJsonPath('data.date_of_birth', '1995-04-12')
         ->assertJsonPath('data.emergency_contact.phone', '+251922345678')
-        ->assertJsonPath('data.home_branch.name', 'Main Branch');
+        ->assertJsonPath('data.home_branch.name', 'Main Branch')
+        ->assertJsonPath('data.membership', null);
 
     expect(Member::query()->acrossOrganizations()->sole()->organization_id)->toBe($this->gym->id);
 });
@@ -158,6 +161,31 @@ it('reports missing and invalid details', function () {
             'emergency_contact_phone',
             'home_branch_id',
         ]);
+});
+
+it('shows each member\'s membership at a glance', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-10-23 09:00:00', 'Africa/Addis_Ababa'));
+    $abebe = Member::factory()->for($this->mainBranch, 'homeBranch')->create(['full_name' => 'Abebe Kebede']);
+    $dawit = Member::factory()->for($this->mainBranch, 'homeBranch')->create(['full_name' => 'Dawit Bekele']);
+    Member::factory()->for($this->mainBranch, 'homeBranch')->create(['full_name' => 'Hana Girma']);
+    $tigist = Member::factory()->for($this->mainBranch, 'homeBranch')->create(['full_name' => 'Tigist Haile']);
+    Membership::factory()->for($abebe)->create(['starts_on' => '2026-10-01', 'ends_on' => '2026-10-31']);
+    Membership::factory()->for($abebe)->create(['starts_on' => '2026-11-01', 'ends_on' => '2026-11-30']);
+    Membership::factory()->for($dawit)->create(['starts_on' => '2026-11-01', 'ends_on' => '2026-11-30']);
+    Membership::factory()->for($tigist)->create(['starts_on' => '2026-08-01', 'ends_on' => '2026-08-31']);
+    Membership::factory()->for($tigist)->create(['starts_on' => '2026-09-01', 'ends_on' => '2026-09-30']);
+    Membership::factory()->for($tigist)->cancelled()->create(['starts_on' => '2026-10-01', 'ends_on' => '2026-10-31']);
+    actingAsStaff($this->gym, StaffRole::Trainer);
+
+    $this->getJson(route('api.v1.organizations.members.index', ['organization' => 'demo-gym']))
+        ->assertOk()
+        ->assertJsonPath('data.*.full_name', ['Abebe Kebede', 'Dawit Bekele', 'Hana Girma', 'Tigist Haile'])
+        ->assertJsonPath('data.*.membership.status', ['active', 'upcoming', null, 'expired'])
+        ->assertJsonPath('data.*.membership.ends_on', ['2026-10-31', '2026-11-30', null, '2026-09-30']);
+
+    $this->getJson(route('api.v1.organizations.members.show', ['organization' => 'demo-gym', 'member' => $abebe]))
+        ->assertJsonPath('data.membership.status', 'active')
+        ->assertJsonPath('data.membership.ends_on', '2026-10-31');
 });
 
 it('shows a member of the gym', function () {
