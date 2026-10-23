@@ -26,6 +26,7 @@ arch('value objects are final and readonly')
     ->expect([
         'App\Domains\Shared\Money\Money',
         'App\Domains\Shared\PhoneNumber\PhoneNumber',
+        'App\Domains\Memberships\Discount\Discount',
     ])
     ->toBeFinal()
     ->toBeReadonly();

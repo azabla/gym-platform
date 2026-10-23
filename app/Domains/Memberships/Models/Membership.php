@@ -6,6 +6,7 @@ namespace App\Domains\Memberships\Models;
 
 use App\Casts\AsMoney;
 use App\Domains\Members\Models\Member;
+use App\Domains\Memberships\Discount\Discount;
 use App\Domains\Memberships\Enums\MembershipStatus;
 use App\Domains\Memberships\Policies\MembershipPolicy;
 use App\Domains\Organizations\Models\Branch;
@@ -27,11 +28,13 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * A plan sold to a member for set dates, from starts_on through ends_on. The
- * price and the branches it is valid at are copied from the plan when it is
- * sold. A member has at most one membership on any day (cancelled ones don't
- * count), which the database enforces. See ADR 0006 and ADR 0007.
+ * plan's price and the branches it is valid at are copied when it is sold, and
+ * owners and managers may sell it at a discount. A member has at most one
+ * membership on any day (cancelled ones don't count), which the database
+ * enforces. See ADR 0006 and ADR 0007.
  *
- * @property Money $price Stored in the price_minor and currency columns.
+ * @property Money $list_price The plan's price on the day of sale (list_price_minor and currency).
+ * @property Money $price What the member paid (price_minor and currency).
  */
 #[UseFactory(MembershipFactory::class)]
 #[UsePolicy(MembershipPolicy::class)]
@@ -50,13 +53,13 @@ class Membership extends Model
     ];
 
     /**
-     * Sell the plan to the member, starting on the given day. The membership
-     * belongs to the member's gym, and its end date, price and branches come
-     * from the plan.
+     * Sell the plan to the member, starting on the given day, at the plan's
+     * price less the discount, if any. The membership belongs to the member's
+     * gym, and its end date, list price and branches come from the plan.
      */
-    public static function sell(Member $member, Plan $plan, CarbonImmutable $startsOn, Staff $soldBy): self
+    public static function sell(Member $member, Plan $plan, CarbonImmutable $startsOn, Staff $soldBy, ?Discount $discount = null): self
     {
-        return DB::transaction(function () use ($member, $plan, $startsOn, $soldBy): self {
+        return DB::transaction(function () use ($member, $plan, $startsOn, $soldBy, $discount): self {
             $membership = new self;
             $membership->organization()->associate($member->organization_id);
             $membership->member()->associate($member);
@@ -64,7 +67,9 @@ class Membership extends Model
             $membership->soldBy()->associate($soldBy);
             $membership->starts_on = $startsOn;
             $membership->ends_on = $plan->endsOnFor($startsOn);
-            $membership->price = $plan->price;
+            $membership->list_price = $plan->price;
+            $membership->price = $discount?->appliedTo($plan->price) ?? $plan->price;
+            $membership->discount_reason = $discount?->reason;
             $membership->valid_at_all_branches = $plan->available_at_all_branches;
             $membership->save();
 
@@ -216,6 +221,7 @@ class Membership extends Model
         return [
             'starts_on' => 'immutable_date',
             'ends_on' => 'immutable_date',
+            'list_price' => AsMoney::class.':list_price_minor,currency',
             'price' => AsMoney::class.':price_minor,currency',
             'cancelled_at' => 'immutable_datetime',
             'valid_at_all_branches' => 'boolean',

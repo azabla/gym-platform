@@ -49,9 +49,44 @@ it('sells a plan to a member, starting today', function () {
         ->assertJsonPath('data.starts_on', '2026-10-23')
         ->assertJsonPath('data.ends_on', '2026-11-22')
         ->assertJsonPath('data.price.amount_minor', 250000)
+        ->assertJsonPath('data.list_price.amount_minor', 250000)
+        ->assertJsonPath('data.discount', null)
         ->assertJsonPath('data.sold_by.id', $receptionist->id)
         ->assertJsonPath('data.cancellation', null);
 });
+
+it('lets a manager sell at a discount, as an amount or a percentage', function (string $discount, int $pricePaid, int $amountOff) {
+    actingAsStaff($this->gym, StaffRole::Manager);
+
+    sellMembership($this->member, ['plan_id' => $this->monthly->id, 'discount' => $discount, 'discount_reason' => 'Student'])
+        ->assertCreated()
+        ->assertJsonPath('data.list_price.amount_minor', 250000)
+        ->assertJsonPath('data.price.amount_minor', $pricePaid)
+        ->assertJsonPath('data.discount.amount.amount_minor', $amountOff)
+        ->assertJsonPath('data.discount.reason', 'Student');
+})->with([
+    'ten percent' => ['10%', 225000, 25000],
+    '500 birr' => ['500', 200000, 50000],
+]);
+
+it('lets only owners and managers give a discount', function () {
+    actingAsStaff($this->gym, StaffRole::Receptionist);
+
+    sellMembership($this->member, ['plan_id' => $this->monthly->id, 'discount' => '10%', 'discount_reason' => 'Student'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['discount' => 'Only owners and managers can give a discount.']);
+});
+
+it('refuses a discount larger than the price, or without a reason', function (array $details, string $field) {
+    actingAsStaff($this->gym, StaffRole::Owner);
+
+    sellMembership($this->member, ['plan_id' => $this->monthly->id, ...$details])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors([$field]);
+})->with([
+    'larger than the price' => [['discount' => '3,000', 'discount_reason' => 'Student'], 'discount'],
+    'without a reason' => [['discount' => '10%'], 'discount_reason'],
+]);
 
 it('sells a branch-only plan as a membership valid at those branches', function () {
     $boleBranch = Branch::factory()->for($this->gym)->create(['name' => 'Bole Branch']);

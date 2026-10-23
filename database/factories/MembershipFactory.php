@@ -20,8 +20,8 @@ class MembershipFactory extends Factory
      * Define the model's default state.
      *
      * A one-month membership starting today, in the member's gym, sold by a
-     * staff member of that gym. The end date and price come from the plan
-     * unless they are given explicitly.
+     * staff member of that gym. The end date, list price and price come from
+     * the plan unless they are given explicitly.
      *
      * @return array<string, mixed>
      */
@@ -39,6 +39,7 @@ class MembershipFactory extends Factory
             'starts_on' => fn () => CarbonImmutable::today(),
             'ends_on' => fn (array $attributes) => $this->planOf($attributes)
                 ->endsOnFor(CarbonImmutable::parse($attributes['starts_on'])),
+            'list_price' => fn (array $attributes) => $this->planOf($attributes)->price,
             'price' => fn (array $attributes) => $this->planOf($attributes)->price,
             'sold_by_staff_id' => fn (array $attributes) => Staff::factory()->state([
                 'organization_id' => $attributes['organization_id'],

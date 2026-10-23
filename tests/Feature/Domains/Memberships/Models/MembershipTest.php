@@ -110,3 +110,10 @@ it('stays valid at the branches its plan had when it was sold', function () {
     expect($membership->refresh()->valid_at_all_branches)->toBeFalse()
         ->and($membership->branches->modelKeys())->toBe([$bole->id]);
 });
+
+it('refuses a price above the list price, or a discount without a reason', function (array $attributes) {
+    Membership::factory()->create($attributes);
+})->with([
+    'a price above the list price' => [['list_price' => Money::of('2,500'), 'price' => Money::of('3,000')]],
+    'a discount without a reason' => [['list_price' => Money::of('2,500'), 'price' => Money::of('2,000')]],
+])->throws(QueryException::class, 'violates check constraint');

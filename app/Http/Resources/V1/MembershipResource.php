@@ -36,7 +36,12 @@ class MembershipResource extends JsonResource
             'status' => $this->statusOn(app(CurrentOrganization::class)->get()->today()),
             'starts_on' => $this->starts_on->toDateString(),
             'ends_on' => $this->ends_on->toDateString(),
+            'list_price' => $this->list_price,
             'price' => $this->price,
+            'discount' => $this->discount_reason === null ? null : [
+                'amount' => $this->list_price->subtract($this->price),
+                'reason' => $this->discount_reason,
+            ],
             'valid_at_all_branches' => $this->valid_at_all_branches,
             'branches' => BranchResource::collection($this->whenLoaded('branches')),
             'sold_by' => $this->whenLoaded('soldBy', fn (Staff $staff) => $this->staffMember($staff)),

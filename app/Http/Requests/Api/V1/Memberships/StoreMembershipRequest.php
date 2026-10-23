@@ -3,6 +3,8 @@
 namespace App\Http\Requests\Api\V1\Memberships;
 
 use App\Domains\Members\Models\Member;
+use App\Domains\Memberships\Discount\Discount;
+use App\Domains\Memberships\Discount\Exceptions\InvalidDiscount;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Memberships\Models\Plan;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
@@ -32,6 +34,8 @@ class StoreMembershipRequest extends FormRequest
         return [
             'plan_id' => ['required', 'bail', 'integer', $this->planOnSale()],
             'starts_on' => ['nullable', 'bail', 'date_format:Y-m-d', $this->notInThePastUnlessAllowed()],
+            'discount' => ['nullable', 'bail', 'string', $this->discountOnlyFromOwnersAndManagers(), $this->discountThatFitsThePrice()],
+            'discount_reason' => ['nullable', 'string', 'max:500', 'required_with:discount'],
         ];
     }
 
@@ -83,6 +87,53 @@ class StoreMembershipRequest extends FormRequest
         }
 
         return Membership::firstFreeDayFor($this->member(), $this->today());
+    }
+
+    /**
+     * The discount that was sent, if any: "500" off or "10%" off, with its reason.
+     */
+    public function discount(): ?Discount
+    {
+        if (! $this->filled('discount')) {
+            return null;
+        }
+
+        return Discount::parse(
+            $this->string('discount')->toString(),
+            $this->string('discount_reason')->toString(),
+            $this->plan()->price->currency,
+        );
+    }
+
+    private function discountOnlyFromOwnersAndManagers(): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail): void {
+            if (! $this->user()->can('discount', Membership::class)) {
+                $fail('Only owners and managers can give a discount.');
+            }
+        };
+    }
+
+    /**
+     * The discount must read as an amount or a percentage, and take something,
+     * but not more than everything, off the plan's price.
+     */
+    private function discountThatFitsThePrice(): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail): void {
+            $plan = Plan::query()->find($this->integer('plan_id'));
+
+            if ($plan === null) {
+                return;
+            }
+
+            try {
+                Discount::parse((string) $value, $this->string('discount_reason')->toString(), $plan->price->currency)
+                    ->appliedTo($plan->price);
+            } catch (InvalidDiscount $exception) {
+                $fail($exception->getMessage());
+            }
+        };
     }
 
     /**
