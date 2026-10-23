@@ -5,10 +5,12 @@ declare(strict_types=1);
 use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Enums\DurationUnit;
 use App\Domains\Memberships\Models\Membership;
+use App\Domains\Memberships\Models\MembershipFreeze;
 use App\Domains\Memberships\Models\Plan;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Organization;
+use App\Domains\Organizations\Models\Staff;
 use App\Domains\Shared\Money\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Testing\TestResponse;
@@ -23,6 +25,7 @@ beforeEach(function () {
         'price' => Money::of('2,500'),
         'duration_count' => 1,
         'duration_unit' => DurationUnit::Month,
+        'freeze_days_allowed' => 7,
     ]);
 });
 
@@ -39,6 +42,31 @@ function sellMembership(Member $member, array $details): TestResponse
     );
 }
 
+/**
+ * POST a freeze of the given details for the membership.
+ *
+ * @param  array<string, mixed>  $details
+ */
+function freezeMembership(Membership $membership, array $details): TestResponse
+{
+    return test()->postJson(
+        route('api.v1.organizations.memberships.freezes.store', ['organization' => 'demo-gym', 'membership' => $membership]),
+        $details,
+    );
+}
+
+/**
+ * POST the early end of the membership's freeze.
+ */
+function endMembershipFreeze(Membership $membership, MembershipFreeze $freeze): TestResponse
+{
+    return test()->postJson(route('api.v1.organizations.memberships.freezes.end', [
+        'organization' => 'demo-gym',
+        'membership' => $membership,
+        'freeze' => $freeze,
+    ]));
+}
+
 it('sells a plan to a member, starting today', function () {
     $receptionist = actingAsStaff($this->gym, StaffRole::Receptionist);
 
@@ -51,6 +79,7 @@ it('sells a plan to a member, starting today', function () {
         ->assertJsonPath('data.price.amount_minor', 250000)
         ->assertJsonPath('data.list_price.amount_minor', 250000)
         ->assertJsonPath('data.discount', null)
+        ->assertJsonPath('data.freeze_days_allowed', 7)
         ->assertJsonPath('data.sold_by.id', $receptionist->id)
         ->assertJsonPath('data.cancellation', null);
 });
@@ -228,4 +257,138 @@ it('frees the days of a cancelled membership for a new one', function () {
     sellMembership($this->member, ['plan_id' => $this->monthly->id])
         ->assertCreated()
         ->assertJsonPath('data.starts_on', '2026-10-23');
+});
+
+it('lets a receptionist freeze a membership within its freeze days', function () {
+    $membership = Membership::factory()->for($this->member)->create(['starts_on' => '2026-10-01', 'ends_on' => '2026-10-31', 'freeze_days_allowed' => 7]);
+    actingAsStaff($this->gym, StaffRole::Receptionist);
+
+    freezeMembership($membership, ['ends_on' => '2026-10-29', 'reason' => 'Travelling to Bahir Dar.'])
+        ->assertCreated()
+        ->assertJsonPath('data.status', 'frozen')
+        ->assertJsonPath('data.ends_on', '2026-11-07')
+        ->assertJsonPath('data.freeze_days_used', 7)
+        ->assertJsonPath('data.freezes.0.starts_on', '2026-10-23')
+        ->assertJsonPath('data.freezes.0.days', 7);
+
+    $this->getJson(route('api.v1.organizations.members.index', ['organization' => 'demo-gym']))
+        ->assertJsonPath('data.0.membership.status', 'frozen');
+});
+
+it('lets only owners and managers freeze for more days than the plan allows', function () {
+    $membership = Membership::factory()->for($this->member)->create(['starts_on' => '2026-10-01', 'ends_on' => '2026-10-31', 'freeze_days_allowed' => 7]);
+    actingAsStaff($this->gym, StaffRole::Receptionist);
+
+    freezeMembership($membership, ['ends_on' => '2026-10-30', 'reason' => 'Travelling.'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['ends_on' => 'This membership can be frozen for 7 more days.']);
+
+    actingAsStaff($this->gym, StaffRole::Manager);
+
+    freezeMembership($membership, ['ends_on' => '2026-10-30', 'reason' => 'Travelling.'])
+        ->assertCreated()
+        ->assertJsonPath('data.freeze_days_used', 8);
+});
+
+it('does not let trainers freeze memberships', function () {
+    $membership = Membership::factory()->for($this->member)->create(['freeze_days_allowed' => 7]);
+    actingAsStaff($this->gym, StaffRole::Trainer);
+
+    freezeMembership($membership, ['ends_on' => '2026-10-25', 'reason' => 'Travelling.'])->assertForbidden();
+});
+
+it('refuses a freeze that overlaps another or starts outside the membership', function () {
+    $membership = Membership::factory()->for($this->member)->create(['starts_on' => '2026-10-01', 'ends_on' => '2026-10-31', 'freeze_days_allowed' => 30]);
+    actingAsOrganization($this->gym);
+    $membership->freeze(CarbonImmutable::parse('2026-10-25'), CarbonImmutable::parse('2026-10-27'), 'Ill.', Staff::factory()->for($this->gym)->create());
+    actingAsStaff($this->gym, StaffRole::Owner);
+
+    freezeMembership($membership, ['starts_on' => '2026-10-26', 'ends_on' => '2026-10-28', 'reason' => 'Travelling.'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['starts_on' => 'This membership is already frozen from 25 October 2026 to 27 October 2026.']);
+
+    freezeMembership($membership, ['starts_on' => '2026-11-10', 'ends_on' => '2026-11-12', 'reason' => 'Travelling.'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['starts_on' => 'A freeze must start while the membership runs, from 1 October 2026 to 3 November 2026.']);
+});
+
+it('refuses to freeze a cancelled membership', function () {
+    $membership = Membership::factory()->for($this->member)->cancelled()->create(['freeze_days_allowed' => 7]);
+    actingAsStaff($this->gym, StaffRole::Owner);
+
+    freezeMembership($membership, ['ends_on' => '2026-10-25', 'reason' => 'Travelling.'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['membership']);
+});
+
+it('lets only owners and managers start a freeze on a past date', function () {
+    $membership = Membership::factory()->for($this->member)->create(['starts_on' => '2026-10-01', 'ends_on' => '2026-10-31', 'freeze_days_allowed' => 7]);
+    actingAsStaff($this->gym, StaffRole::Receptionist);
+
+    freezeMembership($membership, ['starts_on' => '2026-10-20', 'ends_on' => '2026-10-22', 'reason' => 'Was ill.'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['starts_on' => 'Only owners and managers can start a freeze on a past date.']);
+
+    actingAsStaff($this->gym, StaffRole::Manager);
+
+    freezeMembership($membership, ['starts_on' => '2026-10-20', 'ends_on' => '2026-10-22', 'reason' => 'Was ill.'])
+        ->assertCreated()
+        ->assertJsonPath('data.ends_on', '2026-11-03');
+});
+
+it('moves a membership queued after the frozen one', function () {
+    $membership = Membership::factory()->for($this->member)->create(['starts_on' => '2026-10-01', 'ends_on' => '2026-10-31', 'freeze_days_allowed' => 7]);
+    Membership::factory()->for($this->member)->create(['starts_on' => '2026-11-01', 'ends_on' => '2026-11-30']);
+    actingAsStaff($this->gym, StaffRole::Receptionist);
+
+    freezeMembership($membership, ['ends_on' => '2026-10-29', 'reason' => 'Travelling.'])->assertCreated();
+
+    $this->getJson(route('api.v1.organizations.members.memberships.index', ['organization' => 'demo-gym', 'member' => $this->member]))
+        ->assertJsonPath('data.*.starts_on', ['2026-11-08', '2026-10-01'])
+        ->assertJsonPath('data.*.ends_on', ['2026-12-07', '2026-11-07']);
+});
+
+it('ends a freeze early, taking the unused days off the end date', function () {
+    $membership = Membership::factory()->for($this->member)->create(['starts_on' => '2026-10-01', 'ends_on' => '2026-10-31', 'freeze_days_allowed' => 30]);
+    actingAsOrganization($this->gym);
+    $freeze = $membership->freeze(CarbonImmutable::parse('2026-10-20'), CarbonImmutable::parse('2026-10-29'), 'Travelling.', Staff::factory()->for($this->gym)->create());
+    actingAsStaff($this->gym, StaffRole::Receptionist);
+
+    endMembershipFreeze($membership, $freeze)
+        ->assertOk()
+        ->assertJsonPath('data.status', 'active')
+        ->assertJsonPath('data.ends_on', '2026-11-03')
+        ->assertJsonPath('data.freezes.0.ends_on', '2026-10-22')
+        ->assertJsonPath('data.freeze_days_used', 3);
+});
+
+it('removes a freeze that has not started when it is ended', function () {
+    $membership = Membership::factory()->for($this->member)->create(['starts_on' => '2026-10-01', 'ends_on' => '2026-10-31', 'freeze_days_allowed' => 30]);
+    actingAsOrganization($this->gym);
+    $freeze = $membership->freeze(CarbonImmutable::parse('2026-10-25'), CarbonImmutable::parse('2026-10-27'), 'Travelling.', Staff::factory()->for($this->gym)->create());
+    actingAsStaff($this->gym, StaffRole::Receptionist);
+
+    endMembershipFreeze($membership, $freeze)
+        ->assertOk()
+        ->assertJsonPath('data.ends_on', '2026-10-31')
+        ->assertJsonPath('data.freezes', []);
+});
+
+it('refuses to end a freeze that is already over', function () {
+    $membership = Membership::factory()->for($this->member)->create(['starts_on' => '2026-10-01', 'ends_on' => '2026-10-31', 'freeze_days_allowed' => 30]);
+    actingAsOrganization($this->gym);
+    $freeze = $membership->freeze(CarbonImmutable::parse('2026-10-10'), CarbonImmutable::parse('2026-10-12'), 'Ill.', Staff::factory()->for($this->gym)->create());
+    actingAsStaff($this->gym, StaffRole::Receptionist);
+
+    endMembershipFreeze($membership, $freeze)
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['freeze' => 'This freeze has already ended.']);
+});
+
+it('cannot end a freeze of another membership', function () {
+    $membership = Membership::factory()->for($this->member)->create();
+    $otherMembershipsFreeze = MembershipFreeze::factory()->create();
+    actingAsStaff($this->gym, StaffRole::Owner);
+
+    endMembershipFreeze($membership, $otherMembershipsFreeze)->assertNotFound();
 });

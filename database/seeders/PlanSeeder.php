@@ -15,7 +15,8 @@ class PlanSeeder extends Seeder
     /**
      * Run the database seeds.
      *
-     * Four plans valid at every branch, and Bole Monthly, valid only at Bole Branch.
+     * Four plans valid at every branch, and Bole Monthly, valid only at Bole
+     * Branch. Each says how many days it can be frozen.
      */
     public function run(CurrentOrganization $currentOrganization): void
     {
@@ -26,19 +27,20 @@ class PlanSeeder extends Seeder
                 $boleBranch = $organization->branches()->where('code', 'BOLE')->firstOrFail();
 
                 $demoPlans = [
-                    ['Day Pass', '200', 1, DurationUnit::Day, null],
-                    ['Monthly', '2,500', 1, DurationUnit::Month, null],
-                    ['3 Months', '6,500', 3, DurationUnit::Month, null],
-                    ['Yearly', '24,000', 12, DurationUnit::Month, null],
-                    ['Bole Monthly', '2,000', 1, DurationUnit::Month, $boleBranch],
+                    ['Day Pass', '200', 1, DurationUnit::Day, 0, null],
+                    ['Monthly', '2,500', 1, DurationUnit::Month, 7, null],
+                    ['3 Months', '6,500', 3, DurationUnit::Month, 14, null],
+                    ['Yearly', '24,000', 12, DurationUnit::Month, 30, null],
+                    ['Bole Monthly', '2,000', 1, DurationUnit::Month, 7, $boleBranch],
                 ];
 
-                foreach ($demoPlans as [$name, $price, $durationCount, $durationUnit, $onlyAtBranch]) {
+                foreach ($demoPlans as [$name, $price, $durationCount, $durationUnit, $freezeDaysAllowed, $onlyAtBranch]) {
                     $plan = Plan::query()->firstOrNew(['name' => $name]);
                     $plan->fill([
                         'price' => Money::of($price),
                         'duration_count' => $durationCount,
                         'duration_unit' => $durationUnit,
+                        'freeze_days_allowed' => $freezeDaysAllowed,
                     ]);
                     $plan->organization()->associate($organization);
                     $plan->save();

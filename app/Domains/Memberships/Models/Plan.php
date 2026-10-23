@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\DB;
  *
  * @property Money $price Stored in the price_minor and currency columns.
  */
-#[Fillable(['name', 'description', 'price', 'duration_count', 'duration_unit'])]
+#[Fillable(['name', 'description', 'price', 'duration_count', 'duration_unit', 'freeze_days_allowed'])]
 #[UseFactory(PlanFactory::class)]
 #[UsePolicy(PlanPolicy::class)]
 class Plan extends Model
@@ -38,12 +38,13 @@ class Plan extends Model
     use BelongsToOrganization, HasFactory, SoftDeletes;
 
     /**
-     * The same default as the database column, so a new plan knows it before it is saved.
+     * The same defaults as the database columns, so a new plan knows them before it is saved.
      *
      * @var array<string, mixed>
      */
     protected $attributes = [
         'available_at_all_branches' => true,
+        'freeze_days_allowed' => 0,
     ];
 
     /**
@@ -105,6 +106,7 @@ class Plan extends Model
             'duration_count' => 'integer',
             'duration_unit' => DurationUnit::class,
             'available_at_all_branches' => 'boolean',
+            'freeze_days_allowed' => 'integer',
         ];
     }
 }

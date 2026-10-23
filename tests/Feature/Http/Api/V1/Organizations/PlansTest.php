@@ -18,6 +18,7 @@ beforeEach(function () {
         'price' => '2,500',
         'duration_count' => 1,
         'duration_unit' => 'month',
+        'freeze_days_allowed' => 7,
     ];
 });
 
@@ -42,6 +43,7 @@ it('creates a plan', function () {
         ->assertJsonPath('data.description', 'Gym floor and group classes.')
         ->assertJsonPath('data.price', ['amount_minor' => 250000, 'currency' => 'ETB', 'formatted' => '2,500.00 ETB'])
         ->assertJsonPath('data.duration', ['count' => 1, 'unit' => 'month'])
+        ->assertJsonPath('data.freeze_days_allowed', 7)
         ->assertJsonPath('data.available_at_all_branches', true)
         ->assertJsonPath('data.branches', []);
 
@@ -100,7 +102,7 @@ it('lets only owners and managers create, edit and archive plans', function (Sta
         ->assertForbidden();
 })->with([StaffRole::Receptionist, StaffRole::Trainer]);
 
-it('reports a bad price or duration', function (array $details, string $field) {
+it('reports a bad price, duration or number of freeze days', function (array $details, string $field) {
     actingAsStaff($this->gym, StaffRole::Owner);
 
     $this->postJson(route('api.v1.organizations.plans.store', ['organization' => 'demo-gym']), [...$this->monthlyPlanDetails, ...$details])
@@ -114,6 +116,8 @@ it('reports a bad price or duration', function (array $details, string $field) {
     'more than 36 months' => [['duration_count' => 37], 'duration_count'],
     'more than 366 days' => [['duration_count' => 367, 'duration_unit' => 'day'], 'duration_count'],
     'an unknown unit' => [['duration_unit' => 'week'], 'duration_unit'],
+    'negative freeze days' => [['freeze_days_allowed' => -1], 'freeze_days_allowed'],
+    'more than 366 freeze days' => [['freeze_days_allowed' => 367], 'freeze_days_allowed'],
 ]);
 
 it('refuses a name another plan of the gym already has, whatever the capitals', function () {

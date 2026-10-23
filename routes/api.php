@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Organizations\BranchController;
 use App\Http\Controllers\Api\V1\Organizations\MemberController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipCancellationController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipController;
+use App\Http\Controllers\Api\V1\Organizations\MembershipFreezeController;
 use App\Http\Controllers\Api\V1\Organizations\PlanController;
 use Illuminate\Support\Facades\Route;
 
@@ -30,6 +31,11 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     ->shallow();
                 Route::post('memberships/{membership}/cancellation', [MembershipCancellationController::class, 'store'])
                     ->name('memberships.cancellation.store');
+                Route::post('memberships/{membership}/freezes', [MembershipFreezeController::class, 'store'])
+                    ->name('memberships.freezes.store');
+                Route::post('memberships/{membership}/freezes/{freeze}/end', [MembershipFreezeController::class, 'end'])
+                    ->name('memberships.freezes.end')
+                    ->scopeBindings();
             });
     });
 });

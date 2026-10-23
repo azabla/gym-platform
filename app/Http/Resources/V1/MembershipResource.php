@@ -17,7 +17,7 @@ class MembershipResource extends JsonResource
      * The relations a full membership response shows. Without them, the
      * response leaves out who sold or cancelled it and its branches.
      */
-    public const RELATIONS = ['plan', 'branches', 'soldBy.user', 'cancelledBy.user'];
+    public const RELATIONS = ['plan', 'branches', 'freezes.frozenBy.user', 'soldBy.user', 'cancelledBy.user'];
 
     /**
      * Transform the resource into an array. The status is for today where the gym is.
@@ -44,6 +44,9 @@ class MembershipResource extends JsonResource
             ],
             'valid_at_all_branches' => $this->valid_at_all_branches,
             'branches' => BranchResource::collection($this->whenLoaded('branches')),
+            'freeze_days_allowed' => $this->freeze_days_allowed,
+            'freeze_days_used' => $this->whenLoaded('freezes', fn () => $this->freezeDaysUsed()),
+            'freezes' => MembershipFreezeResource::collection($this->whenLoaded('freezes')),
             'sold_by' => $this->whenLoaded('soldBy', fn (Staff $staff) => $this->staffMember($staff)),
             'sold_at' => $this->created_at?->toIso8601String(),
             'cancellation' => $this->cancelled_at === null ? null : [

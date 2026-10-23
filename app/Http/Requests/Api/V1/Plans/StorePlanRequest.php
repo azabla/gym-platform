@@ -35,6 +35,7 @@ class StorePlanRequest extends FormRequest
             'price' => ['required', new ValidMoneyAmount],
             'duration_count' => ['required', 'integer', 'min:1', $this->longestDuration()],
             'duration_unit' => ['required', Rule::enum(DurationUnit::class)],
+            'freeze_days_allowed' => ['sometimes', 'integer', 'min:0', 'max:366'],
             ...$this->branchRules(),
         ];
     }

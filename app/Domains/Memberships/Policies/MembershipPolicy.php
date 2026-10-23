@@ -12,9 +12,10 @@ use App\Domains\Organizations\Tenancy\CurrentStaff;
 
 /**
  * Every staff member of a gym may see its memberships. Owners, managers and
- * receptionists may sell them. Only owners and managers may cancel a membership,
- * sell at a discount or use a past date, so a sale can't be quietly undone,
- * cheapened or redated after the money is taken. See ADR 0006 and ADR 0007.
+ * receptionists may sell them, and freeze them within the days their plan
+ * allows. Only owners and managers may cancel a membership, sell at a discount,
+ * freeze beyond the allowed days or use a past date, so a sale can't be quietly
+ * undone, cheapened or redated after the money is taken. See ADR 0006 and ADR 0007.
  */
 final class MembershipPolicy
 {
@@ -66,6 +67,22 @@ final class MembershipPolicy
     public function cancel(User $user, Membership $membership): bool
     {
         return $this->hasRole($this->staffFor($user, $membership), self::OWNERS_AND_MANAGERS);
+    }
+
+    /**
+     * Freeze the membership, or end one of its freezes early.
+     */
+    public function freeze(User $user, Membership $membership): bool
+    {
+        return $this->hasRole($this->staffFor($user, $membership), self::ROLES_THAT_SELL_MEMBERSHIPS);
+    }
+
+    /**
+     * Freeze a membership for more days than its plan allowed.
+     */
+    public function freezeBeyondAllowance(User $user): bool
+    {
+        return $this->hasRole($this->staffFor($user), self::OWNERS_AND_MANAGERS);
     }
 
     /**

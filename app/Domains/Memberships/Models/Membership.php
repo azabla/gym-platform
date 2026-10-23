@@ -24,14 +24,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 
 /**
  * A plan sold to a member for set dates, from starts_on through ends_on. The
- * plan's price and the branches it is valid at are copied when it is sold, and
- * owners and managers may sell it at a discount. A member has at most one
- * membership on any day (cancelled ones don't count), which the database
- * enforces. See ADR 0006 and ADR 0007.
+ * plan's price, freeze days and the branches it is valid at are copied when it
+ * is sold, and owners and managers may sell it at a discount. A member has at
+ * most one membership on any day (cancelled ones don't count), which the
+ * database enforces. Freezing it moves its end date later. See ADR 0006 and ADR 0007.
  *
  * @property Money $list_price The plan's price on the day of sale (list_price_minor and currency).
  * @property Money $price What the member paid (price_minor and currency).
@@ -50,6 +51,7 @@ class Membership extends Model
      */
     protected $attributes = [
         'valid_at_all_branches' => true,
+        'freeze_days_allowed' => 0,
     ];
 
     /**
@@ -70,6 +72,7 @@ class Membership extends Model
             $membership->list_price = $plan->price;
             $membership->price = $discount?->appliedTo($plan->price) ?? $plan->price;
             $membership->discount_reason = $discount?->reason;
+            $membership->freeze_days_allowed = $plan->freeze_days_allowed;
             $membership->valid_at_all_branches = $plan->available_at_all_branches;
             $membership->save();
 
@@ -122,9 +125,77 @@ class Membership extends Model
             ->orderByRaw('CASE WHEN starts_on <= ? AND ends_on >= ? THEN 0 WHEN starts_on > ? THEN 1 ELSE 2 END', [$day, $day, $day])
             ->orderByRaw('CASE WHEN starts_on > ? THEN starts_on END', [$day])
             ->orderByDesc('ends_on')
-            ->with(['plan', 'branches'])
+            ->with(['plan', 'branches', 'freezes'])
             ->get()
             ->keyBy('member_id');
+    }
+
+    /**
+     * Pause the membership from the first day through the last. Its end date
+     * moves later by the number of frozen days, and so does every membership of
+     * the member queued after it.
+     */
+    public function freeze(CarbonImmutable $firstDay, CarbonImmutable $lastDay, string $reason, Staff $frozenBy): MembershipFreeze
+    {
+        return DB::transaction(function () use ($firstDay, $lastDay, $reason, $frozenBy): MembershipFreeze {
+            $days = (int) $firstDay->diffInDays($lastDay) + 1;
+
+            $this->moveQueuedMemberships($days);
+            $this->ends_on = $this->ends_on->addDays($days);
+            $this->save();
+
+            $freeze = new MembershipFreeze;
+            $freeze->organization()->associate($this->organization_id);
+            $freeze->membership()->associate($this);
+            $freeze->frozenBy()->associate($frozenBy);
+            $freeze->starts_on = $firstDay;
+            $freeze->ends_on = $lastDay;
+            $freeze->reason = $reason;
+            $freeze->save();
+
+            $this->unsetRelation('freezes');
+
+            return $freeze;
+        });
+    }
+
+    /**
+     * End the freeze early because the member is back today. It then ends
+     * yesterday, or is removed if it hadn't started yet. The days that are no
+     * longer frozen come off this membership's end date, and off every
+     * membership of the member queued after it.
+     */
+    public function endFreeze(MembershipFreeze $freeze, CarbonImmutable $today): void
+    {
+        DB::transaction(function () use ($freeze, $today): void {
+            if ($freeze->starts_on->isBefore($today)) {
+                $daysNoLongerFrozen = (int) $today->diffInDays($freeze->ends_on) + 1;
+                $freeze->ends_on = $today->subDay();
+                $freeze->save();
+            } else {
+                $daysNoLongerFrozen = $freeze->days();
+                $freeze->delete();
+            }
+
+            $this->ends_on = $this->ends_on->subDays($daysNoLongerFrozen);
+            $this->save();
+            $this->moveQueuedMemberships(-$daysNoLongerFrozen);
+
+            $this->unsetRelation('freezes');
+        });
+    }
+
+    /**
+     * How many days the membership has been frozen in total.
+     */
+    public function freezeDaysUsed(): int
+    {
+        return (int) $this->freezes->sum(fn (MembershipFreeze $freeze): int => $freeze->days());
+    }
+
+    public function isFrozenOn(CarbonImmutable $day): bool
+    {
+        return $this->freezes->contains(fn (MembershipFreeze $freeze): bool => $freeze->covers($day));
     }
 
     /**
@@ -178,12 +249,19 @@ class Membership extends Model
         return $this->belongsToMany(Branch::class);
     }
 
+    /** @return HasMany<MembershipFreeze, $this> */
+    public function freezes(): HasMany
+    {
+        return $this->hasMany(MembershipFreeze::class)->orderBy('starts_on');
+    }
+
     public function statusOn(CarbonImmutable $day): MembershipStatus
     {
         return match (true) {
             $this->cancelled_at !== null => MembershipStatus::Cancelled,
             $this->starts_on->isAfter($day) => MembershipStatus::Upcoming,
             $this->ends_on->isBefore($day) => MembershipStatus::Expired,
+            $this->isFrozenOn($day) => MembershipStatus::Frozen,
             default => MembershipStatus::Active,
         };
     }
@@ -212,6 +290,35 @@ class Membership extends Model
     }
 
     /**
+     * Move the member's memberships queued after this one by the given number of
+     * days (later when positive), together with their freezes. When moving later
+     * the furthest moves first, and when moving earlier the nearest moves first,
+     * so the database never sees two memberships, or two freezes, overlap.
+     */
+    private function moveQueuedMemberships(int $days): void
+    {
+        $queuedMemberships = static::query()
+            ->where('member_id', $this->member_id)
+            ->notCancelled()
+            ->where('starts_on', '>', $this->ends_on->toDateString())
+            ->orderBy('starts_on', $days > 0 ? 'desc' : 'asc')
+            ->with('freezes')
+            ->get();
+
+        foreach ($queuedMemberships as $membership) {
+            $membership->starts_on = $membership->starts_on->addDays($days);
+            $membership->ends_on = $membership->ends_on->addDays($days);
+            $membership->save();
+
+            foreach ($membership->freezes->sortBy('starts_on', descending: $days > 0) as $freeze) {
+                $freeze->starts_on = $freeze->starts_on->addDays($days);
+                $freeze->ends_on = $freeze->ends_on->addDays($days);
+                $freeze->save();
+            }
+        }
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -221,6 +328,7 @@ class Membership extends Model
         return [
             'starts_on' => 'immutable_date',
             'ends_on' => 'immutable_date',
+            'freeze_days_allowed' => 'integer',
             'list_price' => AsMoney::class.':list_price_minor,currency',
             'price' => AsMoney::class.':price_minor,currency',
             'cancelled_at' => 'immutable_datetime',
