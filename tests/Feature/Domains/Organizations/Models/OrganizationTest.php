@@ -12,6 +12,8 @@ it('has many branches, and only its own', function () {
     $ownBranches = Branch::factory()->count(2)->for($organization)->create();
     Branch::factory()->for(Organization::factory())->create();
 
+    actingAsOrganization($organization);
+
     expect($organization->branches->modelKeys())->toEqualCanonicalizing($ownBranches->modelKeys());
 });
 

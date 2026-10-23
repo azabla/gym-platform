@@ -9,7 +9,7 @@ use Database\Seeders\OrganizationSeeder;
 it('creates the demo organization with its main branch', function () {
     $this->seed(OrganizationSeeder::class);
 
-    $organization = Organization::query()->where('slug', 'demo-gym')->sole();
+    $organization = actingAsOrganization(Organization::query()->where('slug', 'demo-gym')->sole());
     $branch = $organization->branches()->sole();
 
     expect($organization->name)->toBe('Demo Gym')
@@ -22,7 +22,7 @@ it('can run more than once without creating duplicates', function () {
     $this->seed(OrganizationSeeder::class);
 
     expect(Organization::query()->count())->toBe(1)
-        ->and(Branch::query()->count())->toBe(1);
+        ->and(Branch::query()->acrossOrganizations()->count())->toBe(1);
 });
 
 it('runs as part of the database seeder', function () {

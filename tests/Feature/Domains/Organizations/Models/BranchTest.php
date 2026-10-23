@@ -24,7 +24,7 @@ it('lets different organizations use the same code', function () {
     Branch::factory()->for(Organization::factory())->create(['code' => 'MAIN']);
     Branch::factory()->for(Organization::factory())->create(['code' => 'MAIN']);
 
-    expect(Branch::query()->where('code', 'MAIN')->count())->toBe(2);
+    expect(Branch::query()->acrossOrganizations()->where('code', 'MAIN')->count())->toBe(2);
 });
 
 it('cannot be moved to another organization by mass assignment', function () {
