@@ -12,8 +12,8 @@ use App\Domains\Organizations\Tenancy\CurrentStaff;
 
 /**
  * The staff who take payments (owners, managers, accountants and
- * receptionists) create, see and cancel payment links. Trainers don't handle
- * money. See ADR 0009.
+ * receptionists) create, see, check and cancel payment links. Trainers don't
+ * handle money. See ADR 0009.
  */
 final class PaymentLinkPolicy
 {
@@ -42,6 +42,14 @@ final class PaymentLinkPolicy
     }
 
     public function cancel(User $user, PaymentLink $paymentLink): bool
+    {
+        return $this->takesPayments($this->staffFor($user, $paymentLink));
+    }
+
+    /**
+     * Ask Chapa now whether the member has paid the link.
+     */
+    public function check(User $user, PaymentLink $paymentLink): bool
     {
         return $this->takesPayments($this->staffFor($user, $paymentLink));
     }

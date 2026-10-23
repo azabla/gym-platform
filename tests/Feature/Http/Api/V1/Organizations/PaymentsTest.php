@@ -110,6 +110,26 @@ it('needs a transaction number for every method but cash', function (array $deta
     'cash with one' => [['method' => 'cash', 'reference' => 'CJ12ABC34D'], 'A cash payment has no transaction number.'],
 ]);
 
+it('leaves Chapa payments to Chapa, for payments and refunds alike', function () {
+    $cancelled = Membership::factory()->for($this->member)->for($this->monthly)->cancelled()->create(['starts_on' => '2026-12-01', 'ends_on' => '2026-12-31']);
+    Payment::factory()->for($cancelled)->create();
+    actingAsStaff($this->gym, StaffRole::Manager, $this->mainBranch);
+
+    recordPayment($this->membership, ['amount' => '100', 'method' => 'chapa', 'reference' => 'APfqvRZJ0bEn'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['method' => 'Chapa can\'t be chosen by hand. Chapa payments are recorded when Chapa confirms them.']);
+
+    $this->postJson(route('api.v1.organizations.memberships.refunds.store', ['organization' => 'demo-gym', 'membership' => $cancelled]), [
+        'amount' => '100',
+        'method' => 'chapa',
+        'reference' => 'APfqvRZJ0bEn',
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['method' => 'Chapa can\'t be chosen by hand. Chapa payments are recorded when Chapa confirms them.']);
+
+    expect(Payment::query()->acrossOrganizations()->count())->toBe(1);
+});
+
 it('refuses a transaction number already recorded in the gym, however it is typed', function () {
     $earlier = Payment::factory()->for($this->membership)->byTelebirr('CJ12ABC34D')->create(['amount' => Money::of('1,000')]);
     Payment::factory()->byTelebirr('DK56XYZ78A')->create();

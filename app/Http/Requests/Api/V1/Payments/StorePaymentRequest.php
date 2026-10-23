@@ -36,7 +36,7 @@ class StorePaymentRequest extends FormRequest
     {
         return [
             'amount' => ['required', 'bail', new ValidMoneyAmount, $this->moreThanZero()],
-            'method' => ['required', Rule::enum(PaymentMethod::class)],
+            'method' => ['required', 'bail', Rule::enum(PaymentMethod::class), $this->notOnline()],
             'reference' => [
                 Rule::requiredIf(fn (): bool => $this->paymentMethodSent()?->hasReference() ?? false),
                 Rule::prohibitedIf(fn (): bool => $this->paymentMethodSent() === PaymentMethod::Cash),
@@ -151,6 +151,18 @@ class StorePaymentRequest extends FormRequest
         $method = $this->input('method');
 
         return is_string($method) ? PaymentMethod::tryFrom($method) : null;
+    }
+
+    /**
+     * Online payments are recorded when the provider confirms them, never by hand.
+     */
+    private function notOnline(): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail): void {
+            if (PaymentMethod::tryFrom((string) $value)?->isOnline()) {
+                $fail('Chapa can\'t be chosen by hand. Chapa payments are recorded when Chapa confirms them.');
+            }
+        };
     }
 
     /**

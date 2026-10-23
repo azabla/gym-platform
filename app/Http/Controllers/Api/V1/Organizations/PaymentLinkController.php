@@ -7,6 +7,7 @@ use App\Domains\Memberships\Models\Membership;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Payments\CancelPaymentLinkRequest;
+use App\Http\Requests\Api\V1\Payments\CheckPaymentLinkRequest;
 use App\Http\Requests\Api\V1\Payments\ListPaymentLinksRequest;
 use App\Http\Requests\Api\V1\Payments\StorePaymentLinkRequest;
 use App\Http\Resources\V1\PaymentLinkResource;
@@ -49,7 +50,7 @@ class PaymentLinkController extends Controller
             branch: $request->branch(),
             createdBy: $currentStaff->get(),
             chapaAccount: $request->chapaAccount(),
-            callbackUrl: url('api/v1/chapa/callback'),
+            callbackUrl: route('api.v1.chapa.callback'),
         );
         PaymentLinkResource::loadDetails($paymentLink);
 
@@ -74,6 +75,18 @@ class PaymentLinkController extends Controller
     public function cancel(CancelPaymentLinkRequest $request, PaymentLink $paymentLink, CurrentStaff $currentStaff): PaymentLinkResource
     {
         $paymentLink->cancel($currentStaff->get());
+        PaymentLinkResource::loadDetails($paymentLink);
+
+        return new PaymentLinkResource($paymentLink);
+    }
+
+    /**
+     * Ask Chapa now whether the member has paid, and record the payment if
+     * so, for when Chapa's own call didn't arrive.
+     */
+    public function check(CheckPaymentLinkRequest $request, PaymentLink $paymentLink): PaymentLinkResource
+    {
+        $paymentLink->check($request->chapaAccount());
         PaymentLinkResource::loadDetails($paymentLink);
 
         return new PaymentLinkResource($paymentLink);

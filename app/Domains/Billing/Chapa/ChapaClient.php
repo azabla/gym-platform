@@ -27,6 +27,9 @@ final class ChapaClient
 
     private const DESCRIPTION_LENGTH = 50;
 
+    /** How Chapa answers verify for a transaction that hasn't been paid (yet). */
+    private const NOT_PAID_STATUSES = [400, 404];
+
     /**
      * Check that Chapa accepts the secret key, by asking for its list of
      * banks, which needs a valid key.
@@ -76,6 +79,27 @@ final class ChapaClient
     }
 
     /**
+     * Ask Chapa how the payment link's transaction stands. Chapa's own advice
+     * is to check this before treating a payment as real.
+     *
+     * @throws ChapaRequestFailed
+     */
+    public function verify(string $secretKey, string $txRef): ChapaTransaction
+    {
+        $response = $this->send(
+            $secretKey,
+            fn (PendingRequest $chapa): Response => $chapa->get('transaction/verify/'.rawurlencode($txRef)),
+            self::NOT_PAID_STATUSES,
+        );
+
+        if (in_array($response->status(), self::NOT_PAID_STATUSES, true)) {
+            return ChapaTransaction::notPaidYet();
+        }
+
+        return ChapaTransaction::fromChapa((array) $response->json('data'));
+    }
+
+    /**
      * A one-word name is sent as both the first and the last name, because
      * Chapa asks for both.
      *
@@ -102,14 +126,16 @@ final class ChapaClient
     }
 
     /**
-     * Send one request to Chapa. A 4xx answer is Chapa refusing it; no answer,
-     * or a 5xx answer, means Chapa is unavailable.
+     * Send one request to Chapa. A 4xx answer is Chapa refusing it, unless it
+     * is one of the statuses that count as an answer; no answer, or a 5xx
+     * answer, means Chapa is unavailable.
      *
      * @param  Closure(PendingRequest): Response  $request
+     * @param  list<int>  $statusesThatAnswer
      *
      * @throws ChapaRequestFailed
      */
-    private function send(string $secretKey, Closure $request): Response
+    private function send(string $secretKey, Closure $request, array $statusesThatAnswer = []): Response
     {
         $chapa = Http::baseUrl((string) config('services.chapa.base_url'))
             ->withToken($secretKey)
@@ -120,6 +146,10 @@ final class ChapaClient
             $response = $request($chapa);
         } catch (ConnectionException) {
             throw ChapaRequestFailed::unavailable();
+        }
+
+        if (in_array($response->status(), $statusesThatAnswer, true)) {
+            return $response;
         }
 
         if ($response->clientError()) {

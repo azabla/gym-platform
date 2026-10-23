@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domains\Billing\Enums\PaymentLinkStatus;
 use App\Domains\Billing\Models\ChapaAccount;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Billing\Models\PaymentLink;
@@ -168,7 +169,7 @@ it('saves nothing when Chapa refuses the checkout', function () {
     expect(PaymentLink::query()->acrossOrganizations()->exists())->toBeFalse();
 });
 
-it('does not let trainers create or see payment links', function () {
+it('does not let trainers create, see or check payment links', function () {
     $paymentLink = PaymentLink::factory()->for($this->membership)->create();
     Http::fake();
     actingAsStaff($this->gym, StaffRole::Trainer);
@@ -179,6 +180,9 @@ it('does not let trainers create or see payment links', function () {
         ->assertForbidden();
 
     $this->getJson(route('api.v1.organizations.payment-links.show', ['organization' => 'demo-gym', 'payment_link' => $paymentLink]))
+        ->assertForbidden();
+
+    $this->postJson(route('api.v1.organizations.payment-links.check', ['organization' => 'demo-gym', 'payment_link' => $paymentLink]))
         ->assertForbidden();
 
     Http::assertNothingSent();
@@ -237,4 +241,62 @@ it('lets staff cancel an open link and then create a new one', function () {
     fakeChapaCheckout();
 
     createPaymentLink($this->membership)->assertCreated();
+});
+
+it('lets staff ask Chapa about a link, and records the payment once the member has paid', function () {
+    $paymentLink = PaymentLink::factory()->for($this->membership)->create(['branch_id' => $this->mainBranch->id]);
+    Http::fake(['api.chapa.co/v1/transaction/verify/*' => Http::sequence()
+        ->push(['message' => 'Invalid transaction or Transaction not found', 'status' => 'failed', 'data' => null], 404)
+        ->push(chapaPaidAnswer($paymentLink))]);
+    actingAsStaff($this->gym, StaffRole::Receptionist, $this->mainBranch);
+
+    $checkWithChapa = fn (): TestResponse => $this->postJson(
+        route('api.v1.organizations.payment-links.check', ['organization' => 'demo-gym', 'payment_link' => $paymentLink]),
+    );
+
+    $checkWithChapa()
+        ->assertOk()
+        ->assertJsonPath('data.status', 'pending')
+        ->assertJsonPath('data.checkout_url', $paymentLink->checkout_url)
+        ->assertJsonPath('data.payment', null);
+
+    $checkWithChapa()
+        ->assertOk()
+        ->assertJsonPath('data.status', 'paid')
+        ->assertJsonPath('data.checkout_url', null)
+        ->assertJsonPath('data.chapa_reference', 'APfqvRZJ0bEn')
+        ->assertJsonPath('data.payment.receipt_number', 1)
+        ->assertJsonPath('data.payment.paid_on', '2026-10-23')
+        ->assertJsonPath('data.membership.balance_due.amount_minor', 0);
+
+    $this->getJson(route('api.v1.organizations.payments.index', ['organization' => 'demo-gym', 'method' => 'chapa']))
+        ->assertOk()
+        ->assertJsonPath('data.0.reference', 'APfqvRZJ0bEn')
+        ->assertJsonPath('data.0.received_by', null)
+        ->assertJsonPath('meta.totals.by_method.chapa.amount_minor', 250000);
+});
+
+it('needs the gym\'s Chapa account to check a link', function () {
+    $paymentLink = PaymentLink::factory()->for($this->membership)->create();
+    $this->chapaAccount->delete();
+    Http::fake();
+    actingAsStaff($this->gym, StaffRole::Receptionist, $this->mainBranch);
+
+    $this->postJson(route('api.v1.organizations.payment-links.check', ['organization' => 'demo-gym', 'payment_link' => $paymentLink]))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['chapa_account' => 'Connect the gym\'s Chapa account first.']);
+
+    Http::assertNothingSent();
+});
+
+it('keeps the link open, and says so, when Chapa does not answer', function () {
+    $paymentLink = PaymentLink::factory()->for($this->membership)->create();
+    Http::fake(['api.chapa.co/v1/transaction/verify/*' => Http::response(null, 503)]);
+    actingAsStaff($this->gym, StaffRole::Receptionist, $this->mainBranch);
+
+    $this->postJson(route('api.v1.organizations.payment-links.check', ['organization' => 'demo-gym', 'payment_link' => $paymentLink]))
+        ->assertStatus(502)
+        ->assertJsonPath('message', 'Chapa didn\'t answer. Try again in a moment.');
+
+    expect(PaymentLink::query()->acrossOrganizations()->sole()->status)->toBe(PaymentLinkStatus::Pending);
 });

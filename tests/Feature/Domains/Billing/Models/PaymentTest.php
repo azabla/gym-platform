@@ -230,6 +230,13 @@ it('refuses a zero amount, a transaction number on cash, none on Telebirr, or ha
     'a void without a reason' => [['voided_at' => '2026-10-23 10:00:00']],
 ])->throws(QueryException::class, 'violates check constraint');
 
+it('refuses a Chapa payment received by a staff member, or any other payment received by nobody', function (array $attributes) {
+    Payment::factory()->create($attributes);
+})->with([
+    'Chapa received by a staff member' => [['method' => PaymentMethod::Chapa, 'reference' => 'APfqvRZJ0bEn']],
+    'cash received by nobody' => [['received_by_staff_id' => null]],
+])->throws(QueryException::class, 'violates check constraint');
+
 it('refuses a receipt number the gym already gave', function () {
     $payment = Payment::factory()->create();
 

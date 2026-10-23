@@ -3,6 +3,7 @@
 namespace App\Http\Resources\V1;
 
 use App\Domains\Billing\Enums\PaymentLinkStatus;
+use App\Domains\Billing\Models\Payment;
 use App\Domains\Billing\Models\PaymentLink;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Organizations\Models\Staff;
@@ -23,7 +24,7 @@ class PaymentLinkResource extends JsonResource
      * The relations a payment link response shows. The membership's freezes
      * give its status without a query per link.
      */
-    private const RELATIONS = ['branch', 'membership.plan', 'membership.member', 'membership.freezes', 'createdBy.user', 'cancelledBy.user'];
+    private const RELATIONS = ['branch', 'membership.plan', 'membership.member', 'membership.freezes', 'createdBy.user', 'cancelledBy.user', 'payment'];
 
     /**
      * Load everything a payment link response shows: the relations above and
@@ -64,6 +65,13 @@ class PaymentLinkResource extends JsonResource
                 'cancelled_at' => $this->cancelled_at->toIso8601String(),
                 'cancelled_by' => $this->whenLoaded('cancelledBy', fn (Staff $staff) => $this->staffMember($staff)),
             ],
+            'settled_at' => $this->settled_at?->toIso8601String(),
+            'chapa_reference' => $this->chapa_reference,
+            'payment' => $this->whenLoaded('payment', fn (Payment $payment) => [
+                'id' => $payment->id,
+                'receipt_number' => $payment->receipt_number,
+                'paid_on' => $payment->paid_on->toDateString(),
+            ]),
         ];
     }
 

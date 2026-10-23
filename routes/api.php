@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Auth\TokenController;
+use App\Http\Controllers\Api\V1\ChapaCallbackController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\Organizations\BranchController;
 use App\Http\Controllers\Api\V1\Organizations\ChapaAccountController;
@@ -18,6 +19,11 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::post('auth/tokens', [TokenController::class, 'store'])
         ->middleware('throttle:login')
         ->name('auth.tokens.store');
+
+    // Chapa calls this after a member pays; it only makes us ask Chapa (ADR 0009).
+    Route::match(['get', 'post'], 'chapa/callback', ChapaCallbackController::class)
+        ->middleware('throttle:60,1')
+        ->name('chapa.callback');
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::delete('auth/tokens/current', [TokenController::class, 'destroy'])->name('auth.tokens.destroy');
@@ -53,6 +59,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 Route::apiResource('payment-links', PaymentLinkController::class)->only(['index', 'show']);
                 Route::post('payment-links/{payment_link}/cancel', [PaymentLinkController::class, 'cancel'])
                     ->name('payment-links.cancel');
+                Route::post('payment-links/{payment_link}/check', [PaymentLinkController::class, 'check'])
+                    ->name('payment-links.check');
             });
     });
 });
