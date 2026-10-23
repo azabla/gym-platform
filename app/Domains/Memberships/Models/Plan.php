@@ -8,6 +8,7 @@ use App\Casts\AsMoney;
 use App\Domains\Memberships\Enums\DurationUnit;
 use App\Domains\Memberships\Policies\PlanPolicy;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
+use App\Domains\Shared\Money\Money;
 use Carbon\CarbonImmutable;
 use Database\Factories\PlanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -21,6 +22,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Something a gym sells: a price and a length in days or months, such as
  * "Monthly, 2,500 ETB". Archiving a plan (a soft delete) stops new sales, while
  * memberships already sold keep their own dates and price. See ADR 0006.
+ *
+ * @property Money $price Stored in the price_minor and currency columns.
  */
 #[Fillable(['name', 'description', 'price', 'duration_count', 'duration_unit'])]
 #[UseFactory(PlanFactory::class)]

@@ -10,6 +10,7 @@ use App\Domains\Memberships\Enums\MembershipStatus;
 use App\Domains\Memberships\Policies\MembershipPolicy;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
+use App\Domains\Shared\Money\Money;
 use Carbon\CarbonImmutable;
 use Database\Factories\MembershipFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -23,6 +24,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * price is copied from the plan when it is sold. A member has at most one
  * membership on any day (cancelled ones don't count), which the database
  * enforces. See ADR 0006.
+ *
+ * @property Money $price Stored in the price_minor and currency columns.
  */
 #[UseFactory(MembershipFactory::class)]
 #[UsePolicy(MembershipPolicy::class)]
