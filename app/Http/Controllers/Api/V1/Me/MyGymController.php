@@ -9,7 +9,6 @@ use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Shared\Money\Money;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\Me\MyGymResource;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -24,7 +23,11 @@ class MyGymController extends Controller
     {
         $phone = $request->user()?->phone;
 
-        $members = $phone === null ? new Collection : Member::query()
+        if ($phone === null) {
+            return MyGymResource::collection([]);
+        }
+
+        $members = Member::query()
             ->acrossOrganizations()
             ->where('phone', $phone)
             ->with('organization')

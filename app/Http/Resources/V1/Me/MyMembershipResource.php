@@ -55,7 +55,7 @@ class MyMembershipResource extends JsonResource
             'freeze_days_allowed' => $this->freeze_days_allowed,
             'freeze_days_used' => $this->whenLoaded('freezes', fn () => $this->freezeDaysUsed()),
             'freeze_days_left' => $this->whenLoaded('freezes', fn () => max(0, $this->freeze_days_allowed - $this->freezeDaysUsed())),
-            'freezes' => $this->whenLoaded('freezes', fn (Collection $freezes) => $freezes->map(fn (MembershipFreeze $freeze) => [
+            'freezes' => $this->whenLoaded('freezes', fn () => $this->freezes->map(fn (MembershipFreeze $freeze): array => [
                 'starts_on' => $freeze->starts_on->toDateString(),
                 'ends_on' => $freeze->ends_on->toDateString(),
                 'days' => $freeze->days(),

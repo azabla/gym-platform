@@ -45,13 +45,17 @@ class User extends Authenticatable
     }
 
     /**
-     * Stored in E.164 form (+251911234567), however it was typed.
+     * Stored in E.164 form (+251911234567), however it was typed, and read as
+     * stored.
      *
-     * @return Attribute<never, string|null>
+     * @return Attribute<string|null, string|null>
      */
     protected function phone(): Attribute
     {
-        return Attribute::set(fn (?string $value): ?string => $value === null ? null : PhoneNumber::of($value)->e164);
+        return Attribute::make(
+            get: fn (?string $value): ?string => $value,
+            set: fn (?string $value): ?string => $value === null ? null : PhoneNumber::of($value)->e164,
+        );
     }
 
     /**
