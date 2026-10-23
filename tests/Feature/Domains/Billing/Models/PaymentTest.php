@@ -159,20 +159,20 @@ it('refuses a zero amount, a transaction number on cash, none on Telebirr, or ha
 it('refuses a receipt number the gym already gave', function () {
     $payment = Payment::factory()->create();
 
-    Payment::factory()->for($payment->membership)->create(['receipt_number' => $payment->receipt_number]);
+    Payment::factory()->create(['membership_id' => $payment->membership_id, 'receipt_number' => $payment->receipt_number]);
 })->throws(QueryException::class, 'violates unique constraint');
 
 it('refuses a transaction number already recorded in the gym for the same method', function () {
     $payment = Payment::factory()->byTelebirr('CJ12ABC34D')->create();
 
-    Payment::factory()->for($payment->membership)->byTelebirr('CJ12ABC34D')->create();
+    Payment::factory()->byTelebirr('CJ12ABC34D')->create(['membership_id' => $payment->membership_id]);
 })->throws(QueryException::class, 'violates unique constraint');
 
 it('accepts a transaction number again once it is voided, for another method, or in another gym', function () {
     $voided = Payment::factory()->byTelebirr('CJ12ABC34D')->voided()->create();
 
-    $recordedAgain = Payment::factory()->for($voided->membership)->byTelebirr('CJ12ABC34D')->create();
-    $byCbeBirr = Payment::factory()->for($voided->membership)->create(['method' => PaymentMethod::CbeBirr, 'reference' => 'CJ12ABC34D']);
+    $recordedAgain = Payment::factory()->byTelebirr('CJ12ABC34D')->create(['membership_id' => $voided->membership_id]);
+    $byCbeBirr = Payment::factory()->create(['membership_id' => $voided->membership_id, 'method' => PaymentMethod::CbeBirr, 'reference' => 'CJ12ABC34D']);
     $inAnotherGym = Payment::factory()->byTelebirr('CJ12ABC34D')->create();
 
     expect([$recordedAgain->exists, $byCbeBirr->exists, $inAnotherGym->exists])->toBe([true, true, true]);
