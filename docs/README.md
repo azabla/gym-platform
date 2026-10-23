@@ -10,6 +10,8 @@ Laravel is scaffolded and dependencies are locked in `composer.lock`. For a new 
 docker/                    Dockerfile, nginx, Postgres init scripts, storage config
 app/Domains/<Domain>/      Business code, one folder per domain
 app/Domains/Shared/        Small, framework-free building blocks used by every domain (Money, ...)
+app/Domains/Identity/      Users: identities that can log in, independent of any gym
+app/Domains/Organizations/ Gyms, branches and staff; Tenancy/ keeps each gym's data separate
 tests/Unit/Domains/...     Unit tests, mirroring app/Domains
 tests/Feature/...          Tests that boot Laravel and touch the database
 docs/adr/                  Architecture Decision Records (why we chose what we chose)
@@ -24,6 +26,8 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 3. Value objects are `final readonly` and every "change" returns a new instance.
 4. Code in `app/Domains/Shared` must not depend on Laravel.
 5. Named constructors (`Money::of()`, `Money::ofMinor()`) instead of public constructors, so every way of creating an object is explicit and validated.
+6. Gym-owned models use `BelongsToOrganization`, so every query is limited to the current organization (enforced by `tests/Unit/ArchitectureTest.php`). `organization_id` is never mass assignable. See ADR 0003.
+7. Tables that link two gym-owned records carry `organization_id` and use composite foreign keys, so the database refuses links between gyms.
 
 ## Glossary
 
@@ -33,7 +37,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Branch | A physical location of an organization. |
 | User | An identity that can log in. |
 | Member | A gym customer. May or may not have a User. |
-| Staff | A gym employee (has a User). |
+| Staff | A User's role at one organization: Owner, Manager, Receptionist or Trainer. Works at all branches or only at assigned ones. |
 | Plan | A membership offering (e.g. Monthly Premium). |
 | Membership | A member's actual purchased period of a plan. |
 | Invoice | Money owed. |
@@ -46,6 +50,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 |---|---|
 | [0001](adr/0001-money-as-integer-minor-units.md) | Represent money as integer minor units |
 | [0002](adr/0002-docker-development-environment.md) | Custom Docker Compose development environment |
+| [0003](adr/0003-multi-tenancy-with-organization-scoping.md) | Multi-tenancy with organization scoping |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 
