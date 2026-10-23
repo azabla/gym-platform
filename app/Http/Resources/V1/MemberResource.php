@@ -3,6 +3,7 @@
 namespace App\Http\Resources\V1;
 
 use App\Domains\Members\Models\Member;
+use App\Domains\Memberships\Models\Membership;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -12,7 +13,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class MemberResource extends JsonResource
 {
     /**
-     * Transform the resource into an array.
+     * Transform the resource into an array. The membership at a glance is the
+     * one MemberController attaches: valid today, otherwise the next one coming
+     * up, otherwise the last one that ended, or null.
      *
      * @return array<string, mixed>
      */
@@ -30,6 +33,10 @@ class MemberResource extends JsonResource
                 'phone' => $this->emergency_contact_phone,
             ],
             'home_branch' => new BranchResource($this->whenLoaded('homeBranch')),
+            'membership' => $this->whenLoaded(
+                'membershipAtAGlance',
+                fn (Membership $membership) => new MembershipResource($membership),
+            ),
             'registered_at' => $this->created_at?->toIso8601String(),
         ];
     }

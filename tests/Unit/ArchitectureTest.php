@@ -26,6 +26,7 @@ arch('value objects are final and readonly')
     ->expect([
         'App\Domains\Shared\Money\Money',
         'App\Domains\Shared\PhoneNumber\PhoneNumber',
+        'App\Domains\Memberships\Discount\Discount',
     ])
     ->toBeFinal()
     ->toBeReadonly();
@@ -34,17 +35,22 @@ arch('organization-owned models are scoped to the current organization')
     ->expect([
         'App\Domains\Organizations\Models',
         'App\Domains\Members\Models',
+        'App\Domains\Memberships\Models',
     ])
     ->toUseTrait(BelongsToOrganization::class)
     ->ignoring(Organization::class);
 
-arch('the Identity domain does not depend on Organizations or Members')
+arch('the Identity domain does not depend on Organizations, Members or Memberships')
     ->expect('App\Domains\Identity')
-    ->not->toUse(['App\Domains\Organizations', 'App\Domains\Members']);
+    ->not->toUse(['App\Domains\Organizations', 'App\Domains\Members', 'App\Domains\Memberships']);
 
-arch('the Organizations domain does not depend on Members')
+arch('the Organizations domain does not depend on Members or Memberships')
     ->expect('App\Domains\Organizations')
-    ->not->toUse('App\Domains\Members');
+    ->not->toUse(['App\Domains\Members', 'App\Domains\Memberships']);
+
+arch('the Members domain does not depend on Memberships')
+    ->expect('App\Domains\Members')
+    ->not->toUse('App\Domains\Memberships');
 
 arch('domains do not depend on the HTTP layer')
     ->expect('App\Domains')
