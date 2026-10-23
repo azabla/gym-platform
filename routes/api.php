@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Organizations\MembershipCancellationController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipFreezeController;
 use App\Http\Controllers\Api\V1\Organizations\PaymentController;
+use App\Http\Controllers\Api\V1\Organizations\PaymentLinkController;
 use App\Http\Controllers\Api\V1\Organizations\PlanController;
 use App\Http\Controllers\Api\V1\Organizations\RefundController;
 use Illuminate\Support\Facades\Route;
@@ -47,6 +48,11 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 Route::post('payments/{payment}/void', [PaymentController::class, 'void'])
                     ->name('payments.void');
                 Route::apiSingleton('chapa-account', ChapaAccountController::class)->destroyable();
+                Route::post('memberships/{membership}/payment-links', [PaymentLinkController::class, 'store'])
+                    ->name('memberships.payment-links.store');
+                Route::apiResource('payment-links', PaymentLinkController::class)->only(['index', 'show']);
+                Route::post('payment-links/{payment_link}/cancel', [PaymentLinkController::class, 'cancel'])
+                    ->name('payment-links.cancel');
             });
     });
 });

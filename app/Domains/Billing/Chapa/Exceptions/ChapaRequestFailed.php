@@ -27,4 +27,9 @@ final class ChapaRequestFailed extends RuntimeException
     {
         return new self('Chapa didn\'t answer. Try again in a moment.', refusedByChapa: false);
     }
+
+    public static function unexpectedAnswer(): self
+    {
+        return new self('Chapa answered in a way we didn\'t expect. Try again in a moment.', refusedByChapa: false);
+    }
 }
