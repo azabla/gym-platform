@@ -18,7 +18,8 @@ class UpdateMemberRequest extends StoreMemberRequest
     }
 
     /**
-     * Only the fields that are sent are validated and changed.
+     * Only the fields that are sent are validated and changed. The emergency
+     * contact's name and phone are sent together, so an edit never leaves half a contact.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -30,8 +31,8 @@ class UpdateMemberRequest extends StoreMemberRequest
             'email' => ['nullable', 'string', 'email', 'max:255'],
             'gender' => ['nullable', Rule::enum(Gender::class)],
             'date_of_birth' => ['nullable', 'date', 'before:today'],
-            'emergency_contact_name' => ['nullable', 'string', 'max:255', 'required_with:emergency_contact_phone'],
-            'emergency_contact_phone' => ['nullable', 'bail', 'string', new ValidPhoneNumber, 'required_with:emergency_contact_name'],
+            'emergency_contact_name' => ['nullable', 'bail', 'string', 'max:255', 'present_with:emergency_contact_phone', 'required_with:emergency_contact_phone'],
+            'emergency_contact_phone' => ['nullable', 'bail', 'string', new ValidPhoneNumber, 'present_with:emergency_contact_name', 'required_with:emergency_contact_name'],
             'home_branch_id' => ['sometimes', 'bail', 'integer', $this->branchTheStaffMemberWorksAt()],
         ];
     }

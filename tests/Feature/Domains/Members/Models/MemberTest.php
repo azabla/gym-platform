@@ -11,6 +11,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 it('stores phone numbers in international form', function () {
     $member = Member::factory()->create([
         'phone' => '0911 23 45 67',
+        'emergency_contact_name' => 'Almaz Kebede',
         'emergency_contact_phone' => '0922-345-678',
     ]);
 
@@ -47,3 +48,7 @@ it('refuses a home branch from another gym', function () {
 
     Member::factory()->for($organization)->for($otherGymsBranch, 'homeBranch')->create();
 })->throws(QueryException::class, 'violates foreign key constraint');
+
+it('keeps the emergency contact name and phone together', function () {
+    Member::factory()->create(['emergency_contact_name' => 'Almaz Kebede']);
+})->throws(QueryException::class, 'violates check constraint');

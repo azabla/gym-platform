@@ -22,7 +22,8 @@ One `full_name` field.
 
 ### Members
 
-- Required: full name, phone number and home branch. Optional: email, gender, date of birth, and an emergency contact (name and phone, given together).
+- Required: full name, phone number and home branch. Optional: email, gender, date of birth, and an emergency contact.
+- An emergency contact is a name and a phone number together. Edits change or remove both at once, and a check constraint refuses one without the other.
 - The home branch is linked with a composite foreign key, so it must belong to the member's own gym (ADR 0003).
 - Removing a member archives them (a soft delete). The record stays for history.
 

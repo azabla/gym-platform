@@ -196,6 +196,28 @@ it('edits only the details that are sent', function () {
         ->assertJsonPath('data.home_branch.name', 'Bole Branch');
 });
 
+it('changes the emergency contact only as a whole', function () {
+    $member = Member::factory()->for($this->mainBranch, 'homeBranch')->create([
+        'emergency_contact_name' => 'Almaz Kebede',
+        'emergency_contact_phone' => '0922345678',
+    ]);
+    actingAsStaff($this->gym, StaffRole::Receptionist);
+
+    $this->patchJson(route('api.v1.organizations.members.update', ['organization' => 'demo-gym', 'member' => $member]), [
+        'emergency_contact_name' => null,
+    ])->assertUnprocessable()->assertJsonValidationErrors(['emergency_contact_phone']);
+
+    $this->patchJson(route('api.v1.organizations.members.update', ['organization' => 'demo-gym', 'member' => $member]), [
+        'emergency_contact_name' => null,
+        'emergency_contact_phone' => null,
+    ])->assertOk();
+
+    $member->refresh();
+
+    expect($member->emergency_contact_name)->toBeNull()
+        ->and($member->emergency_contact_phone)->toBeNull();
+});
+
 it('archives a member, who then leaves the list', function () {
     $member = Member::factory()->for($this->mainBranch, 'homeBranch')->create();
     actingAsStaff($this->gym, StaffRole::Receptionist);

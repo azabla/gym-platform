@@ -13,6 +13,7 @@ return new class extends Migration
      * The home branch is linked together with organization_id, so it must be a
      * branch of the member's own gym. A phone number belongs to at most one
      * active member per gym; archived members (deleted_at set) free their number.
+     * An emergency contact has both a name and a phone number, or neither.
      */
     public function up(): void
     {
@@ -39,6 +40,7 @@ return new class extends Migration
         });
 
         DB::statement('CREATE UNIQUE INDEX members_organization_id_phone_unique ON members (organization_id, phone) WHERE deleted_at IS NULL');
+        DB::statement('ALTER TABLE members ADD CONSTRAINT members_emergency_contact_name_and_phone_together CHECK ((emergency_contact_name IS NULL) = (emergency_contact_phone IS NULL))');
     }
 
     /**
