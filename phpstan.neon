@@ -6,3 +6,5 @@ parameters:
         - app/
     # Start at 6 and raise the level as the codebase matures. Never lower it.
     level: 6
+    # Read each model's casts() method, so cast attributes (enums, dates) get their real types.
+    parseModelCastsMethod: true
