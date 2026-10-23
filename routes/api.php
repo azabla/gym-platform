@@ -4,6 +4,9 @@ use App\Http\Controllers\Api\V1\Auth\SmsCodeController;
 use App\Http\Controllers\Api\V1\Auth\SmsTokenController;
 use App\Http\Controllers\Api\V1\Auth\TokenController;
 use App\Http\Controllers\Api\V1\ChapaCallbackController;
+use App\Http\Controllers\Api\V1\Me\MyGymController;
+use App\Http\Controllers\Api\V1\Me\MyMembershipController;
+use App\Http\Controllers\Api\V1\Me\MyPaymentController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\Organizations\BranchController;
 use App\Http\Controllers\Api\V1\Organizations\ChapaAccountController;
@@ -38,6 +41,23 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::delete('auth/tokens/current', [TokenController::class, 'destroy'])->name('auth.tokens.destroy');
         Route::get('me', MeController::class)->name('me');
+
+        // The members app: the gyms where my phone number is registered, and my records at each (ADR 0010).
+        Route::get('me/gyms', [MyGymController::class, 'index'])->name('me.gyms.index');
+
+        Route::prefix('me/gyms/{organization}')
+            ->middleware('member')
+            ->name('me.gyms.')
+            ->group(function (): void {
+                Route::get('memberships', [MyMembershipController::class, 'index'])->name('memberships.index');
+                Route::get('memberships/{membership}', [MyMembershipController::class, 'show'])
+                    ->whereNumber('membership')
+                    ->name('memberships.show');
+                Route::get('payments', [MyPaymentController::class, 'index'])->name('payments.index');
+                Route::get('payments/{payment}', [MyPaymentController::class, 'show'])
+                    ->whereNumber('payment')
+                    ->name('payments.show');
+            });
 
         Route::prefix('organizations/{organization}')
             ->middleware('organization')

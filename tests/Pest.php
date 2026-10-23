@@ -1,6 +1,8 @@
 <?php
 
 use App\Domains\Billing\Models\PaymentLink;
+use App\Domains\Identity\Models\User;
+use App\Domains\Members\Models\Member;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Organization;
@@ -41,6 +43,20 @@ function actingAsStaff(Organization $organization, StaffRole $role, Branch ...$o
     Sanctum::actingAs($staff->user);
 
     return $staff;
+}
+
+/**
+ * Sign in to the API as the member, as the members app does after an SMS
+ * code: as the user with the member's phone number.
+ */
+function actingAsMember(Member $member): User
+{
+    $user = User::query()->where('phone', $member->phone)->first()
+        ?? User::factory()->withPhone($member->phone)->create();
+
+    Sanctum::actingAs($user);
+
+    return $user;
 }
 
 /**
