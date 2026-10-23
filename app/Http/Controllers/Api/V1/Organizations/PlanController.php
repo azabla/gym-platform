@@ -9,6 +9,7 @@ use App\Http\Requests\Api\V1\Plans\UpdatePlanRequest;
 use App\Http\Resources\V1\PlanResource;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class PlanController extends Controller
@@ -20,15 +21,22 @@ class PlanController extends Controller
     {
         Gate::authorize('viewAny', Plan::class);
 
-        return PlanResource::collection(Plan::query()->orderBy('name')->get());
+        return PlanResource::collection(Plan::query()->with('branches')->orderBy('name')->get());
     }
 
     /**
-     * Create a plan.
+     * Create a plan, valid at all branches unless branches are chosen.
      */
     public function store(StorePlanRequest $request): PlanResource
     {
-        return new PlanResource(Plan::query()->create($request->planDetails()));
+        $plan = DB::transaction(function () use ($request): Plan {
+            $plan = Plan::query()->create($request->planDetails());
+            $this->applyChosenBranches($plan, $request);
+
+            return $plan;
+        });
+
+        return new PlanResource($plan->load('branches'));
     }
 
     /**
@@ -38,17 +46,21 @@ class PlanController extends Controller
     {
         Gate::authorize('view', $plan);
 
-        return new PlanResource($plan);
+        return new PlanResource($plan->load('branches'));
     }
 
     /**
-     * Change the details that are sent. Memberships already sold keep their price.
+     * Change the details that are sent. Memberships already sold keep their
+     * price and branches.
      */
     public function update(UpdatePlanRequest $request, Plan $plan): PlanResource
     {
-        $plan->update($request->planDetails());
+        DB::transaction(function () use ($request, $plan): void {
+            $plan->update($request->planDetails());
+            $this->applyChosenBranches($plan, $request);
+        });
 
-        return new PlanResource($plan);
+        return new PlanResource($plan->load('branches'));
     }
 
     /**
@@ -61,5 +73,20 @@ class PlanController extends Controller
         $plan->delete();
 
         return response()->noContent();
+    }
+
+    private function applyChosenBranches(Plan $plan, StorePlanRequest $request): void
+    {
+        if (! $request->choosesBranches()) {
+            return;
+        }
+
+        $branches = $request->chosenBranches();
+
+        if ($branches === null) {
+            $plan->makeAvailableAtAllBranches();
+        } else {
+            $plan->makeAvailableOnlyAt(...$branches);
+        }
     }
 }

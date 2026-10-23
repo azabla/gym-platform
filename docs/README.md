@@ -45,8 +45,10 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | User | An identity that can log in. |
 | Member | A gym customer, registered at a home branch but welcome at every branch of the gym. May or may not have a User. |
 | Staff | A User's role at one organization: Owner, Manager, Receptionist or Trainer. Works at all branches or only at assigned ones. |
-| Plan | What a gym sells: a price and a length in days or months (e.g. Monthly, 2,500 ETB). |
+| Plan | What a gym sells: a price and a length in days or months (e.g. Monthly, 2,500 ETB), valid at all branches or only some, with a number of days it can be frozen. |
 | Membership | A plan sold to a member for set dates, both included. A member has one membership at a time. |
+| Freeze | A pause in a membership. The membership's end date moves later by the number of frozen days. |
+| Discount | A reduction of a plan's price at sale, as an amount or a percentage, with a reason. Only owners and managers can give one. |
 | Invoice | Money owed. |
 | Payment | Money received. |
 | Minor units | The smallest currency unit. 1 ETB = 100 santim. |
@@ -61,6 +63,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0004](adr/0004-api-sign-in-and-organization-per-request.md) | API sign-in and choosing the organization per request |
 | [0005](adr/0005-members-and-phone-numbers.md) | Members and phone numbers |
 | [0006](adr/0006-plans-and-memberships.md) | Plans and memberships |
+| [0007](adr/0007-freezing-branch-only-plans-and-discounts.md) | Freezing, branch-only plans and discounts |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 

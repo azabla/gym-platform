@@ -27,6 +27,9 @@ class PlanResource extends JsonResource
                 'count' => $this->duration_count,
                 'unit' => $this->duration_unit,
             ],
+            'freeze_days_allowed' => $this->freeze_days_allowed,
+            'available_at_all_branches' => $this->available_at_all_branches,
+            'branches' => BranchResource::collection($this->whenLoaded('branches')),
         ];
     }
 }

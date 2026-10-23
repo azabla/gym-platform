@@ -199,7 +199,7 @@ make composer c=install
 make fresh
 ```
 
-`make fresh` seeds Demo Gym (`demo-gym`) with two branches, three members, four plans, two memberships and two users, both with the password `password`:
+`make fresh` seeds Demo Gym (`demo-gym`) with two branches, three members, five plans (one valid only at Bole Branch), two memberships and two users, both with the password `password`:
 
 - `owner@demo-gym.test`, the Owner, who works at both branches;
 - `frontdesk@demo-gym.test`, a Receptionist limited to Main Branch.
@@ -228,7 +228,7 @@ curl -s http://localhost:8080/api/v1/organizations/demo-gym/members \
   -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
   -d '{"full_name":"Selam Tesfaye","phone":"0944 56 78 90","home_branch_id":1}'
 
-# The plans on sale: 3 Months, Day Pass, Monthly and Yearly
+# The plans on sale: 3 Months, Bole Monthly, Day Pass, Monthly and Yearly
 curl -s http://localhost:8080/api/v1/organizations/demo-gym/plans \
   -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
 
@@ -242,6 +242,27 @@ curl -s http://localhost:8080/api/v1/organizations/demo-gym/memberships/3/cancel
   -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
   -d '{"reason":"Sold the wrong plan."}'
 
+# Sell Hana Monthly again, 10% off for a student (owners and managers only); "500" takes 500 ETB off instead
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/members/3/memberships \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+  -d '{"plan_id":2,"discount":"10%","discount_reason":"Student"}'
+
+# Freeze Abebe's membership (membership 1 after make fresh) from today for a week;
+# its end date moves a week later. Monthly memberships can be frozen for 7 days.
+END=$(date -d '+6 days' +%F 2>/dev/null || date -v+6d +%F)
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/memberships/1/freezes \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+  -d "{\"ends_on\":\"$END\",\"reason\":\"Travelling\"}"
+
+# Abebe is back early: end that freeze (freeze 1 after make fresh)
+curl -s -X POST http://localhost:8080/api/v1/organizations/demo-gym/memberships/1/freezes/1/end \
+  -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
+
+# A plan valid only at Bole Branch (branch 2 after make fresh), 30 days, no freezing
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/plans \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+  -d '{"name":"Bole 30 Days","price":"1,800","duration_count":30,"duration_unit":"day","branch_ids":[2]}'
+
 # Sign out (revokes the token)
 curl -s -X DELETE http://localhost:8080/api/v1/auth/tokens/current \
   -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
@@ -249,7 +270,7 @@ curl -s -X DELETE http://localhost:8080/api/v1/auth/tokens/current \
 
 The members list shows each member's membership at a glance: Abebe is active, Tigist's has expired, and Hana has none until you sell her one.
 
-Sign in as `frontdesk@demo-gym.test` instead and the branch list shrinks to Main Branch, but the members list still shows every member of the gym. The receptionist can sell memberships but not cancel them. See ADR 0004 for how sign-in and gym selection work, ADR 0005 for members and phone numbers, and ADR 0006 for plans and memberships.
+Sign in as `frontdesk@demo-gym.test` instead and the branch list shrinks to Main Branch, but the members list still shows every member of the gym. The receptionist can sell memberships and freeze them within their plan's freeze days, but can't cancel them, give discounts or go past the freeze days. See ADR 0004 for how sign-in and gym selection work, ADR 0005 for members and phone numbers, ADR 0006 for plans and memberships, and ADR 0007 for freezing, branch-only plans and discounts.
 
 ## Troubleshooting
 

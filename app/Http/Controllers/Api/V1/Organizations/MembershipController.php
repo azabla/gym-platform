@@ -22,7 +22,7 @@ class MembershipController extends Controller
 
         $memberships = Membership::query()
             ->whereBelongsTo($member)
-            ->with(['plan', 'soldBy.user', 'cancelledBy.user'])
+            ->with(MembershipResource::RELATIONS)
             ->orderByDesc('starts_on')
             ->orderByDesc('id')
             ->paginate(25);
@@ -31,13 +31,14 @@ class MembershipController extends Controller
     }
 
     /**
-     * Sell a plan to the member, starting on the given day or the first free day.
+     * Sell a plan to the member, starting on the given day or the first free day,
+     * at a discount if one is given.
      */
     public function store(StoreMembershipRequest $request, Member $member, CurrentStaff $currentStaff): MembershipResource
     {
-        $membership = Membership::sell($member, $request->plan(), $request->startsOn(), $currentStaff->get());
+        $membership = Membership::sell($member, $request->plan(), $request->startsOn(), $currentStaff->get(), $request->discount());
 
-        return new MembershipResource($membership->load(['plan', 'soldBy.user']));
+        return new MembershipResource($membership->load(MembershipResource::RELATIONS));
     }
 
     /**
@@ -47,6 +48,6 @@ class MembershipController extends Controller
     {
         Gate::authorize('view', $membership);
 
-        return new MembershipResource($membership->load(['plan', 'soldBy.user', 'cancelledBy.user']));
+        return new MembershipResource($membership->load(MembershipResource::RELATIONS));
     }
 }

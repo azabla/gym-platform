@@ -13,6 +13,7 @@ enum MembershipStatus: string
 {
     case Upcoming = 'upcoming';
     case Active = 'active';
+    case Frozen = 'frozen';
     case Expired = 'expired';
     case Cancelled = 'cancelled';
 }

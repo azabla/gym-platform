@@ -12,9 +12,10 @@ use App\Domains\Organizations\Tenancy\CurrentStaff;
 
 /**
  * Every staff member of a gym may see its memberships. Owners, managers and
- * receptionists may sell them. Only owners and managers may cancel a membership
- * or start one on a past date, so a sale can't be quietly undone or redated
- * after the money is taken. See ADR 0006.
+ * receptionists may sell them, and freeze them within the days their plan
+ * allows. Only owners and managers may cancel a membership, sell at a discount,
+ * freeze beyond the allowed days or use a past date, so a sale can't be quietly
+ * undone, cheapened or redated after the money is taken. See ADR 0006 and ADR 0007.
  */
 final class MembershipPolicy
 {
@@ -24,7 +25,7 @@ final class MembershipPolicy
         StaffRole::Receptionist,
     ];
 
-    private const ROLES_THAT_CANCEL_AND_BACKDATE_MEMBERSHIPS = [
+    private const OWNERS_AND_MANAGERS = [
         StaffRole::Owner,
         StaffRole::Manager,
     ];
@@ -47,17 +48,41 @@ final class MembershipPolicy
     }
 
     /**
-     * Start a membership on a past date, for example to enter memberships that
-     * members already had before the gym started using the platform.
+     * Use a past date, for example to enter memberships that members already had
+     * before the gym started using the platform.
      */
     public function backdate(User $user): bool
     {
-        return $this->hasRole($this->staffFor($user), self::ROLES_THAT_CANCEL_AND_BACKDATE_MEMBERSHIPS);
+        return $this->hasRole($this->staffFor($user), self::OWNERS_AND_MANAGERS);
+    }
+
+    /**
+     * Sell a membership for less than its plan's price.
+     */
+    public function discount(User $user): bool
+    {
+        return $this->hasRole($this->staffFor($user), self::OWNERS_AND_MANAGERS);
     }
 
     public function cancel(User $user, Membership $membership): bool
     {
-        return $this->hasRole($this->staffFor($user, $membership), self::ROLES_THAT_CANCEL_AND_BACKDATE_MEMBERSHIPS);
+        return $this->hasRole($this->staffFor($user, $membership), self::OWNERS_AND_MANAGERS);
+    }
+
+    /**
+     * Freeze the membership, or end one of its freezes early.
+     */
+    public function freeze(User $user, Membership $membership): bool
+    {
+        return $this->hasRole($this->staffFor($user, $membership), self::ROLES_THAT_SELL_MEMBERSHIPS);
+    }
+
+    /**
+     * Freeze a membership for more days than its plan allowed.
+     */
+    public function freezeBeyondAllowance(User $user): bool
+    {
+        return $this->hasRole($this->staffFor($user), self::OWNERS_AND_MANAGERS);
     }
 
     /**

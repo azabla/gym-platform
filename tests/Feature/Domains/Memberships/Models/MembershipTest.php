@@ -6,6 +6,7 @@ use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Enums\DurationUnit;
 use App\Domains\Memberships\Enums\MembershipStatus;
 use App\Domains\Memberships\Models\Membership;
+use App\Domains\Memberships\Models\MembershipFreeze;
 use App\Domains\Memberships\Models\Plan;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Organization;
@@ -21,6 +22,7 @@ it('is sold with the dates and price of the plan', function () {
         'price' => Money::of('2,500'),
         'duration_count' => 1,
         'duration_unit' => DurationUnit::Month,
+        'freeze_days_allowed' => 7,
     ]);
     $seller = Staff::factory()->for($organization)->create();
 
@@ -30,6 +32,7 @@ it('is sold with the dates and price of the plan', function () {
         ->and($membership->starts_on->toDateString())->toBe('2026-03-15')
         ->and($membership->ends_on->toDateString())->toBe('2026-04-14')
         ->and($membership->price)->toEqual(Money::of('2,500'))
+        ->and($membership->freeze_days_allowed)->toBe(7)
         ->and($membership->soldBy->is($seller))->toBeTrue();
 });
 
@@ -96,3 +99,68 @@ it('refuses an end before the start, a negative price or half a cancellation', f
     'a negative price' => [['price' => Money::of('-1')]],
     'a cancellation without a reason' => [['cancelled_at' => '2026-03-15 10:00:00']],
 ])->throws(QueryException::class, 'violates check constraint');
+
+it('stays valid at the branches its plan had when it was sold', function () {
+    $organization = actingAsOrganization(Organization::factory()->create());
+    $bole = Branch::factory()->for($organization)->create();
+    $member = Member::factory()->for($bole, 'homeBranch')->create();
+    $plan = Plan::factory()->for($organization)->create();
+    $plan->makeAvailableOnlyAt($bole);
+
+    $membership = Membership::sell($member, $plan, CarbonImmutable::parse('2026-03-15'), Staff::factory()->for($organization)->create());
+    $plan->makeAvailableAtAllBranches();
+
+    expect($membership->refresh()->valid_at_all_branches)->toBeFalse()
+        ->and($membership->branches->modelKeys())->toBe([$bole->id]);
+});
+
+it('refuses a price above the list price, or a discount without a reason', function (array $attributes) {
+    Membership::factory()->create($attributes);
+})->with([
+    'a price above the list price' => [['list_price' => Money::of('2,500'), 'price' => Money::of('3,000')]],
+    'a discount without a reason' => [['list_price' => Money::of('2,500'), 'price' => Money::of('2,000')]],
+])->throws(QueryException::class, 'violates check constraint');
+
+it('is frozen while a freeze lasts, and ends later by the frozen days', function () {
+    $membership = Membership::factory()->create(['starts_on' => '2026-10-01', 'ends_on' => '2026-10-31']);
+    actingAsOrganization($membership->organization);
+
+    $membership->freeze(
+        CarbonImmutable::parse('2026-10-10'),
+        CarbonImmutable::parse('2026-10-16'),
+        'Travelling.',
+        Staff::factory()->for($membership->organization)->create(),
+    );
+
+    expect($membership->ends_on->toDateString())->toBe('2026-11-07')
+        ->and($membership->statusOn(CarbonImmutable::parse('2026-10-12')))->toBe(MembershipStatus::Frozen)
+        ->and($membership->statusOn(CarbonImmutable::parse('2026-10-17')))->toBe(MembershipStatus::Active)
+        ->and($membership->statusOn(CarbonImmutable::parse('2026-11-08')))->toBe(MembershipStatus::Expired);
+});
+
+it('moves a queued membership with a freeze, and back when the freeze ends early', function () {
+    $membership = Membership::factory()->create(['starts_on' => '2026-10-01', 'ends_on' => '2026-10-31']);
+    actingAsOrganization($membership->organization);
+    $queued = Membership::factory()->for($membership->member)->create(['starts_on' => '2026-11-01', 'ends_on' => '2026-11-30']);
+    $staff = Staff::factory()->for($membership->organization)->create();
+
+    $freeze = $membership->freeze(CarbonImmutable::parse('2026-10-10'), CarbonImmutable::parse('2026-10-16'), 'Travelling.', $staff);
+
+    expect($membership->ends_on->toDateString())->toBe('2026-11-07')
+        ->and($queued->refresh()->starts_on->toDateString())->toBe('2026-11-08')
+        ->and($queued->ends_on->toDateString())->toBe('2026-12-07');
+
+    $membership->endFreeze($freeze, CarbonImmutable::parse('2026-10-13'));
+
+    expect($freeze->refresh()->ends_on->toDateString())->toBe('2026-10-12')
+        ->and($membership->ends_on->toDateString())->toBe('2026-11-03')
+        ->and($queued->refresh()->starts_on->toDateString())->toBe('2026-11-04')
+        ->and($queued->ends_on->toDateString())->toBe('2026-12-03');
+});
+
+it('refuses overlapping freezes of one membership', function () {
+    $membership = Membership::factory()->create(['starts_on' => '2026-10-01', 'ends_on' => '2026-10-31']);
+    MembershipFreeze::factory()->for($membership)->create(['starts_on' => '2026-10-10', 'ends_on' => '2026-10-16']);
+
+    MembershipFreeze::factory()->for($membership)->create(['starts_on' => '2026-10-16', 'ends_on' => '2026-10-20']);
+})->throws(QueryException::class, 'violates exclusion constraint');
