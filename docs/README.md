@@ -14,9 +14,11 @@ app/Domains/Identity/      Users: identities that can log in, independent of any
 app/Domains/Organizations/ Gyms, branches and staff; Tenancy/ keeps each gym's data separate
 app/Domains/Members/       Gym customers: registering, finding, editing and archiving members
 app/Domains/Memberships/   Plans a gym sells, and the memberships staff sell from them
-app/Domains/Billing/       Payments and refunds against memberships, receipts and balances
+app/Domains/Billing/       Payments and refunds against memberships, receipts and balances; Chapa/ talks to each gym's Chapa account
 app/Http/                  The API: controllers, form requests, middleware and resources (v1)
+app/Console/Commands/      Artisan commands, such as the check of open payment links
 routes/api.php             API routes, versioned under /api/v1
+routes/console.php         Scheduled tasks, run by the scheduler container
 tests/Unit/Domains/...     Unit tests, mirroring app/Domains
 tests/Feature/...          Tests that boot Laravel and touch the database
 docs/adr/                  Architecture Decision Records (why we chose what we chose)
@@ -50,7 +52,9 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Membership | A plan sold to a member for set dates, both included. A member has one membership at a time. |
 | Freeze | A pause in a membership. The membership's end date moves later by the number of frozen days. |
 | Discount | A reduction of a plan's price at sale, as an amount or a percentage, with a reason. Only owners and managers can give one. |
-| Payment | Money a member paid towards a membership, by cash, Telebirr, CBE Birr or bank transfer. A membership can be paid in parts. |
+| Payment | Money a member paid towards a membership, by cash, Telebirr, CBE Birr or bank transfer, or online through Chapa. A membership can be paid in parts. |
+| Chapa account | A gym's own account with Chapa, the payment gateway. The owner connects it with its secret key, and members' online payments go straight to it (ADR 0009). |
+| Payment link | A link to Chapa's payment page for an amount owed on a membership. Staff send it to the member, and the payment is recorded once Chapa confirms it. Marked refund needed if paid when nothing was due any more. |
 | Refund | Money given back on a cancelled membership, up to what was paid. Stored as a payment going the other way. |
 | Void | Marking a payment or refund as recorded by mistake. It stays on record but no longer counts. |
 | Receipt | The record of a payment or refund for the member, numbered 1, 2, 3 in each gym with no gaps. |
@@ -70,6 +74,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0006](adr/0006-plans-and-memberships.md) | Plans and memberships |
 | [0007](adr/0007-freezing-branch-only-plans-and-discounts.md) | Freezing, branch-only plans and discounts |
 | [0008](adr/0008-billing-and-payments.md) | Billing and payments |
+| [0009](adr/0009-online-payments-with-chapa.md) | Online payments with Chapa |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 
