@@ -17,6 +17,7 @@ it('creates the demo organization with its branches and staff', function () {
     $boleBranch = $organization->branches()->where('code', 'BOLE')->sole();
     $owner = $organization->staff()->whereRelation('user', 'email', 'owner@demo-gym.test')->sole();
     $receptionist = $organization->staff()->whereRelation('user', 'email', 'frontdesk@demo-gym.test')->sole();
+    $accountant = $organization->staff()->whereRelation('user', 'email', 'accounts@demo-gym.test')->sole();
 
     expect($organization->name)->toBe('Demo Gym')
         ->and($mainBranch->name)->toBe('Main Branch')
@@ -25,7 +26,9 @@ it('creates the demo organization with its branches and staff', function () {
         ->and($owner->works_at_all_branches)->toBeTrue()
         ->and($receptionist->role)->toBe(StaffRole::Receptionist)
         ->and($receptionist->worksAt($mainBranch))->toBeTrue()
-        ->and($receptionist->worksAt($boleBranch))->toBeFalse();
+        ->and($receptionist->worksAt($boleBranch))->toBeFalse()
+        ->and($accountant->role)->toBe(StaffRole::Accountant)
+        ->and($accountant->works_at_all_branches)->toBeTrue();
 });
 
 it('can run more than once without creating duplicates', function () {
@@ -34,8 +37,8 @@ it('can run more than once without creating duplicates', function () {
 
     expect(Organization::query()->count())->toBe(1)
         ->and(Branch::query()->acrossOrganizations()->count())->toBe(2)
-        ->and(Staff::query()->acrossOrganizations()->count())->toBe(2)
-        ->and(User::query()->count())->toBe(2);
+        ->and(Staff::query()->acrossOrganizations()->count())->toBe(3)
+        ->and(User::query()->count())->toBe(3);
 });
 
 it('runs as part of the database seeder', function () {

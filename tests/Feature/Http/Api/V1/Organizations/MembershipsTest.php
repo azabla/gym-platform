@@ -178,11 +178,11 @@ it('refuses an archived plan or a plan of another gym', function () {
         ->assertJsonValidationErrors(['plan_id']);
 });
 
-it('does not let trainers sell memberships', function () {
-    actingAsStaff($this->gym, StaffRole::Trainer);
+it('does not let trainers or accountants sell memberships', function (StaffRole $role) {
+    actingAsStaff($this->gym, $role);
 
     sellMembership($this->member, ['plan_id' => $this->monthly->id])->assertForbidden();
-});
+})->with([StaffRole::Trainer, StaffRole::Accountant]);
 
 it('cannot sell to a member of another gym', function () {
     $otherGymsMember = Member::factory()->create();
@@ -202,15 +202,15 @@ it('lists a member\'s memberships, newest first', function () {
         ->assertJsonPath('data.*.status', ['active', 'expired']);
 });
 
-it('shows a membership', function () {
+it('shows a membership', function (StaffRole $role) {
     $membership = Membership::factory()->for($this->member)->for($this->monthly)->create();
-    actingAsStaff($this->gym, StaffRole::Trainer);
+    actingAsStaff($this->gym, $role);
 
     $this->getJson(route('api.v1.organizations.memberships.show', ['organization' => 'demo-gym', 'membership' => $membership]))
         ->assertOk()
         ->assertJsonPath('data.member_id', $this->member->id)
         ->assertJsonPath('data.plan.name', 'Monthly');
-});
+})->with([StaffRole::Trainer, StaffRole::Accountant]);
 
 it('lets a manager cancel a membership, with a reason', function () {
     $membership = Membership::factory()->for($this->member)->create(['starts_on' => '2026-10-01', 'ends_on' => '2026-10-31']);
@@ -225,14 +225,14 @@ it('lets a manager cancel a membership, with a reason', function () {
         ->assertJsonPath('data.cancellation.reason', 'Sold the wrong plan.');
 });
 
-it('does not let receptionists cancel memberships', function () {
+it('does not let receptionists or accountants cancel memberships', function (StaffRole $role) {
     $membership = Membership::factory()->for($this->member)->create();
-    actingAsStaff($this->gym, StaffRole::Receptionist);
+    actingAsStaff($this->gym, $role);
 
     $this->postJson(route('api.v1.organizations.memberships.cancellation.store', ['organization' => 'demo-gym', 'membership' => $membership]), [
         'reason' => 'Sold the wrong plan.',
     ])->assertForbidden();
-});
+})->with([StaffRole::Receptionist, StaffRole::Accountant]);
 
 it('refuses to cancel a membership that has ended or is already cancelled', function () {
     $expired = Membership::factory()->for($this->member)->create(['starts_on' => '2026-09-01', 'ends_on' => '2026-09-30']);
@@ -290,12 +290,12 @@ it('lets only owners and managers freeze for more days than the plan allows', fu
         ->assertJsonPath('data.freeze_days_used', 8);
 });
 
-it('does not let trainers freeze memberships', function () {
+it('does not let trainers or accountants freeze memberships', function (StaffRole $role) {
     $membership = Membership::factory()->for($this->member)->create(['freeze_days_allowed' => 7]);
-    actingAsStaff($this->gym, StaffRole::Trainer);
+    actingAsStaff($this->gym, $role);
 
     freezeMembership($membership, ['ends_on' => '2026-10-25', 'reason' => 'Travelling.'])->assertForbidden();
-});
+})->with([StaffRole::Trainer, StaffRole::Accountant]);
 
 it('refuses a freeze that overlaps another or starts outside the membership', function () {
     $membership = Membership::factory()->for($this->member)->create(['starts_on' => '2026-10-01', 'ends_on' => '2026-10-31', 'freeze_days_allowed' => 30]);
