@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Domains\Identity\Models\User;
+use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use Illuminate\Database\Seeder;
@@ -24,6 +26,16 @@ class OrganizationSeeder extends Seeder
                 $organization->branches()->firstOrCreate(
                     ['code' => 'MAIN'],
                     ['name' => 'Main Branch'],
+                );
+
+                $owner = User::query()->firstOrCreate(
+                    ['email' => 'owner@demo-gym.test'],
+                    ['name' => 'Demo Owner', 'password' => 'password'],
+                );
+
+                $organization->staff()->firstOrCreate(
+                    ['user_id' => $owner->id],
+                    ['role' => StaffRole::Owner],
                 );
             });
         });

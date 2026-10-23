@@ -23,4 +23,10 @@ class Organization extends Model
     {
         return $this->hasMany(Branch::class);
     }
+
+    /** @return HasMany<Staff, $this> */
+    public function staff(): HasMany
+    {
+        return $this->hasMany(Staff::class);
+    }
 }
