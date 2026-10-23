@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Auth\TokenController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\Organizations\BranchController;
+use App\Http\Controllers\Api\V1\Organizations\ChapaAccountController;
 use App\Http\Controllers\Api\V1\Organizations\MemberController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipCancellationController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipController;
@@ -45,6 +46,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 Route::apiResource('payments', PaymentController::class)->only(['index', 'show']);
                 Route::post('payments/{payment}/void', [PaymentController::class, 'void'])
                     ->name('payments.void');
+                Route::apiSingleton('chapa-account', ChapaAccountController::class)->destroyable();
             });
     });
 });
