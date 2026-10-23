@@ -11,8 +11,10 @@ use App\Domains\Organizations\Tenancy\BelongsToOrganization;
 use App\Domains\Shared\PhoneNumber\PhoneNumber;
 use Database\Factories\MemberFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -35,6 +37,26 @@ class Member extends Model
     public function homeBranch(): BelongsTo
     {
         return $this->belongsTo(Branch::class, 'home_branch_id');
+    }
+
+    /**
+     * Members whose name contains the text, or whose phone number contains its
+     * digits ("0911 23" finds +251911234567). "%" and "_" match literally.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function search(Builder $query, string $text): void
+    {
+        $digits = ltrim(preg_replace('/\D/', '', $text) ?? '', '0');
+
+        $query->where(function ($query) use ($text, $digits): void {
+            $query->whereLike('full_name', '%'.addcslashes($text, '\\%_').'%');
+
+            if (strlen($digits) >= 3) {
+                $query->orWhereLike('phone', '%'.$digits.'%');
+            }
+        });
     }
 
     /**
