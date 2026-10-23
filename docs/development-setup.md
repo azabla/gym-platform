@@ -199,7 +199,7 @@ make composer c=install
 make fresh
 ```
 
-`make fresh` seeds Demo Gym (`demo-gym`) with two branches and two users, both with the password `password`:
+`make fresh` seeds Demo Gym (`demo-gym`) with two branches, three members and two users, both with the password `password`:
 
 - `owner@demo-gym.test`, the Owner, who works at both branches;
 - `frontdesk@demo-gym.test`, a Receptionist limited to Main Branch.
@@ -219,12 +219,21 @@ curl -s http://localhost:8080/api/v1/me \
 curl -s http://localhost:8080/api/v1/organizations/demo-gym/branches \
   -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
 
+# Demo Gym's members (add ?search=abebe or ?search=0911 to filter)
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/members \
+  -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
+
+# Register a member at Main Branch (id 1 after make fresh)
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/members \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+  -d '{"full_name":"Selam Tesfaye","phone":"0944 56 78 90","home_branch_id":1}'
+
 # Sign out (revokes the token)
 curl -s -X DELETE http://localhost:8080/api/v1/auth/tokens/current \
   -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
 ```
 
-Sign in as `frontdesk@demo-gym.test` instead and the branch list shrinks to Main Branch. See ADR 0004 for how sign-in and gym selection work.
+Sign in as `frontdesk@demo-gym.test` instead and the branch list shrinks to Main Branch, but the members list still shows every member of the gym. See ADR 0004 for how sign-in and gym selection work, and ADR 0005 for members and phone numbers.
 
 ## Troubleshooting
 
