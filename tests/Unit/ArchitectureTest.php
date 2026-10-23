@@ -23,7 +23,10 @@ arch('the Shared kernel is plain PHP with no framework dependency')
     ->not->toUse('Illuminate');
 
 arch('value objects are final and readonly')
-    ->expect('App\Domains\Shared\Money\Money')
+    ->expect([
+        'App\Domains\Shared\Money\Money',
+        'App\Domains\Shared\PhoneNumber\PhoneNumber',
+    ])
     ->toBeFinal()
     ->toBeReadonly();
 
