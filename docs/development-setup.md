@@ -199,7 +199,7 @@ make composer c=install
 make fresh
 ```
 
-`make fresh` seeds Demo Gym (`demo-gym`) with two branches, three members and two users, both with the password `password`:
+`make fresh` seeds Demo Gym (`demo-gym`) with two branches, three members, four plans, two memberships and two users, both with the password `password`:
 
 - `owner@demo-gym.test`, the Owner, who works at both branches;
 - `frontdesk@demo-gym.test`, a Receptionist limited to Main Branch.
@@ -228,12 +228,28 @@ curl -s http://localhost:8080/api/v1/organizations/demo-gym/members \
   -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
   -d '{"full_name":"Selam Tesfaye","phone":"0944 56 78 90","home_branch_id":1}'
 
+# The plans on sale: 3 Months, Day Pass, Monthly and Yearly
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/plans \
+  -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
+
+# Sell Monthly (plan 2 after make fresh) to Hana Girma (member 3); it starts today
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/members/3/memberships \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+  -d '{"plan_id":2}'
+
+# Cancel that membership (membership 3 after make fresh; owners and managers only)
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/memberships/3/cancellation \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+  -d '{"reason":"Sold the wrong plan."}'
+
 # Sign out (revokes the token)
 curl -s -X DELETE http://localhost:8080/api/v1/auth/tokens/current \
   -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
 ```
 
-Sign in as `frontdesk@demo-gym.test` instead and the branch list shrinks to Main Branch, but the members list still shows every member of the gym. See ADR 0004 for how sign-in and gym selection work, and ADR 0005 for members and phone numbers.
+The members list shows each member's membership at a glance: Abebe is active, Tigist's has expired, and Hana has none until you sell her one.
+
+Sign in as `frontdesk@demo-gym.test` instead and the branch list shrinks to Main Branch, but the members list still shows every member of the gym. The receptionist can sell memberships but not cancel them. See ADR 0004 for how sign-in and gym selection work, ADR 0005 for members and phone numbers, and ADR 0006 for plans and memberships.
 
 ## Troubleshooting
 

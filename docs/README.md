@@ -13,6 +13,7 @@ app/Domains/Shared/        Small, framework-free building blocks used by every d
 app/Domains/Identity/      Users: identities that can log in, independent of any gym
 app/Domains/Organizations/ Gyms, branches and staff; Tenancy/ keeps each gym's data separate
 app/Domains/Members/       Gym customers: registering, finding, editing and archiving members
+app/Domains/Memberships/   Plans a gym sells, and the memberships staff sell from them
 app/Http/                  The API: controllers, form requests, middleware and resources (v1)
 routes/api.php             API routes, versioned under /api/v1
 tests/Unit/Domains/...     Unit tests, mirroring app/Domains
@@ -33,6 +34,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 7. Tables that link two gym-owned records carry `organization_id` and use composite foreign keys, so the database refuses links between gyms.
 8. Gym-specific API routes sit under `/api/v1/organizations/{slug}` inside the `organization` middleware group. See ADR 0004.
 9. Phone numbers are a `PhoneNumber` in code and an E.164 string (`+251911234567`) in the database, never stored as typed. See ADR 0005.
+10. Anything that depends on "today" uses the gym's date, `Organization::today()`, never the server's (UTC) date. See ADR 0006.
 
 ## Glossary
 
@@ -43,8 +45,8 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | User | An identity that can log in. |
 | Member | A gym customer, registered at a home branch but welcome at every branch of the gym. May or may not have a User. |
 | Staff | A User's role at one organization: Owner, Manager, Receptionist or Trainer. Works at all branches or only at assigned ones. |
-| Plan | A membership offering (e.g. Monthly Premium). |
-| Membership | A member's actual purchased period of a plan. |
+| Plan | What a gym sells: a price and a length in days or months (e.g. Monthly, 2,500 ETB). |
+| Membership | A plan sold to a member for set dates, both included. A member has one membership at a time. |
 | Invoice | Money owed. |
 | Payment | Money received. |
 | Minor units | The smallest currency unit. 1 ETB = 100 santim. |
@@ -58,6 +60,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0003](adr/0003-multi-tenancy-with-organization-scoping.md) | Multi-tenancy with organization scoping |
 | [0004](adr/0004-api-sign-in-and-organization-per-request.md) | API sign-in and choosing the organization per request |
 | [0005](adr/0005-members-and-phone-numbers.md) | Members and phone numbers |
+| [0006](adr/0006-plans-and-memberships.md) | Plans and memberships |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 
