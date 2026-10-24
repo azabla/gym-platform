@@ -144,14 +144,14 @@ it('denies a code that is not right, without saying whose it is', function (Clos
         ->result->toBe(CheckInResult::Denied)
         ->member_id->toBeNull();
 })->with([
-    'garbage' => fn () => fn () => 'hello',
-    'a tampered code' => fn () => function ($test) {
+    'garbage' => fn () => 'hello',
+    'a tampered code' => function ($test) {
         $code = codeOnThePhone($test->credential);
 
         return substr($code, 0, -1).(str_ends_with($code, '0') ? '1' : '0');
     },
-    'an unknown credential' => fn () => fn () => 'GQ1:01K7Z3M6Q8V2N4R5T9W1X0Y2AB:'.Gq1::stepAt(CarbonImmutable::now()->getTimestamp()).':0123456789ABCDEF',
-    'another gym\'s credential' => fn () => fn () => codeOnThePhone(AccessCredential::factory()->create()),
+    'an unknown credential' => fn () => 'GQ1:01K7Z3M6Q8V2N4R5T9W1X0Y2AB:'.Gq1::stepAt(CarbonImmutable::now()->getTimestamp()).':0123456789ABCDEF',
+    'another gym\'s credential' => fn () => codeOnThePhone(AccessCredential::factory()->create()),
 ]);
 
 it('denies a member whose membership cannot let them in today', function (Closure $arrange, string $reasonCode) {
@@ -162,20 +162,20 @@ it('denies a member whose membership cannot let them in today', function (Closur
         ->assertJsonPath('data.decision', 'deny')
         ->assertJsonPath('data.reason_code', $reasonCode);
 })->with([
-    'no membership' => [fn () => fn ($test) => $test->membership->delete(), 'MEMBERSHIP_NONE'],
-    'a cancelled membership' => [fn () => fn ($test) => $test->membership->update(['cancelled_at' => now(), 'cancelled_by_staff_id' => $test->membership->sold_by_staff_id, 'cancellation_reason' => 'Moved away.']), 'MEMBERSHIP_NONE'],
-    'a membership starting next week' => [fn () => fn ($test) => $test->membership->update(['starts_on' => '2026-10-31', 'ends_on' => '2026-11-30']), 'MEMBERSHIP_NONE'],
-    'an expired membership' => [fn () => fn ($test) => $test->membership->update(['starts_on' => '2026-09-01', 'ends_on' => '2026-10-23']), 'MEMBERSHIP_EXPIRED'],
-    'a frozen membership' => [fn () => fn ($test) => MembershipFreeze::factory()->for($test->membership)->create(), 'MEMBERSHIP_FROZEN'],
-    'a membership for another branch' => [fn () => function ($test) {
-        $test->membership->update(['valid_at_all_branches' => false]);
+    'no membership' => [fn ($test) => $test->membership->delete(), 'MEMBERSHIP_NONE'],
+    'a cancelled membership' => [fn ($test) => $test->membership->forceFill(['cancelled_at' => now(), 'cancelled_by_staff_id' => $test->membership->sold_by_staff_id, 'cancellation_reason' => 'Moved away.'])->save(), 'MEMBERSHIP_NONE'],
+    'a membership starting next week' => [fn ($test) => $test->membership->forceFill(['starts_on' => '2026-10-31', 'ends_on' => '2026-11-30'])->save(), 'MEMBERSHIP_NONE'],
+    'an expired membership' => [fn ($test) => $test->membership->forceFill(['starts_on' => '2026-09-01', 'ends_on' => '2026-10-23'])->save(), 'MEMBERSHIP_EXPIRED'],
+    'a frozen membership' => [fn ($test) => MembershipFreeze::factory()->for($test->membership)->create(), 'MEMBERSHIP_FROZEN'],
+    'a membership for another branch' => [function ($test) {
+        $test->membership->forceFill(['valid_at_all_branches' => false])->save();
         $test->membership->branches()->attach($test->boleBranch->id, ['organization_id' => $test->gym->id]);
     }, 'BRANCH_NOT_ALLOWED'],
 ]);
 
 it('lets a branch-only membership in at its own branch', function () {
     actingAsStaff($this->gym, StaffRole::Receptionist);
-    $this->membership->update(['valid_at_all_branches' => false]);
+    $this->membership->forceFill(['valid_at_all_branches' => false])->save();
     $this->membership->branches()->attach($this->mainBranch->id, ['organization_id' => $this->gym->id]);
 
     scan(codeOnThePhone($this->credential), $this->mainBranch)->assertJsonPath('data.decision', 'allow');
