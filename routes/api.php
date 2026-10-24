@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\V1\Me\MyAccessCredentialController;
 use App\Http\Controllers\Api\V1\Me\MyCheckInController;
 use App\Http\Controllers\Api\V1\Me\MyGymController;
 use App\Http\Controllers\Api\V1\Me\MyMembershipController;
+use App\Http\Controllers\Api\V1\Me\MyNotificationController;
+use App\Http\Controllers\Api\V1\Me\MyNotificationPreferenceController;
 use App\Http\Controllers\Api\V1\Me\MyPaymentController;
 use App\Http\Controllers\Api\V1\Me\MyPaymentLinkController;
 use App\Http\Controllers\Api\V1\Me\MyPushTokenController;
@@ -66,6 +68,15 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     ->name('memberships.show');
                 Route::get('payments', [MyPaymentController::class, 'index'])->name('payments.index');
                 Route::get('check-ins', [MyCheckInController::class, 'index'])->name('check-ins.index');
+                Route::get('notifications', [MyNotificationController::class, 'index'])->name('notifications.index');
+                Route::post('notifications/read-all', [MyNotificationController::class, 'readAll'])->name('notifications.read-all');
+                Route::post('notifications/{notification}/read', [MyNotificationController::class, 'read'])
+                    ->whereUuid('notification')
+                    ->name('notifications.read');
+                Route::get('notification-preferences', [MyNotificationPreferenceController::class, 'show'])
+                    ->name('notification-preferences.show');
+                Route::patch('notification-preferences', [MyNotificationPreferenceController::class, 'update'])
+                    ->name('notification-preferences.update');
                 Route::get('payments/{payment}', [MyPaymentController::class, 'show'])
                     ->whereNumber('payment')
                     ->name('payments.show');

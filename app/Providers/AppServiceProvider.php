@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Domains\Identity\Models\User;
+use App\Domains\Members\Models\Member;
 use App\Domains\Notifications\Push\FcmPushSender;
 use App\Domains\Notifications\Push\LogPushSender;
 use App\Domains\Notifications\Push\PushSender;
@@ -75,6 +76,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Relation::enforceMorphMap([
             'user' => User::class,
+            'member' => Member::class,
         ]);
     }
 
