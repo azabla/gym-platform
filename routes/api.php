@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Auth\TokenController;
 use App\Http\Controllers\Api\V1\ChapaCallbackController;
 use App\Http\Controllers\Api\V1\Me\MyAccessCredentialController;
 use App\Http\Controllers\Api\V1\Me\MyCheckInController;
+use App\Http\Controllers\Api\V1\Me\MyDashboardController;
 use App\Http\Controllers\Api\V1\Me\MyGymController;
 use App\Http\Controllers\Api\V1\Me\MyMembershipController;
 use App\Http\Controllers\Api\V1\Me\MyNotificationController;
@@ -65,6 +66,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->middleware('member')
             ->name('me.gyms.')
             ->group(function (): void {
+                Route::get('dashboard', MyDashboardController::class)->name('dashboard');
                 Route::get('memberships', [MyMembershipController::class, 'index'])->name('memberships.index');
                 Route::get('plans', [MyPlanController::class, 'index'])->name('plans.index');
                 Route::post('plans/{plan}/purchase', [MyPlanPurchaseController::class, 'store'])
