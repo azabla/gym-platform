@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\Organizations\BranchController;
 use App\Http\Controllers\Api\V1\Organizations\ChapaAccountController;
 use App\Http\Controllers\Api\V1\Organizations\CheckInController;
+use App\Http\Controllers\Api\V1\Organizations\DashboardController;
 use App\Http\Controllers\Api\V1\Organizations\MemberController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipCancellationController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipController;
@@ -108,6 +109,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->middleware('organization')
             ->name('organizations.')
             ->group(function (): void {
+                Route::get('dashboard', DashboardController::class)->name('dashboard');
                 Route::apiResource('branches', BranchController::class)->only(['index', 'show']);
                 Route::apiResource('members', MemberController::class);
                 Route::apiResource('plans', PlanController::class);
