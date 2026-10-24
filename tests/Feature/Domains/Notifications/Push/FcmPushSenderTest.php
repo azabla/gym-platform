@@ -71,7 +71,7 @@ it('signs a token request with the service account, then sends the push with str
         ->and($send->header('Authorization'))->toBe(['Bearer ya29.fresh'])
         ->and($send['message']['token'])->toBe('phone-token-1')
         ->and($send['message']['notification'])->toBe(['title' => 'Payment received', 'body' => 'Your payment at Demo Gym was recorded.'])
-        ->and($send['message']['data'])->toBe(['type' => 'payment_succeeded', 'payment_id' => '12'])
+        ->and((array) $send['message']['data'])->toBe(['type' => 'payment_succeeded', 'payment_id' => '12'])
         ->and($send['message']['android'])->toBe(['priority' => 'HIGH']);
 });
 
