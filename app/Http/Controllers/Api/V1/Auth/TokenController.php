@@ -13,7 +13,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
-use Laravel\Sanctum\PersonalAccessToken;
 
 class TokenController extends Controller
 {
@@ -52,14 +51,12 @@ class TokenController extends Controller
     {
         $token = $request->user()->currentAccessToken();
 
-        if ($token instanceof PersonalAccessToken) {
-            AccessCredential::query()
-                ->acrossOrganizations()
-                ->where('personal_access_token_id', $token->id)
-                ->active()
-                ->get()
-                ->each(fn (AccessCredential $credential) => $credential->revoke(CredentialRevocation::SignedOut));
-        }
+        AccessCredential::query()
+            ->acrossOrganizations()
+            ->where('personal_access_token_id', $token->getKey())
+            ->active()
+            ->get()
+            ->each(fn (AccessCredential $credential) => $credential->revoke(CredentialRevocation::SignedOut));
 
         $token->delete();
 
