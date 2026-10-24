@@ -1,5 +1,6 @@
 <?php
 
+use App\Domains\Billing\Chapa\Exceptions\ChapaRequestFailed;
 use App\Domains\Billing\Exceptions\PaymentRefused;
 use App\Http\Middleware\ActAsOrganization;
 use Illuminate\Foundation\Application;
@@ -45,4 +46,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->map(fn (PaymentRefused $exception) => ValidationException::withMessages([
             $exception->field => $exception->getMessage(),
         ]));
+
+        // Chapa refused a request or didn't answer: a bad gateway, with Chapa's reason.
+        $exceptions->render(function (ChapaRequestFailed $exception, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json(['message' => $exception->getMessage()], 502);
+            }
+        });
     })->create();

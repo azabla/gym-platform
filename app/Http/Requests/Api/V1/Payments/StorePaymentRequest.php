@@ -5,12 +5,8 @@ namespace App\Http\Requests\Api\V1\Payments;
 use App\Domains\Billing\Enums\PaymentMethod;
 use App\Domains\Billing\Exceptions\PaymentRefused;
 use App\Domains\Billing\Models\Payment;
-use App\Domains\Memberships\Models\Membership;
-use App\Domains\Organizations\Models\Branch;
-use App\Domains\Organizations\Models\Staff;
-use App\Domains\Organizations\Tenancy\CurrentOrganization;
-use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Domains\Shared\Money\Money;
+use App\Http\Requests\Api\V1\Payments\Concerns\TakesMoneyForAMembership;
 use App\Rules\ValidMoneyAmount;
 use Carbon\CarbonImmutable;
 use Closure;
@@ -21,6 +17,8 @@ use Illuminate\Validation\Validator;
 
 class StorePaymentRequest extends FormRequest
 {
+    use TakesMoneyForAMembership;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -38,7 +36,7 @@ class StorePaymentRequest extends FormRequest
     {
         return [
             'amount' => ['required', 'bail', new ValidMoneyAmount, $this->moreThanZero()],
-            'method' => ['required', Rule::enum(PaymentMethod::class)],
+            'method' => ['required', 'bail', Rule::enum(PaymentMethod::class), $this->notOnline()],
             'reference' => [
                 Rule::requiredIf(fn (): bool => $this->paymentMethodSent()?->hasReference() ?? false),
                 Rule::prohibitedIf(fn (): bool => $this->paymentMethodSent() === PaymentMethod::Cash),
@@ -107,11 +105,6 @@ class StorePaymentRequest extends FormRequest
         return $this->filled('reference') ? $this->string('reference')->toString() : null;
     }
 
-    public function branch(): Branch
-    {
-        return Branch::query()->findOrFail($this->integer('branch_id'));
-    }
-
     /**
      * The day the money was paid: the one sent, or else today where the gym is.
      */
@@ -138,11 +131,7 @@ class StorePaymentRequest extends FormRequest
             $this->merge(['reference' => $tidiedReference === '' ? null : $tidiedReference]);
         }
 
-        $branchesWorkedAt = $this->staff()->branchesWorkedAt();
-
-        if (! $this->filled('branch_id') && $branchesWorkedAt->count() === 1) {
-            $this->merge(['branch_id' => $branchesWorkedAt->sole()->id]);
-        }
+        $this->useTheOnlyBranchByDefault();
     }
 
     /**
@@ -152,21 +141,6 @@ class StorePaymentRequest extends FormRequest
     protected function refusal(): ?PaymentRefused
     {
         return Payment::refusalToReceive($this->membership(), $this->amount());
-    }
-
-    protected function membership(): Membership
-    {
-        return $this->route('membership');
-    }
-
-    protected function today(): CarbonImmutable
-    {
-        return app(CurrentOrganization::class)->get()->today();
-    }
-
-    private function staff(): Staff
-    {
-        return app(CurrentStaff::class)->get();
     }
 
     /**
@@ -179,11 +153,14 @@ class StorePaymentRequest extends FormRequest
         return is_string($method) ? PaymentMethod::tryFrom($method) : null;
     }
 
-    private function moreThanZero(): Closure
+    /**
+     * Online payments are recorded when the provider confirms them, never by hand.
+     */
+    private function notOnline(): Closure
     {
         return function (string $attribute, mixed $value, Closure $fail): void {
-            if (Money::of((string) $value)->isZero()) {
-                $fail('The amount must be more than zero.');
+            if (PaymentMethod::tryFrom((string) $value)?->isOnline()) {
+                $fail('Chapa can\'t be chosen by hand. Chapa payments are recorded when Chapa confirms them.');
             }
         };
     }
@@ -205,20 +182,6 @@ class StorePaymentRequest extends FormRequest
 
             if ($paymentWithTheReference !== null) {
                 $fail("This transaction number is already recorded, on receipt {$paymentWithTheReference->receipt_number}.");
-            }
-        };
-    }
-
-    /**
-     * The branch must be a branch of this gym that the staff member works at.
-     */
-    private function branchTheStaffMemberWorksAt(): Closure
-    {
-        return function (string $attribute, mixed $value, Closure $fail): void {
-            $branch = is_numeric($value) ? Branch::query()->find((int) $value) : null;
-
-            if ($branch === null || ! $this->staff()->worksAt($branch)) {
-                $fail('Choose a branch of this gym that you work at.');
             }
         };
     }

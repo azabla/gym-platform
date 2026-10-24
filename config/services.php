@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    // Each gym connects its own Chapa account; only Chapa's address is set here (ADR 0009).
+    'chapa' => [
+        'base_url' => env('CHAPA_BASE_URL', 'https://api.chapa.co/v1'),
+    ],
+
 ];

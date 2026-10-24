@@ -47,4 +47,15 @@ final readonly class PhoneNumber
 
         throw InvalidPhoneNumber::cannotParse($input);
     }
+
+    /**
+     * The number as people write it in Ethiopia, such as 0911234567, which is
+     * the form Chapa expects. Null for a number from another country.
+     */
+    public function ethiopianNational(): ?string
+    {
+        $countryPrefix = '+'.self::ETHIOPIA;
+
+        return str_starts_with($this->e164, $countryPrefix) ? '0'.substr($this->e164, strlen($countryPrefix)) : null;
+    }
 }

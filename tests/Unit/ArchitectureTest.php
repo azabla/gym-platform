@@ -28,6 +28,7 @@ arch('value objects are final and readonly')
         'App\Domains\Shared\PhoneNumber\PhoneNumber',
         'App\Domains\Memberships\Discount\Discount',
         'App\Domains\Billing\Balances\MembershipBalance',
+        'App\Domains\Billing\Chapa\ChapaTransaction',
     ])
     ->toBeFinal()
     ->toBeReadonly();

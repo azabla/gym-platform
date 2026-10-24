@@ -308,10 +308,46 @@ Sign in as `frontdesk@demo-gym.test` instead and the branch list shrinks to Main
 
 - can sell memberships, and freeze them within their plan's freeze days;
 - can take payments, dated today, at Main Branch;
+- can create, check and cancel payment links;
 - can't cancel memberships, give discounts or go past the freeze days;
-- can't refund, void or date a payment in the past.
+- can't refund, void, date a payment in the past or connect Chapa.
 
 Sign in as `accounts@demo-gym.test` to work as the accountant: they see payments, take them, refund and void, but can't sell memberships or edit members.
+
+### Paying online with Chapa (test mode)
+
+Payment links need the gym's Chapa account. Use a test key, which takes no real money:
+
+1. Create an account on Chapa's dashboard and copy its test secret key. It starts with `CHASECK_TEST-`; the public key (`CHAPUBK…`) is refused.
+2. Sign in as the owner again (the first command above), connect the key, and create a link for the 1,000 ETB Tigist still owes:
+
+```bash
+# Connect Demo Gym's Chapa account (owners only). Responses show only the key's last 4 characters.
+curl -s -X PUT http://localhost:8080/api/v1/organizations/demo-gym/chapa-account \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+  -d '{"secret_key":"CHASECK_TEST-paste-your-test-key-here"}'
+
+# A link for what Tigist still owes (membership 2 after make fresh), at Main Branch.
+# The response has the checkout_url to send her.
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/memberships/2/payment-links \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+  -d '{"branch_id":1}'
+```
+
+3. Open the `checkout_url` in a browser and pay with one of the test payment methods in Chapa's docs.
+4. Chapa can't reach `localhost`, so its callback never arrives on your machine. Ask Chapa yourself, or wait for the `scheduler` container, which checks open links every 10 minutes:
+
+```bash
+# Ask Chapa about link 1 now. Once it's paid, it shows "status":"paid" and its receipt number.
+curl -s -X POST http://localhost:8080/api/v1/organizations/demo-gym/payment-links/1/check \
+  -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
+
+# The payment: method chapa, Chapa's reference as its transaction number, and no staff member
+curl -s "http://localhost:8080/api/v1/organizations/demo-gym/payments?method=chapa" \
+  -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
+```
+
+Tigist now owes nothing. `GET payment-links` lists the gym's links, and `?status=refund_needed` shows the ones paid when nothing was due, which the gym refunds from its Chapa dashboard. `POST payment-links/{id}/cancel` cancels an open link, and `make artisan c=billing:check-payment-links` runs the scheduled check by hand.
 
 Each part has an ADR:
 
@@ -319,7 +355,8 @@ Each part has an ADR:
 - ADR 0005: members and phone numbers;
 - ADR 0006: plans and memberships;
 - ADR 0007: freezing, branch-only plans and discounts;
-- ADR 0008: billing and payments.
+- ADR 0008: billing and payments;
+- ADR 0009: online payments with Chapa.
 
 ## Troubleshooting
 
