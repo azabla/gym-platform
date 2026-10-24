@@ -149,14 +149,13 @@ it('sells once, however often Chapa tells us', function () {
 });
 
 it('refuses a link for neither a membership nor a plan', function () {
-    PaymentLink::factory()->create(['membership_id' => null, 'member_id' => $this->tigist->id, 'organization_id' => $this->gym->id]);
+    PaymentLink::factory()->buying($this->monthly, $this->tigist)->create(['plan_id' => null]);
 })->throws(QueryException::class, 'violates check constraint');
 
 it('refuses a second open purchase link for a member', function () {
-    $purchase = ['membership_id' => null, 'member_id' => $this->tigist->id, 'plan_id' => $this->monthly->id, 'organization_id' => $this->gym->id];
-    PaymentLink::factory()->create($purchase);
+    PaymentLink::factory()->buying($this->monthly, $this->tigist)->create();
 
-    PaymentLink::factory()->create($purchase);
+    PaymentLink::factory()->buying($this->monthly, $this->tigist)->create();
 })->throws(QueryException::class, 'violates unique constraint');
 
 it('refuses a membership with no one who sold it that was not bought in the app', function () {

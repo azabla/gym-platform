@@ -125,7 +125,9 @@ class PaymentLink extends Model
      */
     public function planName(): string
     {
-        return $this->plan?->name ?? $this->membership?->plan->name ?? 'Membership';
+        $plan = $this->plan_id === null ? $this->membership?->plan : $this->plan;
+
+        return $plan === null ? 'Membership' : $plan->name;
     }
 
     /**
