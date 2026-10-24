@@ -14,8 +14,8 @@ use App\Domains\Organizations\Models\Branch;
 use Carbon\CarbonImmutable;
 
 /**
- * The membership rules at the door, the same for a QR scan and a desk
- * check-in: a membership valid today, not frozen, valid at this branch, with
+ * The rules at the door, the same for a QR scan and a desk check-in: the
+ * branch open now, a membership valid today, not frozen, valid at this branch, with
  * a visit left when it is a visit pack, and no other check-in in the last 5
  * minutes. Money owed doesn't stop anyone; the desk sees it and can ask. See
  * ADR 0011 and ADR 0016.
@@ -31,9 +31,11 @@ final class AccessEvaluator
         $today = $member->organization->today();
         $membership = Membership::atAGlanceFor([$member->id], $today)->get($member->id);
 
-        $denial = $membership === null
-            ? CheckInDenial::MembershipNone
-            : $this->denialFor($membership, $membership->statusOn($today), $branch) ?? $this->denialForVisits($membership, $today);
+        $denial = match (true) {
+            ! $branch->isOpenAt(CarbonImmutable::now(), $member->organization->timezone) => CheckInDenial::OutsideHours,
+            $membership === null => CheckInDenial::MembershipNone,
+            default => $this->denialFor($membership, $membership->statusOn($today), $branch) ?? $this->denialForVisits($membership, $today),
+        };
 
         return new AccessDecision($membership, $denial ?? $this->denialForAnotherCheckIn($member));
     }

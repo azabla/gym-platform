@@ -21,6 +21,9 @@ enum CheckInDenial: string
     /** The code was scanned before: a screenshot. */
     case CodeAlreadyUsed = 'CODE_ALREADY_USED';
 
+    /** The branch is closed now, by its opening hours (ADR 0016). */
+    case OutsideHours = 'OUTSIDE_HOURS';
+
     /** No membership valid today, or only one that starts later. */
     case MembershipNone = 'MEMBERSHIP_NONE';
 

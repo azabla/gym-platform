@@ -12,11 +12,11 @@ use Illuminate\Support\Facades\Gate;
 class BranchController extends Controller
 {
     /**
-     * The branches the signed-in staff member works at.
+     * The branches the signed-in staff member works at, with their opening hours.
      */
     public function index(CurrentStaff $currentStaff): AnonymousResourceCollection
     {
-        return BranchResource::collection($currentStaff->get()->branchesWorkedAt());
+        return BranchResource::collection($currentStaff->get()->branchesWorkedAt()->load('openingHours'));
     }
 
     /**
@@ -26,6 +26,6 @@ class BranchController extends Controller
     {
         Gate::authorize('view', $branch);
 
-        return new BranchResource($branch);
+        return new BranchResource($branch->load('openingHours'));
     }
 }

@@ -53,6 +53,7 @@ return [
         'CREDENTIAL_REVOKED' => 'this phone\'s QR code was replaced. Open the app to get a new one.',
         'CODE_EXPIRED' => 'the QR code had expired. Check your phone\'s clock.',
         'CODE_ALREADY_USED' => 'that QR code was already used.',
+        'OUTSIDE_HOURS' => 'the branch is closed at this time.',
         'MEMBERSHIP_NONE' => 'you have no membership for today.',
         'MEMBERSHIP_EXPIRED' => 'your membership has ended.',
         'MEMBERSHIP_FROZEN' => 'your membership is frozen today.',
