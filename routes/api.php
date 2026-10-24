@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\Me\MyPlanController;
 use App\Http\Controllers\Api\V1\Me\MyPlanPurchaseController;
 use App\Http\Controllers\Api\V1\Me\MyPushTokenController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\Organizations\AnnouncementController;
 use App\Http\Controllers\Api\V1\Organizations\BranchController;
 use App\Http\Controllers\Api\V1\Organizations\ChapaAccountController;
 use App\Http\Controllers\Api\V1\Organizations\CheckInController;
@@ -146,6 +147,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     ->name('check-ins.scan');
                 Route::post('members/{member}/check-ins', [CheckInController::class, 'store'])
                     ->name('members.check-ins.store');
+                Route::apiResource('announcements', AnnouncementController::class)->only(['index', 'store', 'update']);
+                Route::post('announcements/{announcement}/cancel', [AnnouncementController::class, 'cancel'])
+                    ->name('announcements.cancel');
             });
     });
 });
