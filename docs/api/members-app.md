@@ -1,6 +1,6 @@
 # Members app API
 
-The contract between the backend and the members app (Volt). Where this file and the Volt doc disagree, this file wins. Decisions behind it: ADR 0010 (sign-in, memberships, paying) and ADR 0011 (check-ins and QR codes).
+The contract between the backend and the members app (Volt). Where this file and the Volt doc disagree, this file wins. Decisions behind it: ADR 0010 (sign-in, memberships, paying), ADR 0011 (check-ins and QR codes) and ADR 0012 (notifications).
 
 ## Conventions
 
@@ -88,6 +88,46 @@ payload = "GQ1:" + credential_id + ":" + step + ":" + code
 
 `GET /me/gyms/{gym}/check-ins` lists the member's visits, newest first: `id`, `decision` (`allow` or `deny`), `reason_code` (below, or `null` when let in), `method` (`qr` or `desk`), `checked_in_at` and `branch`.
 
+## Notifications
+
+### Push token
+
+| Request | Answer |
+|---|---|
+| `PUT /me/push-token` `{"provider": "fcm", "token": "…", "locale": "am"}` | `204`. Keeps this phone's FCM token and language. `provider` is optional and must be `fcm`; `locale` is optional, like `am` or `en-US`. |
+| `DELETE /me/push-token` | `204`. This phone gets no more pushes. |
+
+- Send it after signing in, whenever FCM replaces the token, and when the member changes language.
+- Signing out (`DELETE /auth/tokens/current`) deletes it too.
+
+### Pushes
+
+A push has a `title` and `body`, safe for a lock screen, and `data`, every value a string:
+
+| `type` | When | Other `data` | Open |
+|---|---|---|---|
+| `membership_expiring` | 5, 3 and 1 days before a membership ends | `membership_id` | that membership |
+| `membership_expired` | the day after it ends | `membership_id` | that membership |
+| `membership_frozen` | the gym freezes it | `membership_id` | that membership |
+| `payment_succeeded` | a payment is recorded | `payment_id`, `membership_id` | that receipt |
+| `visit_denied` | a check-in is turned away | `check_in_id`, `reason_code` | visits |
+
+Every push also has `notification_id` (mark it read when tapped) and `organization_id`, to switch to the right gym first.
+
+### Inbox
+
+| Request | Answer |
+|---|---|
+| `GET /me/gyms/{gym}/notifications` | Newest first, 25 a page: `id`, `type`, `title`, `body`, `data` (as in the push), `read_at`, `created_at`, and `meta.unread_count` across every page |
+| `POST /me/gyms/{gym}/notifications/{id}/read` | `204`, safe to repeat |
+| `POST /me/gyms/{gym}/notifications/read-all` | `204`, this gym's only |
+
+`title` and `body` are written in the request's `Accept-Language` (`en` for now; `am` once written), so send it.
+
+### Preferences
+
+`GET /me/gyms/{gym}/notification-preferences` returns `{"data": {"membership": true, "payments": true, "visits": true}}`. `PATCH` with any of those keys, each `true` or `false`, returns all three. An unknown key or another value gets a `422`. They decide pushes only: the inbox gets everything.
+
 ## At the door (staff app)
 
 The scanner is the staff app, signed in as staff (ADR 0004), under `/organizations/{gym}/`:
@@ -123,5 +163,5 @@ Checked in this order; the first that applies is the answer.
 - Offline scanning (Volt's phase 7).
 - Member photos.
 - Buying, renewing or freezing a membership in the app.
-- Push notifications.
+- Announcements from the gym.
 - Opening hours and visit packs.
