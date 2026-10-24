@@ -69,7 +69,7 @@ class Announcement extends Model
             'title' => $title,
             'body' => $body,
             'include_recently_expired' => $includeRecentlyExpired,
-            'send_at' => $sendAt ?? CarbonImmutable::now(),
+            'send_at' => ($sendAt ?? CarbonImmutable::now())->utc(),
         ])->save();
 
         return $announcement;
@@ -78,12 +78,16 @@ class Announcement extends Model
     /**
      * Change what a scheduled announcement says, who it goes to or when.
      * Returns false, changing nothing, if it has gone out or been cancelled
-     * in the meantime.
+     * in the meantime. Times are kept in UTC, whatever offset they come with.
      *
      * @param  array{title?: string, body?: string, branch_id?: int|null, include_recently_expired?: bool, send_at?: CarbonImmutable}  $changes
      */
     public function edit(array $changes): bool
     {
+        if (isset($changes['send_at'])) {
+            $changes['send_at'] = $changes['send_at']->utc();
+        }
+
         $edited = $this->newQueryWithoutScopes()
             ->whereKey($this->id)
             ->whereNull('sent_at')

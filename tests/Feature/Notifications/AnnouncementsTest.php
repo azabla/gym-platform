@@ -62,7 +62,7 @@ it('tells members with a membership valid today, in the inbox and by push', func
 
     $message = $active->notifications()->sole();
     expect($message->type)->toBe('announcement')
-        ->and($message->data['details'])->toBe(['title' => 'Closed on Sunday', 'body' => 'The gym is closed this Sunday for maintenance.', 'gym' => 'Demo Gym'])
+        ->and($message->data['details'])->toEqual(['title' => 'Closed on Sunday', 'body' => 'The gym is closed this Sunday for maintenance.', 'gym' => 'Demo Gym'])
         ->and($message->data['data'])->toBe(['announcement_id' => (string) $announcement->id])
         ->and($atBole->notifications()->count())->toBe(1)
         ->and($expired->notifications()->count())->toBe(0)
@@ -136,7 +136,7 @@ it('shows the start of a long announcement in the push, and all of it in the inb
 
 it('sends a scheduled announcement once its time comes, and only once', function () {
     $member = memberWithMembership($this->mainBranch, '2026-10-01', '2026-10-31');
-    $announcement = announcementAt($this->gym, ['send_at' => CarbonImmutable::parse('2026-10-24 18:00', 'Africa/Addis_Ababa')]);
+    $announcement = announcementAt($this->gym, ['send_at' => CarbonImmutable::parse('2026-10-24 18:00', 'Africa/Addis_Ababa')->utc()]);
 
     $this->artisan('announcements:send-due')->assertSuccessful();
     expect($member->notifications()->count())->toBe(0);
