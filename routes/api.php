@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Me\MyPaymentLinkController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\Organizations\BranchController;
 use App\Http\Controllers\Api\V1\Organizations\ChapaAccountController;
+use App\Http\Controllers\Api\V1\Organizations\CheckInController;
 use App\Http\Controllers\Api\V1\Organizations\MemberController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipCancellationController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipController;
@@ -108,6 +109,12 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     ->name('payment-links.cancel');
                 Route::post('payment-links/{payment_link}/check', [PaymentLinkController::class, 'check'])
                     ->name('payment-links.check');
+                Route::get('check-ins', [CheckInController::class, 'index'])
+                    ->name('check-ins.index');
+                Route::post('check-ins/scan', [CheckInController::class, 'scan'])
+                    ->name('check-ins.scan');
+                Route::post('members/{member}/check-ins', [CheckInController::class, 'store'])
+                    ->name('members.check-ins.store');
             });
     });
 });
