@@ -36,6 +36,11 @@ return [
         'body' => 'You couldn\'t check in at :branch: :reason',
     ],
 
+    'visits_running_low' => [
+        'title' => 'One visit left',
+        'body' => 'You have one visit left on your :plan membership at :gym. Renew it to keep training.',
+    ],
+
     // The gym's own words, the same in every language (ADR 0015).
     'announcement' => [
         'title' => ':title',

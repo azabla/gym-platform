@@ -9,6 +9,7 @@ use App\Domains\Attendance\Credentials\Gq1;
 use App\Domains\Attendance\Enums\CheckInDenial;
 use App\Domains\Attendance\Enums\CheckInMethod;
 use App\Domains\Attendance\Enums\CheckInResult;
+use App\Domains\Attendance\Events\CheckInAllowed;
 use App\Domains\Attendance\Events\CheckInDenied;
 use App\Domains\Attendance\Policies\CheckInPolicy;
 use App\Domains\Members\Models\Member;
@@ -149,6 +150,10 @@ class CheckIn extends Model
 
         if ($denial !== null && $member !== null) {
             CheckInDenied::dispatch($checkIn);
+        }
+
+        if ($denial === null && $member !== null) {
+            CheckInAllowed::dispatch($checkIn);
         }
 
         return $checkIn;

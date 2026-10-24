@@ -148,3 +148,70 @@ it('leaves memberships without a limit as they were', function () {
         checkInHana($this->mainBranch)->assertJsonPath('data.decision', 'allow');
     }
 });
+
+it('shows staff the visits used, and the member the visits left', function () {
+    actingAsStaff($this->gym, StaffRole::Receptionist);
+    checkInHana($this->mainBranch)->assertJsonPath('data.decision', 'allow');
+    atGymTime('2026-10-25 07:00');
+    checkInHana($this->mainBranch)->assertJsonPath('data.decision', 'allow');
+
+    $this->getJson(route('api.v1.organizations.memberships.show', ['organization' => 'demo-gym', 'membership' => $this->membership]))
+        ->assertOk()
+        ->assertJsonPath('data.visit_limit', 3)
+        ->assertJsonPath('data.visits_used', 2);
+
+    actingAsMember($this->hana);
+
+    $this->getJson(route('api.v1.me.gyms.memberships.show', ['organization' => 'demo-gym', 'membership' => $this->membership]))
+        ->assertOk()
+        ->assertJsonPath('data.visits_remaining', 1);
+    $this->getJson(route('api.v1.me.gyms.dashboard', ['organization' => 'demo-gym']))
+        ->assertOk()
+        ->assertJsonPath('data.membership.visits_remaining', 1);
+});
+
+it('shows no visits left for a membership without a limit', function () {
+    $this->membership->forceFill(['visit_limit' => null])->save();
+    actingAsMember($this->hana);
+
+    $this->getJson(route('api.v1.me.gyms.memberships.show', ['organization' => 'demo-gym', 'membership' => $this->membership]))
+        ->assertOk()
+        ->assertJsonPath('data.visits_remaining', null);
+});
+
+it('puts a pack with one visit left on the dashboard\'s list of members to call', function () {
+    actingAsStaff($this->gym, StaffRole::Owner);
+
+    $this->getJson(route('api.v1.organizations.dashboard', ['organization' => 'demo-gym']))
+        ->assertJsonCount(0, 'data.expiring');
+
+    checkInHana($this->mainBranch);
+    atGymTime('2026-10-25 07:00');
+    checkInHana($this->mainBranch);
+
+    $this->getJson(route('api.v1.organizations.dashboard', ['organization' => 'demo-gym']))
+        ->assertJsonCount(1, 'data.expiring')
+        ->assertJsonPath('data.expiring.0.membership_id', $this->membership->id)
+        ->assertJsonPath('data.expiring.0.visits_remaining', 1);
+});
+
+it('tells the member once when one visit is left', function () {
+    fakePushes();
+    actingAsStaff($this->gym, StaffRole::Receptionist);
+
+    checkInHana($this->mainBranch);
+    expect($this->hana->notifications()->count())->toBe(0);
+
+    atGymTime('2026-10-25 07:00');
+    checkInHana($this->mainBranch);
+    atGymTime('2026-10-25 19:00');
+    checkInHana($this->boleBranch);
+
+    $message = $this->hana->notifications()->sole();
+    expect($message->type)->toBe('visits_running_low')
+        ->and($message->data['data'])->toBe(['membership_id' => (string) $this->membership->id]);
+
+    atGymTime('2026-10-26 07:00');
+    checkInHana($this->mainBranch);
+    expect($this->hana->notifications()->count())->toBe(1);
+});

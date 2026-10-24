@@ -24,13 +24,15 @@ class MyMembershipResource extends JsonResource
 {
     /**
      * Load everything the response shows: the plan, branches and freezes, and
-     * from Billing the balance and the open payment link. One query per
+     * from Billing the balance and the open payment link, and from Attendance
+     * the visits used. One query per
      * relation, however many memberships.
      */
     public static function loadDetails(Membership ...$memberships): void
     {
         (new Collection($memberships))->load(['plan', 'branches', 'freezes']);
         MembershipResource::attachBalances(...$memberships);
+        MembershipResource::attachVisitsUsed(...$memberships);
 
         $openPaymentLinks = PaymentLink::query()
             ->pending()
@@ -64,6 +66,10 @@ class MyMembershipResource extends JsonResource
             'balance_due' => $this->whenLoaded('balance', fn (MembershipBalance $balance) => $balance->balanceDue),
             'valid_at_all_branches' => $this->valid_at_all_branches,
             'branches' => BranchResource::collection($this->whenLoaded('branches')),
+            'visits_remaining' => $this->visit_limit === null ? null : $this->whenLoaded(
+                'visitsUsed',
+                fn (int $visitsUsed) => max(0, $this->visit_limit - $visitsUsed),
+            ),
             'freeze_days_allowed' => $this->freeze_days_allowed,
             'freeze_days_used' => $this->whenLoaded('freezes', fn () => $this->freezeDaysUsed()),
             'freeze_days_left' => $this->whenLoaded('freezes', fn () => max(0, $this->freeze_days_allowed - $this->freezeDaysUsed())),

@@ -48,6 +48,23 @@ final class Visits
     }
 
     /**
+     * Whether the allowed check-in is the membership's first of its day, where
+     * the gym is: the one that used a visit.
+     */
+    public function isFirstOfItsDay(CheckIn $checkIn, string $timezone): bool
+    {
+        $startOfDay = CarbonImmutable::parse($checkIn->checked_in_at->setTimezone($timezone)->toDateString(), $timezone);
+
+        return ! CheckIn::query()
+            ->where('membership_id', $checkIn->membership_id)
+            ->where('result', CheckInResult::Allowed)
+            ->whereKeyNot($checkIn->id)
+            ->where('checked_in_at', '>=', $startOfDay->utc())
+            ->where('checked_in_at', '<=', $checkIn->checked_in_at)
+            ->exists();
+    }
+
+    /**
      * Whether the membership already has an allowed check-in on the day, where
      * the gym is, so another one that day uses no visit.
      */
