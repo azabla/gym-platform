@@ -386,6 +386,43 @@ curl -s -X POST http://localhost:8080/api/v1/me/gyms/demo-gym/memberships/2/paym
 
 After paying on Chapa's page, `POST me/gyms/demo-gym/payment-links/{id}/check` records the payment, as the app does when the member comes back from Chapa.
 
+### Checking in with a QR code
+
+The members app makes Tigist's QR code from a secret the server gives it once. Here PHP plays the phone. The contract for the app is `docs/api/members-app.md`.
+
+```bash
+# Tigist issues her phone's QR credential for Demo Gym. Keep the credential_id and secret.
+curl -s -X POST http://localhost:8080/api/v1/me/gyms/demo-gym/access-credential \
+  -H 'Accept: application/json' -H "Authorization: Bearer $MEMBER_TOKEN"
+
+# Make the code her phone shows right now: in another terminal, run `make shell`, then
+#   php artisan tinker --execute 'echo App\Domains\Attendance\Credentials\Gq1::payload(base64_decode("SECRET"), "CREDENTIAL_ID", App\Domains\Attendance\Credentials\Gq1::stepAt(time()));'
+# and paste what it prints here. A code works for about a minute, so scan it soon.
+PAYLOAD='GQ1:…'
+
+# The receptionist signs in and scans it at Main Branch, their only branch, so no branch_id
+DESK_TOKEN=$(curl -s http://localhost:8080/api/v1/auth/tokens \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' \
+  -d '{"email":"frontdesk@demo-gym.test","password":"password","device_name":"door"}' \
+  | sed -E 's/.*"token":"([^"]+)".*/\1/')
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/check-ins/scan \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $DESK_TOKEN" \
+  -d "{\"payload\":\"$PAYLOAD\"}"
+
+# Scan the same code again: now "reason_code":"CODE_ALREADY_USED"
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/check-ins/scan \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $DESK_TOKEN" \
+  -d "{\"payload\":\"$PAYLOAD\"}"
+
+# Today's check-ins at the gym, and Tigist's visits in the app
+curl -s "http://localhost:8080/api/v1/organizations/demo-gym/check-ins?on=$(date +%F)" \
+  -H 'Accept: application/json' -H "Authorization: Bearer $DESK_TOKEN"
+curl -s http://localhost:8080/api/v1/me/gyms/demo-gym/check-ins \
+  -H 'Accept: application/json' -H "Authorization: Bearer $MEMBER_TOKEN"
+```
+
+Tigist's membership in the demo data has expired, so the first scan answers `"decision":"deny"` with `MEMBERSHIP_EXPIRED`, and her membership and what she owes. Sell her a new one (above), and a fresh code lets her in; another within 5 minutes is denied with `ALREADY_CHECKED_IN`. `POST organizations/demo-gym/members/{id}/check-ins` checks a member in at the desk instead.
+
 Each part has an ADR:
 
 - ADR 0004: how sign-in and gym selection work;
@@ -394,7 +431,8 @@ Each part has an ADR:
 - ADR 0007: freezing, branch-only plans and discounts;
 - ADR 0008: billing and payments;
 - ADR 0009: online payments with Chapa;
-- ADR 0010: the members app, with SMS sign-in.
+- ADR 0010: the members app, with SMS sign-in;
+- ADR 0011: check-ins and rotating QR codes.
 
 ## Troubleshooting
 

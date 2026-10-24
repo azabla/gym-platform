@@ -4,6 +4,8 @@ use App\Http\Controllers\Api\V1\Auth\SmsCodeController;
 use App\Http\Controllers\Api\V1\Auth\SmsTokenController;
 use App\Http\Controllers\Api\V1\Auth\TokenController;
 use App\Http\Controllers\Api\V1\ChapaCallbackController;
+use App\Http\Controllers\Api\V1\Me\MyAccessCredentialController;
+use App\Http\Controllers\Api\V1\Me\MyCheckInController;
 use App\Http\Controllers\Api\V1\Me\MyGymController;
 use App\Http\Controllers\Api\V1\Me\MyMembershipController;
 use App\Http\Controllers\Api\V1\Me\MyPaymentController;
@@ -11,6 +13,7 @@ use App\Http\Controllers\Api\V1\Me\MyPaymentLinkController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\Organizations\BranchController;
 use App\Http\Controllers\Api\V1\Organizations\ChapaAccountController;
+use App\Http\Controllers\Api\V1\Organizations\CheckInController;
 use App\Http\Controllers\Api\V1\Organizations\MemberController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipCancellationController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipController;
@@ -55,6 +58,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     ->whereNumber('membership')
                     ->name('memberships.show');
                 Route::get('payments', [MyPaymentController::class, 'index'])->name('payments.index');
+                Route::get('check-ins', [MyCheckInController::class, 'index'])->name('check-ins.index');
                 Route::get('payments/{payment}', [MyPaymentController::class, 'show'])
                     ->whereNumber('payment')
                     ->name('payments.show');
@@ -68,6 +72,11 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     ->whereNumber('payment_link')
                     ->middleware('throttle:10,1')
                     ->name('payment-links.check');
+                Route::post('access-credential', [MyAccessCredentialController::class, 'store'])
+                    ->middleware('throttle:10,1')
+                    ->name('access-credential.store');
+                Route::get('access-credential', [MyAccessCredentialController::class, 'show'])
+                    ->name('access-credential.show');
             });
 
         Route::prefix('organizations/{organization}')
@@ -102,6 +111,12 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     ->name('payment-links.cancel');
                 Route::post('payment-links/{payment_link}/check', [PaymentLinkController::class, 'check'])
                     ->name('payment-links.check');
+                Route::get('check-ins', [CheckInController::class, 'index'])
+                    ->name('check-ins.index');
+                Route::post('check-ins/scan', [CheckInController::class, 'scan'])
+                    ->name('check-ins.scan');
+                Route::post('members/{member}/check-ins', [CheckInController::class, 'store'])
+                    ->name('members.check-ins.store');
             });
     });
 });
