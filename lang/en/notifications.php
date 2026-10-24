@@ -52,6 +52,7 @@ return [
         'MEMBERSHIP_EXPIRED' => 'your membership has ended.',
         'MEMBERSHIP_FROZEN' => 'your membership is frozen today.',
         'BRANCH_NOT_ALLOWED' => 'your membership isn\'t valid at this branch.',
+        'VISITS_USED_UP' => 'you have used every visit of your membership.',
         'ALREADY_CHECKED_IN' => 'you checked in less than 5 minutes ago.',
     ],
 

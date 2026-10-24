@@ -27,11 +27,12 @@ use Illuminate\Support\Facades\DB;
  * Something a gym sells: a price and a length in days or months, such as
  * "Monthly, 2,500 ETB". Archiving a plan (a soft delete) stops new sales, while
  * memberships already sold keep their own dates and price. A plan is valid at
- * every branch of its gym, or only at chosen ones. See ADR 0006 and ADR 0007.
+ * every branch of its gym, or only at chosen ones. A visit pack also limits
+ * how many days the member can come in. See ADR 0006, ADR 0007 and ADR 0016.
  *
  * @property Money $price Stored in the price_minor and currency columns.
  */
-#[Fillable(['name', 'description', 'price', 'duration_count', 'duration_unit', 'freeze_days_allowed'])]
+#[Fillable(['name', 'description', 'price', 'duration_count', 'duration_unit', 'freeze_days_allowed', 'visit_limit'])]
 #[UseFactory(PlanFactory::class)]
 #[UsePolicy(PlanPolicy::class)]
 class Plan extends Model
@@ -123,6 +124,7 @@ class Plan extends Model
             'duration_unit' => DurationUnit::class,
             'available_at_all_branches' => 'boolean',
             'freeze_days_allowed' => 'integer',
+            'visit_limit' => 'integer',
         ];
     }
 }

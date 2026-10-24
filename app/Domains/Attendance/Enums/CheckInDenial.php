@@ -30,6 +30,9 @@ enum CheckInDenial: string
 
     case BranchNotAllowed = 'BRANCH_NOT_ALLOWED';
 
+    /** A visit pack with every visit used, on a day the member hasn't come in yet (ADR 0016). */
+    case VisitsUsedUp = 'VISITS_USED_UP';
+
     /** Let in less than 5 minutes ago, so the code isn't passed back out the door. */
     case AlreadyCheckedIn = 'ALREADY_CHECKED_IN';
 }

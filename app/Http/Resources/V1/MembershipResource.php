@@ -74,6 +74,7 @@ class MembershipResource extends JsonResource
             'balance_due' => $this->whenLoaded('balance', fn (MembershipBalance $balance) => $balance->balanceDue),
             'valid_at_all_branches' => $this->valid_at_all_branches,
             'branches' => BranchResource::collection($this->whenLoaded('branches')),
+            'visit_limit' => $this->visit_limit,
             'freeze_days_allowed' => $this->freeze_days_allowed,
             'freeze_days_used' => $this->whenLoaded('freezes', fn () => $this->freezeDaysUsed()),
             'freezes' => MembershipFreezeResource::collection($this->whenLoaded('freezes')),
