@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Auth\SmsTokenController;
 use App\Http\Controllers\Api\V1\Auth\TokenController;
 use App\Http\Controllers\Api\V1\ChapaCallbackController;
 use App\Http\Controllers\Api\V1\Me\MyAccessCredentialController;
+use App\Http\Controllers\Api\V1\Me\MyCheckInController;
 use App\Http\Controllers\Api\V1\Me\MyGymController;
 use App\Http\Controllers\Api\V1\Me\MyMembershipController;
 use App\Http\Controllers\Api\V1\Me\MyPaymentController;
@@ -57,6 +58,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     ->whereNumber('membership')
                     ->name('memberships.show');
                 Route::get('payments', [MyPaymentController::class, 'index'])->name('payments.index');
+                Route::get('check-ins', [MyCheckInController::class, 'index'])->name('check-ins.index');
                 Route::get('payments/{payment}', [MyPaymentController::class, 'show'])
                     ->whereNumber('payment')
                     ->name('payments.show');
