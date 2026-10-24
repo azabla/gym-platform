@@ -70,7 +70,11 @@ class PayMyMembershipRequest extends FormRequest
      */
     public function amount(): Money
     {
-        return once(fn (): Money => $this->openPaymentLink()?->amount ?? Payment::balanceOf($this->membership())->balanceDue);
+        return once(function (): Money {
+            $openPaymentLink = $this->openPaymentLink();
+
+            return $openPaymentLink !== null ? $openPaymentLink->amount : Payment::balanceOf($this->membership())->balanceDue;
+        });
     }
 
     public function chapaAccount(): ChapaAccount
