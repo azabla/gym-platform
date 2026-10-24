@@ -131,6 +131,18 @@ class PaymentLink extends Model
     }
 
     /**
+     * The member chose another plan, so their unpaid link to buy this one is
+     * cancelled, by them rather than by staff. If they already paid it on
+     * Chapa's page, it still buys the plan when Chapa confirms it.
+     */
+    public function cancelForAnotherPlan(): void
+    {
+        $this->status = PaymentLinkStatus::Cancelled;
+        $this->cancelled_at = CarbonImmutable::now();
+        $this->save();
+    }
+
+    /**
      * Cancel the open link, for example because the member paid another way.
      * If the member still pays on Chapa's page, the payment is recorded when
      * the membership still owes it (see settle()).

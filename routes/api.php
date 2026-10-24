@@ -12,6 +12,8 @@ use App\Http\Controllers\Api\V1\Me\MyNotificationController;
 use App\Http\Controllers\Api\V1\Me\MyNotificationPreferenceController;
 use App\Http\Controllers\Api\V1\Me\MyPaymentController;
 use App\Http\Controllers\Api\V1\Me\MyPaymentLinkController;
+use App\Http\Controllers\Api\V1\Me\MyPlanController;
+use App\Http\Controllers\Api\V1\Me\MyPlanPurchaseController;
 use App\Http\Controllers\Api\V1\Me\MyPushTokenController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\Organizations\BranchController;
@@ -63,6 +65,11 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->name('me.gyms.')
             ->group(function (): void {
                 Route::get('memberships', [MyMembershipController::class, 'index'])->name('memberships.index');
+                Route::get('plans', [MyPlanController::class, 'index'])->name('plans.index');
+                Route::post('plans/{plan}/purchase', [MyPlanPurchaseController::class, 'store'])
+                    ->whereNumber('plan')
+                    ->middleware('throttle:10,1')
+                    ->name('plans.purchase.store');
                 Route::get('memberships/{membership}', [MyMembershipController::class, 'show'])
                     ->whereNumber('membership')
                     ->name('memberships.show');

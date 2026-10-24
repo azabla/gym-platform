@@ -13,8 +13,10 @@ use App\Domains\Shared\Money\Money;
 use Carbon\CarbonImmutable;
 use Database\Factories\PlanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -55,6 +57,20 @@ class Plan extends Model
     public function branches(): BelongsToMany
     {
         return $this->belongsToMany(Branch::class);
+    }
+
+    /**
+     * Plans on sale that are valid at the branch: those valid at every branch,
+     * and branch-only plans that include it. Archived plans aren't on sale.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function onSaleAt(Builder $query, int $branchId): void
+    {
+        $query->where(fn ($query) => $query
+            ->where('available_at_all_branches', true)
+            ->orWhereHas('branches', fn ($branches) => $branches->whereKey($branchId)));
     }
 
     public function makeAvailableAtAllBranches(): void
