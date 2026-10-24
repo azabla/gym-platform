@@ -51,6 +51,16 @@ class OrganizationSeeder extends Seeder
                 $organization->staff()
                     ->firstOrCreate(['user_id' => $receptionist->id], ['role' => StaffRole::Receptionist])
                     ->assignToBranches($mainBranch);
+
+                $accountant = User::query()->firstOrCreate(
+                    ['email' => 'accounts@demo-gym.test'],
+                    ['name' => 'Demo Accountant', 'password' => 'password'],
+                );
+
+                $organization->staff()->firstOrCreate(
+                    ['user_id' => $accountant->id],
+                    ['role' => StaffRole::Accountant],
+                );
             });
         });
     }

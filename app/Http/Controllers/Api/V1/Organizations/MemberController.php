@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers\Api\V1\Organizations;
 
+use App\Domains\Billing\Models\Payment;
 use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
+use App\Domains\Shared\Money\Money;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Members\StoreMemberRequest;
 use App\Http\Requests\Api\V1\Members\UpdateMemberRequest;
 use App\Http\Resources\V1\MemberResource;
+use App\Http\Resources\V1\MembershipResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
@@ -38,6 +41,7 @@ class MemberController extends Controller
 
         $page = $members->paginate(25)->withQueryString();
         $this->attachMembershipsAtAGlance($page->getCollection());
+        $this->attachBalancesDue($page->getCollection());
 
         return MemberResource::collection($page);
     }
@@ -96,14 +100,15 @@ class MemberController extends Controller
     {
         $member->load('homeBranch');
         $this->attachMembershipsAtAGlance(new Collection([$member]));
+        $this->attachBalancesDue(new Collection([$member]));
 
         return new MemberResource($member);
     }
 
     /**
-     * Give each member their membership at a glance (see MemberResource). It is
-     * looked up here, in the HTTP layer, because the Members domain doesn't
-     * depend on Memberships.
+     * Give each member their membership at a glance (see MemberResource), with
+     * its balance. It is looked up here, in the HTTP layer, because the Members
+     * domain doesn't depend on Memberships.
      *
      * @param  Collection<int, Member>  $members
      */
@@ -113,9 +118,25 @@ class MemberController extends Controller
             $members->map(fn (Member $member): int => $member->id)->all(),
             $this->currentOrganization->get()->today(),
         );
+        MembershipResource::attachBalances(...$memberships->values()->all());
 
         foreach ($members as $member) {
             $member->setRelation('membershipAtAGlance', $memberships->get($member->id));
+        }
+    }
+
+    /**
+     * Give each member what they still owe across their memberships, looked up
+     * in Billing.
+     *
+     * @param  Collection<int, Member>  $members
+     */
+    private function attachBalancesDue(Collection $members): void
+    {
+        $balancesDue = Payment::balancesDueOf($members->map(fn (Member $member): int => $member->id)->all());
+
+        foreach ($members as $member) {
+            $member->setRelation('balanceDue', $balancesDue[$member->id] ?? Money::zero());
         }
     }
 }

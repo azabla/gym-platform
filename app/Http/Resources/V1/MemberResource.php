@@ -15,7 +15,9 @@ class MemberResource extends JsonResource
     /**
      * Transform the resource into an array. The membership at a glance is the
      * one MemberController attaches: valid today, otherwise the next one coming
-     * up, otherwise the last one that ended, or null.
+     * up, otherwise the last one that ended, or null. The balance due, also
+     * attached by MemberController, is what the member still owes across their
+     * memberships.
      *
      * @return array<string, mixed>
      */
@@ -37,6 +39,7 @@ class MemberResource extends JsonResource
                 'membershipAtAGlance',
                 fn (Membership $membership) => new MembershipResource($membership),
             ),
+            'balance_due' => $this->whenLoaded('balanceDue'),
             'registered_at' => $this->created_at?->toIso8601String(),
         ];
     }

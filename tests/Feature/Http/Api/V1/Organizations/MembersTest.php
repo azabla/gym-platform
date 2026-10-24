@@ -91,9 +91,9 @@ it('registers a member', function () {
     expect(Member::query()->acrossOrganizations()->sole()->organization_id)->toBe($this->gym->id);
 });
 
-it('does not let trainers register, edit or archive members', function () {
+it('does not let trainers or accountants register, edit or archive members', function (StaffRole $role) {
     $member = Member::factory()->for($this->mainBranch, 'homeBranch')->create();
-    actingAsStaff($this->gym, StaffRole::Trainer);
+    actingAsStaff($this->gym, $role);
 
     $this->postJson(route('api.v1.organizations.members.store', ['organization' => 'demo-gym']), [
         'full_name' => 'Abebe Kebede',
@@ -107,7 +107,7 @@ it('does not let trainers register, edit or archive members', function () {
 
     $this->deleteJson(route('api.v1.organizations.members.destroy', ['organization' => 'demo-gym', 'member' => $member]))
         ->assertForbidden();
-});
+})->with([StaffRole::Trainer, StaffRole::Accountant]);
 
 it('refuses to register a member at a branch the staff member does not work at', function () {
     actingAsStaff($this->gym, StaffRole::Receptionist, $this->boleBranch);
@@ -188,15 +188,15 @@ it('shows each member\'s membership at a glance', function () {
         ->assertJsonPath('data.membership.ends_on', '2026-10-31');
 });
 
-it('shows a member of the gym', function () {
+it('shows a member of the gym', function (StaffRole $role) {
     $member = Member::factory()->for($this->mainBranch, 'homeBranch')->create(['full_name' => 'Abebe Kebede']);
-    actingAsStaff($this->gym, StaffRole::Trainer);
+    actingAsStaff($this->gym, $role);
 
     $this->getJson(route('api.v1.organizations.members.show', ['organization' => 'demo-gym', 'member' => $member]))
         ->assertOk()
         ->assertJsonPath('data.full_name', 'Abebe Kebede')
         ->assertJsonPath('data.home_branch.name', 'Main Branch');
-});
+})->with([StaffRole::Trainer, StaffRole::Accountant]);
 
 it('cannot reach a member of another gym by their id', function () {
     $otherGymsMember = Member::factory()->create();

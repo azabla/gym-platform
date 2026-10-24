@@ -100,7 +100,7 @@ it('lets only owners and managers create, edit and archive plans', function (Sta
 
     $this->deleteJson(route('api.v1.organizations.plans.destroy', ['organization' => 'demo-gym', 'plan' => $plan]))
         ->assertForbidden();
-})->with([StaffRole::Receptionist, StaffRole::Trainer]);
+})->with([StaffRole::Receptionist, StaffRole::Trainer, StaffRole::Accountant]);
 
 it('reports a bad price, duration or number of freeze days', function (array $details, string $field) {
     actingAsStaff($this->gym, StaffRole::Owner);
@@ -159,10 +159,10 @@ it('archives a plan, which then leaves the list', function () {
     expect(Plan::query()->acrossOrganizations()->withTrashed()->sole()->trashed())->toBeTrue();
 });
 
-it('shows a plan of the gym, but not one of another gym', function () {
+it('shows a plan of the gym, but not one of another gym', function (StaffRole $role) {
     $plan = Plan::factory()->for($this->gym)->create(['name' => 'Monthly']);
     $otherGymsPlan = Plan::factory()->create();
-    actingAsStaff($this->gym, StaffRole::Trainer);
+    actingAsStaff($this->gym, $role);
 
     $this->getJson(route('api.v1.organizations.plans.show', ['organization' => 'demo-gym', 'plan' => $plan]))
         ->assertOk()
@@ -170,4 +170,4 @@ it('shows a plan of the gym, but not one of another gym', function () {
 
     $this->getJson(route('api.v1.organizations.plans.show', ['organization' => 'demo-gym', 'plan' => $otherGymsPlan]))
         ->assertNotFound();
-});
+})->with([StaffRole::Trainer, StaffRole::Accountant]);

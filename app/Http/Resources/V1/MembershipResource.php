@@ -2,9 +2,12 @@
 
 namespace App\Http\Resources\V1;
 
+use App\Domains\Billing\Balances\MembershipBalance;
+use App\Domains\Billing\Models\Payment;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -17,10 +20,35 @@ class MembershipResource extends JsonResource
      * The relations a full membership response shows. Without them, the
      * response leaves out who sold or cancelled it and its branches.
      */
-    public const RELATIONS = ['plan', 'branches', 'freezes.frozenBy.user', 'soldBy.user', 'cancelledBy.user'];
+    private const RELATIONS = ['plan', 'branches', 'freezes.frozenBy.user', 'soldBy.user', 'cancelledBy.user'];
 
     /**
-     * Transform the resource into an array. The status is for today where the gym is.
+     * Load everything a full membership response shows: the relations above
+     * and the balance. One query per relation, however many memberships.
+     */
+    public static function loadDetails(Membership ...$memberships): void
+    {
+        (new Collection($memberships))->load(self::RELATIONS);
+        self::attachBalances(...$memberships);
+    }
+
+    /**
+     * Give each membership its balance from Billing (what has been paid and
+     * what is still due), in one query for all of them. It is looked up here,
+     * in the HTTP layer, because the Memberships domain doesn't depend on Billing.
+     */
+    public static function attachBalances(Membership ...$memberships): void
+    {
+        $balances = Payment::balancesOf($memberships);
+
+        foreach ($memberships as $membership) {
+            $membership->setRelation('balance', $balances[$membership->id]);
+        }
+    }
+
+    /**
+     * Transform the resource into an array. The status is for today where the
+     * gym is; the amount paid and balance due appear once attachBalances() ran.
      *
      * @return array<string, mixed>
      */
@@ -42,6 +70,8 @@ class MembershipResource extends JsonResource
                 'amount' => $this->list_price->subtract($this->price),
                 'reason' => $this->discount_reason,
             ],
+            'amount_paid' => $this->whenLoaded('balance', fn (MembershipBalance $balance) => $balance->amountPaid),
+            'balance_due' => $this->whenLoaded('balance', fn (MembershipBalance $balance) => $balance->balanceDue),
             'valid_at_all_branches' => $this->valid_at_all_branches,
             'branches' => BranchResource::collection($this->whenLoaded('branches')),
             'freeze_days_allowed' => $this->freeze_days_allowed,

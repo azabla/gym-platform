@@ -199,10 +199,11 @@ make composer c=install
 make fresh
 ```
 
-`make fresh` seeds Demo Gym (`demo-gym`) with two branches, three members, five plans (one valid only at Bole Branch), two memberships and two users, both with the password `password`:
+`make fresh` seeds Demo Gym (`demo-gym`) with two branches, three members, five plans (one valid only at Bole Branch), two memberships, two payments and three users, all with the password `password`:
 
 - `owner@demo-gym.test`, the Owner, who works at both branches;
-- `frontdesk@demo-gym.test`, a Receptionist limited to Main Branch.
+- `frontdesk@demo-gym.test`, a Receptionist limited to Main Branch;
+- `accounts@demo-gym.test`, an Accountant, who works at both branches.
 
 ```bash
 # Sign in and keep the token
@@ -263,14 +264,62 @@ curl -s http://localhost:8080/api/v1/organizations/demo-gym/plans \
   -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
   -d '{"name":"Bole 30 Days","price":"1,800","duration_count":30,"duration_unit":"day","branch_ids":[2]}'
 
+# Hana pays 1,000 of her 2,250 in cash at Main Branch (membership 4, the one sold at 10% off).
+# The owner works at both branches, so says which one; staff at one branch can leave it out.
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/memberships/4/payments \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+  -d '{"amount":"1,000","method":"cash","branch_id":1}'
+
+# She pays the other 1,250 by Telebirr, with the transaction number from her SMS
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/memberships/4/payments \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+  -d '{"amount":"1,250","method":"telebirr","reference":"DK56XYZ78A","branch_id":1}'
+
+# Today's payments at Main Branch, with the totals for each method in meta.totals
+curl -s "http://localhost:8080/api/v1/organizations/demo-gym/payments?from=$(date +%F)&to=$(date +%F)&branch_id=1" \
+  -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
+
+# The receipt for Hana's cash payment (payment 3 after make fresh)
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/payments/3 \
+  -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
+
+# The Telebirr payment was meant for another member: void it (payment 4; owners, managers and
+# accountants only). It stays on record but no longer counts, so Hana owes 1,250 again.
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/payments/4/void \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+  -d '{"reason":"Recorded for the wrong member."}'
+
+# Abebe moves away: cancel his membership (membership 1), then give 1,000 ETB back in cash
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/memberships/1/cancellation \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+  -d '{"reason":"Moved to another city."}'
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/memberships/1/refunds \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+  -d '{"amount":"1,000","method":"cash","branch_id":1}'
+
 # Sign out (revokes the token)
 curl -s -X DELETE http://localhost:8080/api/v1/auth/tokens/current \
   -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
 ```
 
-The members list shows each member's membership at a glance: Abebe is active, Tigist's has expired, and Hana has none until you sell her one.
+The members list shows each member's membership at a glance and what they still owe: Abebe is active and paid up, Tigist's membership has expired and she still owes 1,000 ETB, and Hana has none until you sell her one.
 
-Sign in as `frontdesk@demo-gym.test` instead and the branch list shrinks to Main Branch, but the members list still shows every member of the gym. The receptionist can sell memberships and freeze them within their plan's freeze days, but can't cancel them, give discounts or go past the freeze days. See ADR 0004 for how sign-in and gym selection work, ADR 0005 for members and phone numbers, ADR 0006 for plans and memberships, and ADR 0007 for freezing, branch-only plans and discounts.
+Sign in as `frontdesk@demo-gym.test` instead and the branch list shrinks to Main Branch, but the members list still shows every member of the gym. The receptionist:
+
+- can sell memberships, and freeze them within their plan's freeze days;
+- can take payments, dated today, at Main Branch;
+- can't cancel memberships, give discounts or go past the freeze days;
+- can't refund, void or date a payment in the past.
+
+Sign in as `accounts@demo-gym.test` to work as the accountant: they see payments, take them, refund and void, but can't sell memberships or edit members.
+
+Each part has an ADR:
+
+- ADR 0004: how sign-in and gym selection work;
+- ADR 0005: members and phone numbers;
+- ADR 0006: plans and memberships;
+- ADR 0007: freezing, branch-only plans and discounts;
+- ADR 0008: billing and payments.
 
 ## Troubleshooting
 

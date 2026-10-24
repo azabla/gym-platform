@@ -200,7 +200,8 @@ class Membership extends Model
 
     /**
      * Cancel the membership. It stays on record but no longer counts, so its days
-     * are free for another membership. Refunds come with Billing.
+     * are free for another membership, and nothing more is due on it. Money already
+     * paid towards it can be refunded in Billing.
      */
     public function cancel(Staff $cancelledBy, string $reason): void
     {
@@ -210,10 +211,14 @@ class Membership extends Model
         $this->save();
     }
 
-    /** @return BelongsTo<Member, $this> */
+    /**
+     * The member it was sold to, even if they have been archived since.
+     *
+     * @return BelongsTo<Member, $this>
+     */
     public function member(): BelongsTo
     {
-        return $this->belongsTo(Member::class);
+        return $this->belongsTo(Member::class)->withTrashed();
     }
 
     /**
