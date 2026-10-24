@@ -55,30 +55,24 @@ it('signs a token request with the service account, then sends the push with str
 
     expect((new FcmPushSender)->send('phone-token-1', $this->message))->toBe(PushResult::Sent);
 
-    Http::assertSent(function (Request $request) {
-        if ($request->url() !== 'https://oauth2.googleapis.com/token') {
-            return false;
-        }
+    $tokenRequest = Http::recorded(fn (Request $request) => $request->url() === 'https://oauth2.googleapis.com/token')->sole()[0];
+    [$header, $claims, $signature] = explode('.', $tokenRequest['assertion']);
+    $decode = fn (string $part) => base64_decode(strtr($part, '-_', '+/'));
+    $payload = json_decode($decode($claims), true);
+    expect($tokenRequest['grant_type'])->toBe('urn:ietf:params:oauth:grant-type:jwt-bearer')
+        ->and(json_decode($decode($header), true))->toBe(['alg' => 'RS256', 'typ' => 'JWT'])
+        ->and($payload['iss'])->toBe('push@volt-prod.iam.gserviceaccount.com')
+        ->and($payload['scope'])->toBe('https://www.googleapis.com/auth/firebase.messaging')
+        ->and($payload['aud'])->toBe('https://oauth2.googleapis.com/token')
+        ->and(openssl_verify("{$header}.{$claims}", $decode($signature), $this->publicKey, OPENSSL_ALGO_SHA256))->toBe(1);
 
-        [$header, $claims, $signature] = explode('.', $request['assertion']);
-        $decode = fn (string $part) => base64_decode(strtr($part, '-_', '+/'));
-        $payload = json_decode($decode($claims), true);
-
-        return $request['grant_type'] === 'urn:ietf:params:oauth:grant-type:jwt-bearer'
-            && json_decode($decode($header), true) === ['alg' => 'RS256', 'typ' => 'JWT']
-            && $payload['iss'] === 'push@volt-prod.iam.gserviceaccount.com'
-            && $payload['scope'] === 'https://www.googleapis.com/auth/firebase.messaging'
-            && $payload['aud'] === 'https://oauth2.googleapis.com/token'
-            && openssl_verify("{$header}.{$claims}", $decode($signature), $this->publicKey, OPENSSL_ALGO_SHA256) === 1;
-    });
-    Http::assertSent(fn (Request $request) => $request->url() === 'https://fcm.googleapis.com/v1/projects/volt-prod/messages:send'
-        && $request->hasHeader('Authorization', 'Bearer ya29.fresh')
-        && $request['message'] === [
-            'token' => 'phone-token-1',
-            'notification' => ['title' => 'Payment received', 'body' => 'Your payment at Demo Gym was recorded.'],
-            'data' => ['type' => 'payment_succeeded', 'payment_id' => '12'],
-            'android' => ['priority' => 'HIGH'],
-        ]);
+    $send = Http::recorded(fn (Request $request) => str_starts_with($request->url(), 'https://fcm.googleapis.com/'))->sole()[0];
+    expect($send->url())->toBe('https://fcm.googleapis.com/v1/projects/volt-prod/messages:send')
+        ->and($send->header('Authorization'))->toBe(['Bearer ya29.fresh'])
+        ->and($send['message']['token'])->toBe('phone-token-1')
+        ->and($send['message']['notification'])->toBe(['title' => 'Payment received', 'body' => 'Your payment at Demo Gym was recorded.'])
+        ->and($send['message']['data'])->toBe(['type' => 'payment_succeeded', 'payment_id' => '12'])
+        ->and($send['message']['android'])->toBe(['priority' => 'HIGH']);
 });
 
 it('reuses Google\'s access token for later pushes', function () {

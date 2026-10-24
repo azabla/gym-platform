@@ -36,7 +36,8 @@ class PushToken extends Model
                 ->where('personal_access_token_id', '!=', $personalAccessTokenId)
                 ->delete();
 
-            $pushToken = static::query()->firstOrNew(['personal_access_token_id' => $personalAccessTokenId]);
+            $pushToken = static::query()->where('personal_access_token_id', $personalAccessTokenId)->first() ?? new self;
+            $pushToken->personal_access_token_id = $personalAccessTokenId;
             $pushToken->user_id = $userId;
             $pushToken->token = $token;
             $pushToken->locale = $locale;
