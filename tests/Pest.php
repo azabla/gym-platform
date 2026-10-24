@@ -60,6 +60,18 @@ function actingAsMember(Member $member): User
 }
 
 /**
+ * Fake Chapa answering a new checkout with the address of its payment page.
+ */
+function fakeChapaCheckout(string $checkoutUrl = 'https://checkout.chapa.co/checkout/payment/hana123'): void
+{
+    Http::fake(['api.chapa.co/v1/transaction/initialize' => Http::response([
+        'message' => 'Hosted Link',
+        'status' => 'success',
+        'data' => ['checkout_url' => $checkoutUrl],
+    ])]);
+}
+
+/**
  * What Chapa answers, when asked how the payment link's transaction stands,
  * once the member has paid it in full: with Chapa's reference APfqvRZJ0bEn,
  * and the amount as a number, as in Chapa's docs. The data given replaces

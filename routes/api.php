@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\ChapaCallbackController;
 use App\Http\Controllers\Api\V1\Me\MyGymController;
 use App\Http\Controllers\Api\V1\Me\MyMembershipController;
 use App\Http\Controllers\Api\V1\Me\MyPaymentController;
+use App\Http\Controllers\Api\V1\Me\MyPaymentLinkController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\Organizations\BranchController;
 use App\Http\Controllers\Api\V1\Organizations\ChapaAccountController;
@@ -57,6 +58,16 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 Route::get('payments/{payment}', [MyPaymentController::class, 'show'])
                     ->whereNumber('payment')
                     ->name('payments.show');
+                Route::post('memberships/{membership}/payment-link', [MyPaymentLinkController::class, 'store'])
+                    ->whereNumber('membership')
+                    ->name('memberships.payment-link.store');
+                Route::get('payment-links/{payment_link}', [MyPaymentLinkController::class, 'show'])
+                    ->whereNumber('payment_link')
+                    ->name('payment-links.show');
+                Route::post('payment-links/{payment_link}/check', [MyPaymentLinkController::class, 'check'])
+                    ->whereNumber('payment_link')
+                    ->middleware('throttle:10,1')
+                    ->name('payment-links.check');
             });
 
         Route::prefix('organizations/{organization}')

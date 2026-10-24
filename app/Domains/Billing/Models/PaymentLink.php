@@ -46,11 +46,12 @@ class PaymentLink extends Model
 
     /**
      * Ask Chapa, with the gym's own account, for a payment page for the amount
-     * owed on the membership, and keep the link to it. Chapa calls the
+     * owed on the membership, and keep the link to it. Staff create links, and
+     * so do members in their app (no staff member then). Chapa calls the
      * callback URL once the member has paid. Nothing is saved when Chapa
      * refuses or doesn't answer.
      */
-    public static function open(Membership $membership, Money $amount, Branch $branch, Staff $createdBy, ChapaAccount $chapaAccount, string $callbackUrl): self
+    public static function open(Membership $membership, Money $amount, Branch $branch, ?Staff $createdBy, ChapaAccount $chapaAccount, string $callbackUrl): self
     {
         $link = new self;
         $link->organization()->associate($membership->organization_id);

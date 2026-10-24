@@ -3,6 +3,7 @@
 namespace App\Http\Resources\V1\Me;
 
 use App\Domains\Billing\Balances\MembershipBalance;
+use App\Domains\Billing\Models\PaymentLink;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Memberships\Models\MembershipFreeze;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
@@ -23,12 +24,23 @@ class MyMembershipResource extends JsonResource
 {
     /**
      * Load everything the response shows: the plan, branches and freezes, and
-     * the balance from Billing. One query per relation, however many memberships.
+     * from Billing the balance and the open payment link. One query per
+     * relation, however many memberships.
      */
     public static function loadDetails(Membership ...$memberships): void
     {
         (new Collection($memberships))->load(['plan', 'branches', 'freezes']);
         MembershipResource::attachBalances(...$memberships);
+
+        $openPaymentLinks = PaymentLink::query()
+            ->pending()
+            ->whereIn('membership_id', array_map(fn (Membership $membership): int => $membership->id, $memberships))
+            ->get()
+            ->keyBy('membership_id');
+
+        foreach ($memberships as $membership) {
+            $membership->setRelation('openPaymentLink', $openPaymentLinks->get($membership->id));
+        }
     }
 
     /**
@@ -61,6 +73,10 @@ class MyMembershipResource extends JsonResource
                 'days' => $freeze->days(),
             ])->all()),
             'cancelled_at' => $this->cancelled_at?->toIso8601String(),
+            'open_payment_link' => $this->whenLoaded(
+                'openPaymentLink',
+                fn (PaymentLink $paymentLink) => new MyPaymentLinkResource($paymentLink),
+            ),
         ];
     }
 }
