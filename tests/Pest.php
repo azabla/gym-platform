@@ -46,6 +46,17 @@ function actingAsStaff(Organization $organization, StaffRole $role, Branch ...$o
 }
 
 /**
+ * Make a request from one of a user's phones: each phone signs in with its
+ * own token, as a real one does, not with Sanctum::actingAs().
+ */
+function fromPhone(string $plainTextToken): TestCase
+{
+    app('auth')->forgetGuards();
+
+    return test()->withToken($plainTextToken);
+}
+
+/**
  * Sign in to the API as the member, as the members app does after an SMS
  * code: as the user with the member's phone number.
  */

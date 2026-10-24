@@ -3,6 +3,9 @@
 namespace App\Providers;
 
 use App\Domains\Identity\Models\User;
+use App\Domains\Notifications\Push\FcmPushSender;
+use App\Domains\Notifications\Push\LogPushSender;
+use App\Domains\Notifications\Push\PushSender;
 use App\Domains\Notifications\Sms\AfroMessageSmsSender;
 use App\Domains\Notifications\Sms\LogSmsSender;
 use App\Domains\Notifications\Sms\SmsSender;
@@ -24,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->sendTextMessagesWithTheConfiguredDriver();
+        $this->sendPushesWithTheConfiguredDriver();
     }
 
     /**
@@ -46,6 +50,19 @@ class AppServiceProvider extends ServiceProvider
             'log' => new LogSmsSender,
             'afromessage' => new AfroMessageSmsSender,
             default => throw new InvalidArgumentException('SMS_DRIVER must be "log" or "afromessage".'),
+        });
+    }
+
+    /**
+     * Pushes go through the driver PUSH_DRIVER names: "log" writes them to the
+     * log, and "fcm" sends them through Firebase. See ADR 0012.
+     */
+    private function sendPushesWithTheConfiguredDriver(): void
+    {
+        $this->app->bind(PushSender::class, fn (): PushSender => match (config('services.push.driver')) {
+            'log' => new LogPushSender,
+            'fcm' => new FcmPushSender,
+            default => throw new InvalidArgumentException('PUSH_DRIVER must be "log" or "fcm".'),
         });
     }
 

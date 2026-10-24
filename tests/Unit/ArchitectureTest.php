@@ -30,6 +30,7 @@ arch('value objects are final and readonly')
         'App\Domains\Billing\Balances\MembershipBalance',
         'App\Domains\Billing\Chapa\ChapaTransaction',
         'App\Domains\Attendance\Access\AccessDecision',
+        'App\Domains\Notifications\Push\PushMessage',
         'App\Domains\Attendance\Credentials\Gq1Payload',
     ])
     ->toBeFinal()

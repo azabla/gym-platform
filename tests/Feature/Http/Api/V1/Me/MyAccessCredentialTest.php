@@ -9,7 +9,6 @@ use App\Domains\Members\Models\Member;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Organization;
 use Carbon\CarbonImmutable;
-use Tests\TestCase;
 
 beforeEach(function () {
     $this->travelTo(CarbonImmutable::parse('2026-10-24 09:00:00', 'Africa/Addis_Ababa'));
@@ -18,16 +17,6 @@ beforeEach(function () {
     $this->tigist = Member::factory()->for(Branch::factory()->for($this->gym), 'homeBranch')->create(['phone' => '0922 34 56 78']);
     $this->user = User::factory()->withPhone('0922 34 56 78')->create();
 });
-
-/**
- * Make a request from one of the member's phones: each phone signs in with its own token.
- */
-function fromPhone(string $plainTextToken): TestCase
-{
-    app('auth')->forgetGuards();
-
-    return test()->withToken($plainTextToken);
-}
 
 it('issues this phone\'s QR credential, with its secret only once', function () {
     $phone = $this->user->createToken('Tigist\'s phone')->plainTextToken;
