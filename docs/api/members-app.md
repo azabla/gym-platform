@@ -1,6 +1,6 @@
 # Members app API
 
-The contract between the backend and the members app (Volt). Where this file and the Volt doc disagree, this file wins. Decisions behind it: ADR 0010 (sign-in, memberships, paying), ADR 0011 (check-ins and QR codes), ADR 0012 (notifications) and ADR 0013 (buying a membership).
+The contract between the backend and the members app (Volt). Where this file and the Volt doc disagree, this file wins. Decisions behind it: ADR 0010 (sign-in, memberships, paying), ADR 0011 (check-ins and QR codes), ADR 0012 (notifications), ADR 0013 (buying a membership) and ADR 0014 (the home screen).
 
 ## Conventions
 
@@ -29,6 +29,19 @@ The contract between the backend and the members app (Volt). Where this file and
 - Limits: a code a minute and five an hour for each number; five sign-in tries a minute.
 - There is no self-registration: staff register members at the gym, and the member signs in with that phone number.
 - One token per phone. Keep it in secure storage.
+
+## Home screen
+
+`GET /me/gyms/{gym}/dashboard` gives everything the home screen shows, in one call:
+
+- `membership`: the membership at a glance, as in a membership (below), with `frozen_until` when a freeze covers today, or `null`;
+- `next_membership`: the one already bought or sold to follow it, or `null`;
+- `recent_check_ins`: the last 5 visits, as in `GET check-ins`;
+- `balance_due`: what the member owes at the gym;
+- `open_payment_link`: an open link to pay or to buy, or `null`;
+- `unread_notifications`: the inbox's unread count.
+
+Volt's `visits_remaining` and `grace_ends_on` aren't there: visit packs and grace periods don't exist yet.
 
 ## Gyms and memberships
 

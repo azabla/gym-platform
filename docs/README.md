@@ -85,6 +85,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0011](adr/0011-check-ins-and-rotating-qr-codes.md) | Check-ins and rotating QR codes |
 | [0012](adr/0012-reminders-and-notifications.md) | Reminders and notifications |
 | [0013](adr/0013-buying-a-membership-in-the-app.md) | Buying a membership in the app |
+| [0014](adr/0014-dashboards.md) | Dashboards |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 
