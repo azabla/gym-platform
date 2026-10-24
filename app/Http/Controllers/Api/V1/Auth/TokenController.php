@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
+use App\Domains\Attendance\Enums\CredentialRevocation;
+use App\Domains\Attendance\Models\AccessCredential;
 use App\Domains\Identity\Models\User;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\IssueTokenRequest;
@@ -11,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class TokenController extends Controller
 {
@@ -42,11 +45,23 @@ class TokenController extends Controller
     }
 
     /**
-     * Sign out: revoke the token this request was made with.
+     * Sign out: revoke the token this request was made with, and the QR
+     * credentials issued to the phone under it (ADR 0011).
      */
     public function destroy(Request $request): Response
     {
-        $request->user()->currentAccessToken()->delete();
+        $token = $request->user()->currentAccessToken();
+
+        if ($token instanceof PersonalAccessToken) {
+            AccessCredential::query()
+                ->acrossOrganizations()
+                ->where('personal_access_token_id', $token->id)
+                ->active()
+                ->get()
+                ->each(fn (AccessCredential $credential) => $credential->revoke(CredentialRevocation::SignedOut));
+        }
+
+        $token->delete();
 
         return response()->noContent();
     }

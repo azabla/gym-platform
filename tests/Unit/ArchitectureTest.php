@@ -29,6 +29,7 @@ arch('value objects are final and readonly')
         'App\Domains\Memberships\Discount\Discount',
         'App\Domains\Billing\Balances\MembershipBalance',
         'App\Domains\Billing\Chapa\ChapaTransaction',
+        'App\Domains\Attendance\Credentials\Gq1Payload',
     ])
     ->toBeFinal()
     ->toBeReadonly();
@@ -39,17 +40,18 @@ arch('organization-owned models are scoped to the current organization')
         'App\Domains\Members\Models',
         'App\Domains\Memberships\Models',
         'App\Domains\Billing\Models',
+        'App\Domains\Attendance\Models',
     ])
     ->toUseTrait(BelongsToOrganization::class)
     ->ignoring(Organization::class);
 
-arch('the Identity domain does not depend on Organizations, Members, Memberships or Billing')
+arch('the Identity domain does not depend on Organizations, Members, Memberships, Billing or Attendance')
     ->expect('App\Domains\Identity')
-    ->not->toUse(['App\Domains\Organizations', 'App\Domains\Members', 'App\Domains\Memberships', 'App\Domains\Billing']);
+    ->not->toUse(['App\Domains\Organizations', 'App\Domains\Members', 'App\Domains\Memberships', 'App\Domains\Billing', 'App\Domains\Attendance']);
 
-arch('the Organizations domain does not depend on Members, Memberships or Billing')
+arch('the Organizations domain does not depend on Members, Memberships, Billing or Attendance')
     ->expect('App\Domains\Organizations')
-    ->not->toUse(['App\Domains\Members', 'App\Domains\Memberships', 'App\Domains\Billing']);
+    ->not->toUse(['App\Domains\Members', 'App\Domains\Memberships', 'App\Domains\Billing', 'App\Domains\Attendance']);
 
 arch('the Members domain does not depend on Memberships or Billing')
     ->expect('App\Domains\Members')
@@ -59,9 +61,13 @@ arch('the Memberships domain does not depend on Billing')
     ->expect('App\Domains\Memberships')
     ->not->toUse('App\Domains\Billing');
 
+arch('Members, Memberships and Billing do not depend on Attendance')
+    ->expect(['App\Domains\Members', 'App\Domains\Memberships', 'App\Domains\Billing'])
+    ->not->toUse('App\Domains\Attendance');
+
 arch('the Notifications domain depends on no other domain but Shared')
     ->expect('App\Domains\Notifications')
-    ->not->toUse(['App\Domains\Identity', 'App\Domains\Organizations', 'App\Domains\Members', 'App\Domains\Memberships', 'App\Domains\Billing']);
+    ->not->toUse(['App\Domains\Identity', 'App\Domains\Organizations', 'App\Domains\Members', 'App\Domains\Memberships', 'App\Domains\Billing', 'App\Domains\Attendance']);
 
 arch('domains do not depend on the HTTP layer')
     ->expect('App\Domains')
