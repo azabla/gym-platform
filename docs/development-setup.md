@@ -423,6 +423,26 @@ curl -s http://localhost:8080/api/v1/me/gyms/demo-gym/check-ins \
 
 Tigist's membership in the demo data has expired, so the first scan answers `"decision":"deny"` with `MEMBERSHIP_EXPIRED`, and her membership and what she owes. Sell her a new one (above), and a fresh code lets her in; another within 5 minutes is denied with `ALREADY_CHECKED_IN`. `POST organizations/demo-gym/members/{id}/check-ins` checks a member in at the desk instead.
 
+### Buying a membership in the app
+
+This needs the gym's Chapa test key (see "Paying online with Chapa").
+
+```bash
+# The plans Tigist can buy, with the dates each would run
+curl -s http://localhost:8080/api/v1/me/gyms/demo-gym/plans \
+  -H 'Accept: application/json' -H "Authorization: Bearer $MEMBER_TOKEN"
+
+# Start buying Monthly (plan 2 after make fresh). The answer has the checkout_url to open.
+curl -s -X POST http://localhost:8080/api/v1/me/gyms/demo-gym/plans/2/purchase \
+  -H 'Accept: application/json' -H "Authorization: Bearer $MEMBER_TOKEN"
+
+# After paying on Chapa's test page, check it (link id from the answer above)
+curl -s -X POST http://localhost:8080/api/v1/me/gyms/demo-gym/payment-links/LINK_ID/check \
+  -H 'Accept: application/json' -H "Authorization: Bearer $MEMBER_TOKEN"
+```
+
+Once it's paid, the answer has the new `membership_id`, and her memberships list shows it, starting today because her last one has expired, with `sold_in_app: true`.
+
 ### Notifications
 
 In development `PUSH_DRIVER=log` and `SMS_DRIVER=log`, so pushes and SMS land in `storage/logs/laravel.log`. Messages go through the queue, so run `make workers` first.
@@ -459,7 +479,8 @@ Each part has an ADR:
 - ADR 0009: online payments with Chapa;
 - ADR 0010: the members app, with SMS sign-in;
 - ADR 0011: check-ins and rotating QR codes;
-- ADR 0012: reminders and notifications.
+- ADR 0012: reminders and notifications;
+- ADR 0013: buying a membership in the app.
 
 ## Troubleshooting
 
