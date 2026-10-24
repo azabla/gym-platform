@@ -36,6 +36,20 @@ class UserFactory extends Factory
     }
 
     /**
+     * Indicate that the user signs in with a code sent to the phone number,
+     * like a gym member, and has no email or password.
+     */
+    public function withPhone(string $phone): static
+    {
+        return $this->state([
+            'email' => null,
+            'email_verified_at' => null,
+            'password' => null,
+            'phone' => $phone,
+        ]);
+    }
+
+    /**
      * Indicate that the model's email address should be unverified.
      */
     public function unverified(): static

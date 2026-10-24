@@ -40,4 +40,17 @@ return [
         'base_url' => env('CHAPA_BASE_URL', 'https://api.chapa.co/v1'),
     ],
 
+    // How text messages are sent: "log" (writes them to the log) or "afromessage" (ADR 0010).
+    'sms' => [
+        'driver' => env('SMS_DRIVER', 'log'),
+    ],
+
+    // The platform's own AfroMessage account, used when SMS_DRIVER=afromessage.
+    'afromessage' => [
+        'base_url' => env('AFROMESSAGE_BASE_URL', 'https://api.afromessage.com/api'),
+        'token' => env('AFROMESSAGE_TOKEN'),
+        'identifier_id' => env('AFROMESSAGE_IDENTIFIER_ID'),
+        'sender_name' => env('AFROMESSAGE_SENDER_NAME'),
+    ],
+
 ];

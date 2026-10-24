@@ -41,18 +41,6 @@ beforeEach(function () {
 });
 
 /**
- * Fake Chapa answering a new checkout with the address of its payment page.
- */
-function fakeChapaCheckout(string $checkoutUrl = 'https://checkout.chapa.co/checkout/payment/hana123'): void
-{
-    Http::fake(['api.chapa.co/v1/transaction/initialize' => Http::response([
-        'message' => 'Hosted Link',
-        'status' => 'success',
-        'data' => ['checkout_url' => $checkoutUrl],
-    ])]);
-}
-
-/**
  * POST a payment link of the given details for the membership.
  *
  * @param  array<string, mixed>  $details

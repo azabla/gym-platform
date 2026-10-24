@@ -59,6 +59,10 @@ arch('the Memberships domain does not depend on Billing')
     ->expect('App\Domains\Memberships')
     ->not->toUse('App\Domains\Billing');
 
+arch('the Notifications domain depends on no other domain but Shared')
+    ->expect('App\Domains\Notifications')
+    ->not->toUse(['App\Domains\Identity', 'App\Domains\Organizations', 'App\Domains\Members', 'App\Domains\Memberships', 'App\Domains\Billing']);
+
 arch('domains do not depend on the HTTP layer')
     ->expect('App\Domains')
     ->not->toUse('App\Http');

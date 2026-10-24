@@ -2,6 +2,7 @@
 
 use App\Domains\Billing\Chapa\Exceptions\ChapaRequestFailed;
 use App\Domains\Billing\Exceptions\PaymentRefused;
+use App\Http\Middleware\ActAsMember;
 use App\Http\Middleware\ActAsOrganization;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -21,12 +22,17 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'organization' => ActAsOrganization::class,
+            'member' => ActAsMember::class,
         ]);
 
         // Pick the organization before route-model binding, so bound models are scoped to it.
         $middleware->prependToPriorityList(
             before: SubstituteBindings::class,
             prepend: ActAsOrganization::class,
+        );
+        $middleware->prependToPriorityList(
+            before: SubstituteBindings::class,
+            prepend: ActAsMember::class,
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
