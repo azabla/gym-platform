@@ -16,6 +16,7 @@ app/Domains/Members/       Gym customers: registering, finding, editing and arch
 app/Domains/Memberships/   Plans a gym sells, and the memberships staff sell from them
 app/Domains/Billing/       Payments and refunds against memberships, receipts and balances; Chapa/ talks to each gym's Chapa account
 app/Domains/Notifications/ Sending messages: SMS through AfroMessage, or to the log in development
+app/Domains/Announcements/ Announcements from a gym to its members, now or scheduled
 app/Http/                  The API: controllers, form requests, middleware and resources (v1); Me/ folders hold the members app's side
 app/Console/Commands/      Artisan commands, such as the check of open payment links
 routes/api.php             API routes, versioned under /api/v1
@@ -51,6 +52,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Sign-in code | A 6-digit code sent by SMS that signs a member in to the members app. It works for 10 minutes and 5 tries. |
 | QR credential | What lets a member's phone show their QR code at one gym: a secret given to the phone once, from which it makes a code every 30 seconds (GQ1), even offline. One phone per member (ADR 0011). |
 | Notification | A message to a member at one gym: in the app's inbox, by push when they allow it, and by SMS for expiry. See ADR 0012. |
+| Announcement | A message from a gym to its members in its own words, to every branch or one, sent now or at a set time, in the inbox and by push (ADR 0015). |
 | Check-in | A member coming through the door, by scanning their QR code or at the desk. Every attempt is kept, allowed or denied, with the reason when denied. |
 | Member | A gym customer, registered at a home branch but welcome at every branch of the gym. May or may not have a User. |
 | Staff | A User's role at one organization: Owner, Manager, Receptionist, Trainer or Accountant. Works at all branches or only at assigned ones. |
@@ -86,6 +88,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0012](adr/0012-reminders-and-notifications.md) | Reminders and notifications |
 | [0013](adr/0013-buying-a-membership-in-the-app.md) | Buying a membership in the app |
 | [0014](adr/0014-dashboards.md) | Dashboards |
+| [0015](adr/0015-announcements.md) | Announcements |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 

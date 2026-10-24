@@ -302,6 +302,12 @@ curl -s http://localhost:8080/api/v1/organizations/demo-gym/memberships/1/refund
 curl -s http://localhost:8080/api/v1/organizations/demo-gym/dashboard \
   -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
 
+# Tell members the gym is closed on Sunday, now; add "send_at":"2026-11-01T07:00:00+03:00" to schedule it
+# and "branch_id":1 for one branch. The answer says how many members it reached.
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/announcements \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+  -d '{"title":"Closed on Sunday","body":"The gym is closed this Sunday for maintenance."}'
+
 # Sign out (revokes the token)
 curl -s -X DELETE http://localhost:8080/api/v1/auth/tokens/current \
   -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
@@ -478,6 +484,8 @@ make artisan c=notifications:send-membership-reminders
 
 A membership ending in 5, 3 or 1 days gets a reminder from 09:00 the gym's time, and an SMS at 3 days. Running the command again sends nothing more. To try it, set a membership's end date 3 days ahead in the database first.
 
+Scheduled announcements go out from the scheduler every minute; `make artisan c=announcements:send-due` sends the due ones by hand.
+
 Each part has an ADR:
 
 - ADR 0004: how sign-in and gym selection work;
@@ -490,7 +498,8 @@ Each part has an ADR:
 - ADR 0011: check-ins and rotating QR codes;
 - ADR 0012: reminders and notifications;
 - ADR 0013: buying a membership in the app;
-- ADR 0014: dashboards.
+- ADR 0014: dashboards;
+- ADR 0015: announcements.
 
 ## Troubleshooting
 
