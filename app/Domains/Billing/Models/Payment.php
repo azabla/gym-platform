@@ -44,10 +44,11 @@ class Payment extends Model
 
     /**
      * Record money the member paid towards the membership: by the given method,
-     * at the branch, on the gym's date it was paid. The membership is locked
-     * first, so two desks can't both take its last payment. See refusalToReceive().
+     * at the branch, on the gym's date it was paid, received by the staff
+     * member (nobody, for an online payment). The membership is locked first,
+     * so two desks can't both take its last payment. See refusalToReceive().
      */
-    public static function receive(Membership $membership, Money $amount, PaymentMethod $method, ?string $reference, Branch $branch, CarbonImmutable $paidOn, Staff $receivedBy): self
+    public static function receive(Membership $membership, Money $amount, PaymentMethod $method, ?string $reference, Branch $branch, CarbonImmutable $paidOn, ?Staff $receivedBy): self
     {
         return DB::transaction(function () use ($membership, $amount, $method, $reference, $branch, $paidOn, $receivedBy): self {
             $refusal = static::refusalToReceive(self::lock($membership), $amount);
@@ -333,7 +334,12 @@ class Payment extends Model
         return Membership::query()->whereKey($membership->id)->lockForUpdate()->firstOrFail();
     }
 
-    private static function record(PaymentType $type, Membership $membership, Money $amount, PaymentMethod $method, ?string $reference, Branch $branch, CarbonImmutable $paidOn, Staff $receivedBy): self
+    /**
+     * Save the payment or refund with the gym's next receipt number. A typed
+     * transaction number is tidied; an online provider's reference is kept
+     * exactly as it was given.
+     */
+    private static function record(PaymentType $type, Membership $membership, Money $amount, PaymentMethod $method, ?string $reference, Branch $branch, CarbonImmutable $paidOn, ?Staff $receivedBy): self
     {
         $payment = new self;
         $payment->organization()->associate($membership->organization_id);
@@ -342,7 +348,7 @@ class Payment extends Model
         $payment->membership()->associate($membership);
         $payment->amount = $amount;
         $payment->method = $method;
-        $payment->reference = $reference === null ? null : static::tidyReference($reference);
+        $payment->reference = $reference === null || $method->isOnline() ? $reference : static::tidyReference($reference);
         $payment->paid_on = $paidOn;
         $payment->branch()->associate($branch);
         $payment->receivedBy()->associate($receivedBy);

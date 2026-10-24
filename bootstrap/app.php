@@ -1,6 +1,8 @@
 <?php
 
+use App\Domains\Billing\Chapa\Exceptions\ChapaRequestFailed;
 use App\Domains\Billing\Exceptions\PaymentRefused;
+use App\Http\Middleware\ActAsMember;
 use App\Http\Middleware\ActAsOrganization;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -20,12 +22,17 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'organization' => ActAsOrganization::class,
+            'member' => ActAsMember::class,
         ]);
 
         // Pick the organization before route-model binding, so bound models are scoped to it.
         $middleware->prependToPriorityList(
             before: SubstituteBindings::class,
             prepend: ActAsOrganization::class,
+        );
+        $middleware->prependToPriorityList(
+            before: SubstituteBindings::class,
+            prepend: ActAsMember::class,
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -45,4 +52,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->map(fn (PaymentRefused $exception) => ValidationException::withMessages([
             $exception->field => $exception->getMessage(),
         ]));
+
+        // Chapa refused a request or didn't answer: a bad gateway, with Chapa's reason.
+        $exceptions->render(function (ChapaRequestFailed $exception, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json(['message' => $exception->getMessage()], 502);
+            }
+        });
     })->create();

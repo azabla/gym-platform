@@ -20,6 +20,15 @@ it('reads Ethiopian numbers however they are typed', function (string $input, st
     'Addis Ababa landline' => ['011 551 2345', '+251115512345'],
 ]);
 
+it('writes Ethiopian numbers the way they are written in Ethiopia, as Chapa expects', function (string $input, ?string $expected) {
+    expect(PhoneNumber::of($input)->ethiopianNational())->toBe($expected);
+})->with([
+    'mobile' => ['+251 911 234 567', '0911234567'],
+    'Safaricom mobile' => ['0711 234 567', '0711234567'],
+    'Addis Ababa landline' => ['011 551 2345', '0115512345'],
+    'another country' => ['+44 7911 123456', null],
+]);
+
 it('keeps numbers from other countries that start with a plus', function (string $input, string $expected) {
     expect(PhoneNumber::of($input)->e164)->toBe($expected);
 })->with([
