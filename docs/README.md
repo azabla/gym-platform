@@ -15,7 +15,8 @@ app/Domains/Organizations/ Gyms, branches and staff; Tenancy/ keeps each gym's d
 app/Domains/Members/       Gym customers: registering, finding, editing and archiving members
 app/Domains/Memberships/   Plans a gym sells, and the memberships staff sell from them
 app/Domains/Billing/       Payments and refunds against memberships, receipts and balances; Chapa/ talks to each gym's Chapa account
-app/Http/                  The API: controllers, form requests, middleware and resources (v1)
+app/Domains/Notifications/ Sending messages: SMS through AfroMessage, or to the log in development
+app/Http/                  The API: controllers, form requests, middleware and resources (v1); Me/ folders hold the members app's side
 app/Console/Commands/      Artisan commands, such as the check of open payment links
 routes/api.php             API routes, versioned under /api/v1
 routes/console.php         Scheduled tasks, run by the scheduler container
@@ -45,7 +46,9 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 |---|---|
 | Organization | The gym business. The tenant. |
 | Branch | A physical location of an organization. |
-| User | An identity that can log in. |
+| User | An identity that can log in: staff with an email and a password, members with a code sent to their phone. |
+| Members app | The app where members see their memberships, what they owe and their receipts, and pay with Chapa. It shows every gym where their phone number is registered (ADR 0010). |
+| Sign-in code | A 6-digit code sent by SMS that signs a member in to the members app. It works for 10 minutes and 5 tries. |
 | Member | A gym customer, registered at a home branch but welcome at every branch of the gym. May or may not have a User. |
 | Staff | A User's role at one organization: Owner, Manager, Receptionist, Trainer or Accountant. Works at all branches or only at assigned ones. |
 | Plan | What a gym sells: a price and a length in days or months (e.g. Monthly, 2,500 ETB), valid at all branches or only some, with a number of days it can be frozen. |
@@ -75,6 +78,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0007](adr/0007-freezing-branch-only-plans-and-discounts.md) | Freezing, branch-only plans and discounts |
 | [0008](adr/0008-billing-and-payments.md) | Billing and payments |
 | [0009](adr/0009-online-payments-with-chapa.md) | Online payments with Chapa |
+| [0010](adr/0010-members-app-sign-in-and-payments.md) | The members app: SMS sign-in, seeing memberships, paying |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 
