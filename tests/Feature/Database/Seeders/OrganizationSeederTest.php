@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domains\Identity\Models\User;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Branch;
+use App\Domains\Organizations\Models\BranchOpeningHour;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Models\Staff;
 use Database\Seeders\OrganizationSeeder;
@@ -21,6 +22,8 @@ it('creates the demo organization with its branches and staff', function () {
 
     expect($organization->name)->toBe('Demo Gym')
         ->and($mainBranch->name)->toBe('Main Branch')
+        ->and($mainBranch->openingHours->pluck('weekday')->all())->toBe([1, 2, 3, 4, 5, 6])
+        ->and($boleBranch->openingHours)->toBeEmpty()
         ->and($boleBranch->name)->toBe('Bole Branch')
         ->and($owner->role)->toBe(StaffRole::Owner)
         ->and($owner->works_at_all_branches)->toBeTrue()
@@ -38,6 +41,7 @@ it('can run more than once without creating duplicates', function () {
     expect(Organization::query()->count())->toBe(1)
         ->and(Branch::query()->acrossOrganizations()->count())->toBe(2)
         ->and(Staff::query()->acrossOrganizations()->count())->toBe(3)
+        ->and(BranchOpeningHour::query()->acrossOrganizations()->count())->toBe(6)
         ->and(User::query()->count())->toBe(3);
 });
 

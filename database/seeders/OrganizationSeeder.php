@@ -27,6 +27,10 @@ class OrganizationSeeder extends Seeder
                     ['code' => 'MAIN'],
                     ['name' => 'Main Branch'],
                 );
+                $mainBranch->replaceOpeningHours(array_map(
+                    fn (int $weekday): array => ['weekday' => $weekday, 'opens_at' => '06:00:00', 'closes_at' => '21:00:00'],
+                    range(1, 6),
+                ));
 
                 $organization->branches()->firstOrCreate(
                     ['code' => 'BOLE'],
