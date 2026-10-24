@@ -53,7 +53,7 @@ class UpdateNotificationPreferencesRequest extends FormRequest
                 $topics = array_map(fn (NotificationTopic $topic): string => $topic->value, NotificationTopic::cases());
 
                 foreach (array_diff(array_keys($this->all()), $topics) as $unknown) {
-                    $validator->errors()->add((string) $unknown, 'There is no such preference. Use membership, payments or visits.');
+                    $validator->errors()->add((string) $unknown, 'There is no such preference. Use membership, payments, visits or announcements.');
                 }
             },
         ];

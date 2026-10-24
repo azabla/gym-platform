@@ -17,3 +17,6 @@ Schedule::command('model:prune', ['--model' => [SignInCode::class]])->daily();
 
 // Members hear before their membership ends, and the day after; each gym's go out from 09:00 its time (ADR 0012).
 Schedule::command('notifications:send-membership-reminders')->hourly()->withoutOverlapping();
+
+// Scheduled announcements go out within a minute of their time (ADR 0015).
+Schedule::command('announcements:send-due')->everyMinute()->withoutOverlapping();
