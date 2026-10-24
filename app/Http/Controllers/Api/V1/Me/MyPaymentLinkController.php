@@ -76,8 +76,8 @@ class MyPaymentLinkController extends Controller
     private function myPaymentLink(CurrentMember $currentMember, int $id): PaymentLink
     {
         return PaymentLink::query()
-            ->whereRelation('membership', 'member_id', $currentMember->get()->id)
-            ->with('payment')
+            ->whereBelongsTo($currentMember->get())
+            ->with(['payment', 'plan'])
             ->findOrFail($id);
     }
 }

@@ -31,6 +31,7 @@ class PaymentLinkFactory extends Factory
         return [
             'membership_id' => Membership::factory(),
             'organization_id' => fn (array $attributes) => $this->membershipOf($attributes)->organization_id,
+            'member_id' => fn (array $attributes) => $this->membershipOf($attributes)->member_id,
             'branch_id' => fn (array $attributes) => Branch::factory()->state([
                 'organization_id' => $attributes['organization_id'],
             ]),
