@@ -56,11 +56,11 @@ class UpdateOpeningHoursRequest extends FormRequest
         /** @var list<array{weekday: int|string, opens_at: string, closes_at: string}> $hours */
         $hours = $this->validated('hours');
 
-        return array_values(array_map(fn (array $day): array => [
+        return array_map(fn (array $day): array => [
             'weekday' => (int) $day['weekday'],
             'opens_at' => "{$day['opens_at']}:00",
             'closes_at' => "{$day['closes_at']}:00",
-        ], $hours));
+        ], $hours);
     }
 
     private function branch(): Branch
