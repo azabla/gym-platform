@@ -3,6 +3,9 @@
 use App\Domains\Billing\Models\PaymentLink;
 use App\Domains\Identity\Models\User;
 use App\Domains\Members\Models\Member;
+use App\Domains\Notifications\Push\PushMessage;
+use App\Domains\Notifications\Push\PushResult;
+use App\Domains\Notifications\Push\PushSender;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Organization;
@@ -126,4 +129,43 @@ function fakeChapaPaid(PaymentLink ...$paidLinks): void
 
         return Http::response(['message' => 'Invalid transaction or Transaction not found', 'status' => 'failed', 'data' => null], 404);
     }]);
+}
+
+/**
+ * A push sender that records what it was asked to send, and answers for each
+ * phone as given: a result, or an exception to throw.
+ */
+function recordingPushSender(array $answers = []): PushSender
+{
+    return new class($answers) implements PushSender
+    {
+        /** @var list<array{string, PushMessage}> */
+        public array $sent = [];
+
+        public function __construct(private array $answers) {}
+
+        public function send(string $deviceToken, PushMessage $message): PushResult
+        {
+            $this->sent[] = [$deviceToken, $message];
+            $answer = $this->answers[$deviceToken] ?? PushResult::Sent;
+
+            if ($answer instanceof Throwable) {
+                throw $answer;
+            }
+
+            return $answer;
+        }
+    };
+}
+
+/**
+ * Record pushes instead of writing them to the log, and give the recorder,
+ * whose $sent lists each push as [phone token, message].
+ */
+function fakePushes(): PushSender
+{
+    $pushSender = recordingPushSender();
+    app()->instance(PushSender::class, $pushSender);
+
+    return $pushSender;
 }

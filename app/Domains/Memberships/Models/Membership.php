@@ -8,6 +8,7 @@ use App\Casts\AsMoney;
 use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Discount\Discount;
 use App\Domains\Memberships\Enums\MembershipStatus;
+use App\Domains\Memberships\Events\MembershipFrozen;
 use App\Domains\Memberships\Policies\MembershipPolicy;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Staff;
@@ -154,6 +155,8 @@ class Membership extends Model
             $freeze->save();
 
             $this->unsetRelation('freezes');
+
+            MembershipFrozen::dispatch($freeze);
 
             return $freeze;
         });

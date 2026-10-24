@@ -7,36 +7,8 @@ use App\Domains\Notifications\Push\Exceptions\PushNotSent;
 use App\Domains\Notifications\Push\PushChannel;
 use App\Domains\Notifications\Push\PushMessage;
 use App\Domains\Notifications\Push\PushResult;
-use App\Domains\Notifications\Push\PushSender;
 use App\Domains\Notifications\Push\SendableByPush;
 use Illuminate\Notifications\Notification;
-
-/**
- * A push sender that records what it was asked to send, and answers for each
- * phone as given: a result, or an exception to throw.
- */
-function recordingPushSender(array $answers = []): PushSender
-{
-    return new class($answers) implements PushSender
-    {
-        /** @var list<array{string, PushMessage}> */
-        public array $sent = [];
-
-        public function __construct(private array $answers) {}
-
-        public function send(string $deviceToken, PushMessage $message): PushResult
-        {
-            $this->sent[] = [$deviceToken, $message];
-            $answer = $this->answers[$deviceToken] ?? PushResult::Sent;
-
-            if ($answer instanceof Throwable) {
-                throw $answer;
-            }
-
-            return $answer;
-        }
-    };
-}
 
 /**
  * Someone signed in on the given phones, and a notification greeting them in each phone's language.
