@@ -94,14 +94,14 @@ it('has every push topic on until I turn one off, at this gym only', function ()
 
     $this->getJson($preferences)
         ->assertOk()
-        ->assertExactJson(['data' => ['membership' => true, 'payments' => true, 'visits' => true]]);
+        ->assertExactJson(['data' => ['membership' => true, 'payments' => true, 'visits' => true, 'announcements' => true]]);
 
-    $this->patchJson(route('api.v1.me.gyms.notification-preferences.update', ['organization' => 'demo-gym']), ['visits' => false])
+    $this->patchJson(route('api.v1.me.gyms.notification-preferences.update', ['organization' => 'demo-gym']), ['visits' => false, 'announcements' => true])
         ->assertOk()
-        ->assertExactJson(['data' => ['membership' => true, 'payments' => true, 'visits' => false]]);
+        ->assertExactJson(['data' => ['membership' => true, 'payments' => true, 'visits' => false, 'announcements' => true]]);
 
-    expect($this->tigist->fresh()->pushPreferences())->toBe(['membership' => true, 'payments' => true, 'visits' => false])
-        ->and($atAnotherGym->fresh()->pushPreferences())->toBe(['membership' => true, 'payments' => true, 'visits' => true]);
+    expect($this->tigist->fresh()->pushPreferences())->toBe(['membership' => true, 'payments' => true, 'visits' => false, 'announcements' => true])
+        ->and($atAnotherGym->fresh()->pushPreferences())->toBe(['membership' => true, 'payments' => true, 'visits' => true, 'announcements' => true]);
 });
 
 it('refuses an unknown preference or one that is not true or false', function () {

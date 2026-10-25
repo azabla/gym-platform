@@ -36,6 +36,12 @@ return [
         'body' => 'You couldn\'t check in at :branch: :reason',
     ],
 
+    // The gym's own words, the same in every language (ADR 0015).
+    'announcement' => [
+        'title' => ':title',
+        'body' => ':body',
+    ],
+
     // Why a check-in was refused, by Volt's reason code (ADR 0011).
     'reasons' => [
         'CREDENTIAL_INVALID' => 'the QR code wasn\'t recognised.',

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Auth\SmsTokenController;
 use App\Http\Controllers\Api\V1\Auth\TokenController;
 use App\Http\Controllers\Api\V1\ChapaCallbackController;
 use App\Http\Controllers\Api\V1\Me\MyAccessCredentialController;
+use App\Http\Controllers\Api\V1\Me\MyAnnouncementController;
 use App\Http\Controllers\Api\V1\Me\MyCheckInController;
 use App\Http\Controllers\Api\V1\Me\MyDashboardController;
 use App\Http\Controllers\Api\V1\Me\MyGymController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\Api\V1\Me\MyPlanController;
 use App\Http\Controllers\Api\V1\Me\MyPlanPurchaseController;
 use App\Http\Controllers\Api\V1\Me\MyPushTokenController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\Organizations\AnnouncementController;
 use App\Http\Controllers\Api\V1\Organizations\BranchController;
 use App\Http\Controllers\Api\V1\Organizations\ChapaAccountController;
 use App\Http\Controllers\Api\V1\Organizations\CheckInController;
@@ -83,6 +85,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 Route::post('notifications/{notification}/read', [MyNotificationController::class, 'read'])
                     ->whereUuid('notification')
                     ->name('notifications.read');
+                Route::get('announcements/{announcement}', [MyAnnouncementController::class, 'show'])
+                    ->whereNumber('announcement')
+                    ->name('announcements.show');
                 Route::get('notification-preferences', [MyNotificationPreferenceController::class, 'show'])
                     ->name('notification-preferences.show');
                 Route::patch('notification-preferences', [MyNotificationPreferenceController::class, 'update'])
@@ -146,6 +151,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     ->name('check-ins.scan');
                 Route::post('members/{member}/check-ins', [CheckInController::class, 'store'])
                     ->name('members.check-ins.store');
+                Route::apiResource('announcements', AnnouncementController::class)->only(['index', 'store', 'update']);
+                Route::post('announcements/{announcement}/cancel', [AnnouncementController::class, 'cancel'])
+                    ->name('announcements.cancel');
             });
     });
 });

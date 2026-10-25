@@ -43,6 +43,7 @@ arch('organization-owned models are scoped to the current organization')
         'App\Domains\Memberships\Models',
         'App\Domains\Billing\Models',
         'App\Domains\Attendance\Models',
+        'App\Domains\Announcements\Models',
     ])
     ->toUseTrait(BelongsToOrganization::class)
     ->ignoring(Organization::class);
@@ -66,6 +67,10 @@ arch('the Memberships domain does not depend on Billing')
 arch('Members, Memberships and Billing do not depend on Attendance')
     ->expect(['App\Domains\Members', 'App\Domains\Memberships', 'App\Domains\Billing'])
     ->not->toUse('App\Domains\Attendance');
+
+arch('no other domain depends on Announcements')
+    ->expect(['App\Domains\Identity', 'App\Domains\Organizations', 'App\Domains\Members', 'App\Domains\Memberships', 'App\Domains\Billing', 'App\Domains\Attendance', 'App\Domains\Notifications'])
+    ->not->toUse('App\Domains\Announcements');
 
 arch('the Notifications domain depends on no other domain but Shared')
     ->expect('App\Domains\Notifications')

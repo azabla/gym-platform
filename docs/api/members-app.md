@@ -136,6 +136,7 @@ A push has a `title` and `body`, safe for a lock screen, and `data`, every value
 | `membership_frozen` | the gym freezes it | `membership_id` | that membership |
 | `payment_succeeded` | a payment is recorded | `payment_id`, `membership_id` | that receipt |
 | `visit_denied` | a check-in is turned away | `check_in_id`, `reason_code` | visits |
+| `announcement` | the gym sends an announcement | `announcement_id` | that announcement |
 
 Every push also has `notification_id` (mark it read when tapped) and `organization_id`, to switch to the right gym first.
 
@@ -147,11 +148,15 @@ Every push also has `notification_id` (mark it read when tapped) and `organizati
 | `POST /me/gyms/{gym}/notifications/{id}/read` | `204`, safe to repeat |
 | `POST /me/gyms/{gym}/notifications/read-all` | `204`, this gym's only |
 
-`title` and `body` are written in the request's `Accept-Language` (`en` for now; `am` once written), so send it.
+`title` and `body` are written in the request's `Accept-Language` (`en` for now; `am` once written), so send it. An announcement's are the gym's own words, the same in every language.
 
 ### Preferences
 
-`GET /me/gyms/{gym}/notification-preferences` returns `{"data": {"membership": true, "payments": true, "visits": true}}`. `PATCH` with any of those keys, each `true` or `false`, returns all three. An unknown key or another value gets a `422`. They decide pushes only: the inbox gets everything.
+`GET /me/gyms/{gym}/notification-preferences` returns `{"data": {"membership": true, "payments": true, "visits": true, "announcements": true}}`. `PATCH` with any of those keys, each `true` or `false`, returns all four. An unknown key or another value gets a `422`. They decide pushes only: the inbox gets everything.
+
+### Announcements
+
+`GET /me/gyms/{gym}/announcements/{id}` returns an announcement the member received: `id`, `title`, `body` and `sent_at`. Any other answers `404`. Open it from an inbox entry or push of type `announcement`; the push shows only the start of a long body.
 
 ## At the door (staff app)
 
@@ -188,5 +193,4 @@ Checked in this order; the first that applies is the answer.
 - Offline scanning (Volt's phase 7).
 - Member photos.
 - Freezing a membership in the app, and discounts in the app.
-- Announcements from the gym.
 - Opening hours and visit packs.
