@@ -26,7 +26,7 @@ class PaymentLinkController extends Controller
     {
         $paymentLinks = PaymentLink::query()
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')->toString()))
-            ->when($request->filled('member_id'), fn ($query) => $query->whereRelation('membership', 'member_id', $request->integer('member_id')))
+            ->when($request->filled('member_id'), fn ($query) => $query->where('member_id', $request->integer('member_id')))
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->paginate(25)

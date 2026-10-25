@@ -50,7 +50,7 @@ final class ChapaClient
      */
     public function startCheckout(PaymentLink $link, string $secretKey, string $callbackUrl): string
     {
-        $member = $link->membership->member;
+        $member = $link->member;
         [$firstName, $lastName] = $this->firstAndLastName($member->full_name);
 
         $details = array_filter([
@@ -64,7 +64,7 @@ final class ChapaClient
             'callback_url' => $callbackUrl,
             'customization' => [
                 'title' => $this->textChapaAccepts($link->organization->name, self::TITLE_LENGTH, 'Gym'),
-                'description' => $this->textChapaAccepts("{$link->membership->plan->name} membership", self::DESCRIPTION_LENGTH, 'Membership'),
+                'description' => $this->textChapaAccepts("{$link->planName()} membership", self::DESCRIPTION_LENGTH, 'Membership'),
             ],
         ], fn (mixed $detail): bool => $detail !== null);
 

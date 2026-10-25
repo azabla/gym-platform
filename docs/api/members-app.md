@@ -1,6 +1,6 @@
 # Members app API
 
-The contract between the backend and the members app (Volt). Where this file and the Volt doc disagree, this file wins. Decisions behind it: ADR 0010 (sign-in, memberships, paying), ADR 0011 (check-ins and QR codes) and ADR 0012 (notifications).
+The contract between the backend and the members app (Volt). Where this file and the Volt doc disagree, this file wins. Decisions behind it: ADR 0010 (sign-in, memberships, paying), ADR 0011 (check-ins and QR codes), ADR 0012 (notifications) and ADR 0013 (buying a membership).
 
 ## Conventions
 
@@ -55,6 +55,18 @@ The contract between the backend and the members app (Volt). Where this file and
 | `POST /me/gyms/{gym}/payment-links/{id}/check` | Asks Chapa now, after the member comes back from Chapa's page. Ten a minute. |
 
 Open `checkout_url` in a browser tab. A link's `status` is `pending`, `paid`, `cancelled` or `refund_needed`; once `paid`, `payment` has the receipt number.
+
+## Buying a membership
+
+| Request | Answer |
+|---|---|
+| `GET /me/gyms/{gym}/plans` | The plans the member can buy: those on sale at their home branch, cheapest first. `id`, `name`, `description`, `price`, `duration` (`count`, `unit`), `freeze_days_allowed`, `valid_at_all_branches`, and `starts_on` and `ends_on` if bought now. |
+| `POST /me/gyms/{gym}/plans/{plan}/purchase` | `201` with a payment link (`id`, `status`, `amount`, `checkout_url`, `plan`, `membership_id: null`). `200` with the same link if asked again for the same plan. `422` on `chapa_account` when the gym doesn't take online payments, or on `plan` when the plan isn't sold at the member's branch. |
+
+- Open `checkout_url`. When the member comes back, `POST payment-links/{id}/check`. Once `status` is `paid`, `membership_id` is the new membership and `payment` has the receipt.
+- **Nothing is created until it's paid.** The new membership starts the day after the member's last one ends, or today if it has ended, at the price shown when they started buying.
+- **One purchase at a time:** choosing another plan cancels the unpaid link and opens a new one.
+- A membership bought this way has `sold_in_app: true`.
 
 ## The QR code
 
@@ -162,6 +174,6 @@ Checked in this order; the first that applies is the answer.
 
 - Offline scanning (Volt's phase 7).
 - Member photos.
-- Buying, renewing or freezing a membership in the app.
+- Freezing a membership in the app, and discounts in the app.
 - Announcements from the gym.
 - Opening hours and visit packs.

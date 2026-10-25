@@ -78,6 +78,7 @@ class MembershipResource extends JsonResource
             'freeze_days_used' => $this->whenLoaded('freezes', fn () => $this->freezeDaysUsed()),
             'freezes' => MembershipFreezeResource::collection($this->whenLoaded('freezes')),
             'sold_by' => $this->whenLoaded('soldBy', fn (Staff $staff) => $this->staffMember($staff)),
+            'sold_in_app' => $this->sold_in_app,
             'sold_at' => $this->created_at?->toIso8601String(),
             'cancellation' => $this->cancelled_at === null ? null : [
                 'cancelled_at' => $this->cancelled_at->toIso8601String(),

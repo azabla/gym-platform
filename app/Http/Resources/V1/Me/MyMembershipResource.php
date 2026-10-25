@@ -72,6 +72,7 @@ class MyMembershipResource extends JsonResource
                 'ends_on' => $freeze->ends_on->toDateString(),
                 'days' => $freeze->days(),
             ])->all()),
+            'sold_in_app' => $this->sold_in_app,
             'cancelled_at' => $this->cancelled_at?->toIso8601String(),
             'open_payment_link' => $this->whenLoaded(
                 'openPaymentLink',

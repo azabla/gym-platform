@@ -53,6 +53,7 @@ class Membership extends Model
     protected $attributes = [
         'valid_at_all_branches' => true,
         'freeze_days_allowed' => 0,
+        'sold_in_app' => false,
     ];
 
     /**
@@ -62,17 +63,33 @@ class Membership extends Model
      */
     public static function sell(Member $member, Plan $plan, CarbonImmutable $startsOn, Staff $soldBy, ?Discount $discount = null): self
     {
-        return DB::transaction(function () use ($member, $plan, $startsOn, $soldBy, $discount): self {
+        return self::record($member, $plan, $startsOn, $soldBy, $plan->price, $discount?->appliedTo($plan->price) ?? $plan->price, $discount?->reason);
+    }
+
+    /**
+     * The member bought the plan in their app and paid the given price for it,
+     * so no staff member sold it. The price is what the member paid, even if
+     * the plan's price changed since. See ADR 0013.
+     */
+    public static function buyInApp(Member $member, Plan $plan, CarbonImmutable $startsOn, Money $pricePaid): self
+    {
+        return self::record($member, $plan, $startsOn, null, $pricePaid, $pricePaid, null);
+    }
+
+    private static function record(Member $member, Plan $plan, CarbonImmutable $startsOn, ?Staff $soldBy, Money $listPrice, Money $price, ?string $discountReason): self
+    {
+        return DB::transaction(function () use ($member, $plan, $startsOn, $soldBy, $listPrice, $price, $discountReason): self {
             $membership = new self;
             $membership->organization()->associate($member->organization_id);
             $membership->member()->associate($member);
             $membership->plan()->associate($plan);
             $membership->soldBy()->associate($soldBy);
+            $membership->sold_in_app = $soldBy === null;
             $membership->starts_on = $startsOn;
             $membership->ends_on = $plan->endsOnFor($startsOn);
-            $membership->list_price = $plan->price;
-            $membership->price = $discount?->appliedTo($plan->price) ?? $plan->price;
-            $membership->discount_reason = $discount?->reason;
+            $membership->list_price = $listPrice;
+            $membership->price = $price;
+            $membership->discount_reason = $discountReason;
             $membership->freeze_days_allowed = $plan->freeze_days_allowed;
             $membership->valid_at_all_branches = $plan->available_at_all_branches;
             $membership->save();
@@ -341,6 +358,7 @@ class Membership extends Model
             'price' => AsMoney::class.':price_minor,currency',
             'cancelled_at' => 'immutable_datetime',
             'valid_at_all_branches' => 'boolean',
+            'sold_in_app' => 'boolean',
         ];
     }
 }

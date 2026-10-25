@@ -5,15 +5,17 @@ namespace App\Http\Resources\V1;
 use App\Domains\Billing\Enums\PaymentLinkStatus;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Billing\Models\PaymentLink;
+use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Models\Membership;
+use App\Domains\Memberships\Models\Plan;
 use App\Domains\Organizations\Models\Staff;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * A payment link: what it asks for, for which membership, and where it
- * stands. The checkout URL is shown only while the link is open, so a paid
+ * A payment link: what it asks for, from which member, for which membership
+ * or for which plan they are buying (ADR 0013), and where it stands. The checkout URL is shown only while the link is open, so a paid
  * or cancelled link isn't shared again.
  *
  * @mixin PaymentLink
@@ -24,7 +26,7 @@ class PaymentLinkResource extends JsonResource
      * The relations a payment link response shows. The membership's freezes
      * give its status without a query per link.
      */
-    private const RELATIONS = ['branch', 'membership.plan', 'membership.member', 'membership.freezes', 'createdBy.user', 'cancelledBy.user', 'payment'];
+    private const RELATIONS = ['branch', 'member', 'plan', 'membership.plan', 'membership.freezes', 'createdBy.user', 'cancelledBy.user', 'payment'];
 
     /**
      * Load everything a payment link response shows: the relations above and
@@ -34,9 +36,9 @@ class PaymentLinkResource extends JsonResource
     {
         (new Collection($paymentLinks))->load(self::RELATIONS);
 
-        MembershipResource::attachBalances(
-            ...array_map(fn (PaymentLink $paymentLink): Membership => $paymentLink->membership, $paymentLinks),
-        );
+        MembershipResource::attachBalances(...array_values(array_filter(
+            array_map(fn (PaymentLink $paymentLink): ?Membership => $paymentLink->membership, $paymentLinks),
+        )));
     }
 
     /**
@@ -53,10 +55,14 @@ class PaymentLinkResource extends JsonResource
             'checkout_url' => $this->status === PaymentLinkStatus::Pending ? $this->checkout_url : null,
             'tx_ref' => $this->tx_ref,
             'branch' => new BranchResource($this->whenLoaded('branch')),
-            'member' => $this->whenLoaded('membership', fn (Membership $membership) => [
-                'id' => $membership->member->id,
-                'full_name' => $membership->member->full_name,
-                'phone' => $membership->member->phone,
+            'member' => $this->whenLoaded('member', fn (Member $member) => [
+                'id' => $member->id,
+                'full_name' => $member->full_name,
+                'phone' => $member->phone,
+            ]),
+            'plan' => $this->whenLoaded('plan', fn (Plan $plan) => [
+                'id' => $plan->id,
+                'name' => $plan->name,
             ]),
             'membership' => new MembershipResource($this->whenLoaded('membership')),
             'created_by' => $this->whenLoaded('createdBy', fn (Staff $staff) => $this->staffMember($staff)),

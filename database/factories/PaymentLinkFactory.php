@@ -4,7 +4,9 @@ namespace Database\Factories;
 
 use App\Domains\Billing\Enums\PaymentLinkStatus;
 use App\Domains\Billing\Models\PaymentLink;
+use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Models\Membership;
+use App\Domains\Memberships\Models\Plan;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Staff;
 use Carbon\CarbonImmutable;
@@ -31,6 +33,7 @@ class PaymentLinkFactory extends Factory
         return [
             'membership_id' => Membership::factory(),
             'organization_id' => fn (array $attributes) => $this->membershipOf($attributes)->organization_id,
+            'member_id' => fn (array $attributes) => $this->membershipOf($attributes)->member_id,
             'branch_id' => fn (array $attributes) => Branch::factory()->state([
                 'organization_id' => $attributes['organization_id'],
             ]),
@@ -55,6 +58,22 @@ class PaymentLinkFactory extends Factory
             'cancelled_by_staff_id' => fn (array $attributes) => Staff::factory()->state([
                 'organization_id' => $attributes['organization_id'],
             ]),
+        ]);
+    }
+
+    /**
+     * Indicate that the member opened the link in their app to buy the plan,
+     * at its price: no membership yet, and no staff member.
+     */
+    public function buying(Plan $plan, Member $member): static
+    {
+        return $this->state([
+            'membership_id' => null,
+            'organization_id' => $member->organization_id,
+            'member_id' => $member->id,
+            'plan_id' => $plan->id,
+            'amount' => $plan->price,
+            'created_by_staff_id' => null,
         ]);
     }
 

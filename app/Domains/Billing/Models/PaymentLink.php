@@ -12,7 +12,9 @@ use App\Domains\Billing\Enums\PaymentLinkStatus;
 use App\Domains\Billing\Enums\PaymentMethod;
 use App\Domains\Billing\Exceptions\PaymentRefused;
 use App\Domains\Billing\Policies\PaymentLinkPolicy;
+use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Models\Membership;
+use App\Domains\Memberships\Models\Plan;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
@@ -55,6 +57,7 @@ class PaymentLink extends Model
     {
         $link = new self;
         $link->organization()->associate($membership->organization_id);
+        $link->member()->associate($membership->member_id);
         $link->membership()->associate($membership);
         $link->branch()->associate($branch);
         $link->createdBy()->associate($createdBy);
@@ -65,6 +68,78 @@ class PaymentLink extends Model
         $link->save();
 
         return $link;
+    }
+
+    /**
+     * Ask Chapa for a payment page for the member to buy the plan in their
+     * app, at its price now, and keep the link to it. The membership is
+     * created only once Chapa confirms the payment (see settle()), so an
+     * abandoned checkout leaves nothing behind. See ADR 0013.
+     */
+    public static function openForPlan(Member $member, Plan $plan, Branch $branch, ChapaAccount $chapaAccount, string $callbackUrl): self
+    {
+        $link = new self;
+        $link->organization()->associate($member->organization_id);
+        $link->member()->associate($member);
+        $link->plan()->associate($plan);
+        $link->branch()->associate($branch);
+        $link->amount = $plan->price;
+        $link->tx_ref = 'GP-'.Str::ulid();
+        $link->status = PaymentLinkStatus::Pending;
+        $link->checkout_url = app(ChapaClient::class)->startCheckout($link, $chapaAccount->secret_key, $callbackUrl);
+        $link->save();
+
+        return $link;
+    }
+
+    /**
+     * Sell the link's plan to its member, now that they have paid for it,
+     * starting after their last membership. Nothing is sold to a member who
+     * left the gym meanwhile.
+     */
+    private function buyThePlan(): ?Membership
+    {
+        $member = $this->member;
+        $plan = $this->plan;
+
+        if ($plan === null || $member->trashed()) {
+            return null;
+        }
+
+        $membership = Membership::buyInApp($member, $plan, Membership::firstFreeDayFor($member, $this->organization->today()), $this->amount);
+        $this->membership()->associate($membership);
+
+        return $membership;
+    }
+
+    /**
+     * Whether the link is for buying a plan, rather than paying a membership.
+     */
+    public function isForAPlan(): bool
+    {
+        return $this->plan_id !== null;
+    }
+
+    /**
+     * The name of the plan the link pays for, as Chapa's page shows it.
+     */
+    public function planName(): string
+    {
+        $plan = $this->plan_id === null ? $this->membership?->plan : $this->plan;
+
+        return $plan === null ? 'Membership' : $plan->name;
+    }
+
+    /**
+     * The member chose another plan, so their unpaid link to buy this one is
+     * cancelled, by them rather than by staff. If they already paid it on
+     * Chapa's page, it still buys the plan when Chapa confirms it.
+     */
+    public function cancelForAnotherPlan(): void
+    {
+        $this->status = PaymentLinkStatus::Cancelled;
+        $this->cancelled_at = CarbonImmutable::now();
+        $this->save();
     }
 
     /**
@@ -102,7 +177,10 @@ class PaymentLink extends Model
      * is settled only once, so Chapa telling us twice records one payment.
      * When the membership no longer owes the amount (it was paid another way,
      * or cancelled), Chapa has taken money that is not due: the link is marked
-     * refund needed, for the gym to refund from its Chapa dashboard.
+     * refund needed, for the gym to refund from its Chapa dashboard. A link
+     * for a plan first creates the membership, starting after the member's
+     * last one, so a membership sold at the desk meanwhile is never
+     * overlapped; a member who left the gym meanwhile needs a refund.
      */
     public function settle(ChapaTransaction $transaction): void
     {
@@ -116,9 +194,18 @@ class PaymentLink extends Model
             $paymentLink->chapa_reference = $transaction->reference;
             $paymentLink->settled_at = CarbonImmutable::now();
 
+            $membership = $paymentLink->membership ?? $paymentLink->buyThePlan();
+
+            if ($membership === null) {
+                $paymentLink->status = PaymentLinkStatus::RefundNeeded;
+                $paymentLink->save();
+
+                return;
+            }
+
             try {
                 $payment = Payment::receive(
-                    membership: $paymentLink->membership,
+                    membership: $membership,
                     amount: $paymentLink->amount,
                     method: PaymentMethod::Chapa,
                     reference: $transaction->reference,
@@ -141,7 +228,32 @@ class PaymentLink extends Model
         $this->refresh();
     }
 
-    /** @return BelongsTo<Membership, $this> */
+    /**
+     * The member paying the link.
+     *
+     * @return BelongsTo<Member, $this>
+     */
+    public function member(): BelongsTo
+    {
+        return $this->belongsTo(Member::class)->withTrashed();
+    }
+
+    /**
+     * The plan the member is buying, for a link to buy one. A plan archived
+     * since is still sold: the member paid for it.
+     *
+     * @return BelongsTo<Plan, $this>
+     */
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(Plan::class)->withTrashed();
+    }
+
+    /**
+     * The membership the link pays, or the one bought through it once paid.
+     *
+     * @return BelongsTo<Membership, $this>
+     */
     public function membership(): BelongsTo
     {
         return $this->belongsTo(Membership::class);
