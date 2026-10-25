@@ -302,6 +302,11 @@ curl -s http://localhost:8080/api/v1/organizations/demo-gym/memberships/1/refund
 curl -s http://localhost:8080/api/v1/organizations/demo-gym/dashboard \
   -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
 
+# Main Branch's opening hours (seeded Monday to Saturday, 06:00 to 21:00); outside them
+# a check-in is turned away with OUTSIDE_HOURS. PUT {"hours":[]} makes it always open.
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/branches/1/opening-hours \
+  -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
+
 # Tell members the gym is closed on Sunday, now; add "send_at":"2026-11-01T07:00:00+03:00" to schedule it
 # and "branch_id":1 for one branch. The answer says how many members it reached.
 curl -s http://localhost:8080/api/v1/organizations/demo-gym/announcements \
@@ -499,7 +504,8 @@ Each part has an ADR:
 - ADR 0012: reminders and notifications;
 - ADR 0013: buying a membership in the app;
 - ADR 0014: dashboards;
-- ADR 0015: announcements.
+- ADR 0015: announcements;
+- ADR 0016: visit packs and opening hours.
 
 ## Troubleshooting
 

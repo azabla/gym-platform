@@ -33,6 +33,7 @@ class UpdatePlanRequest extends StorePlanRequest
             'duration_count' => ['sometimes', 'integer', 'min:1', $this->longestDuration()],
             'duration_unit' => ['sometimes', Rule::enum(DurationUnit::class)],
             'freeze_days_allowed' => ['sometimes', 'integer', 'min:0', 'max:366'],
+            'visit_limit' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:1000'],
             ...$this->branchRules(),
         ];
     }

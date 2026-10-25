@@ -58,6 +58,8 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Staff | A User's role at one organization: Owner, Manager, Receptionist, Trainer or Accountant. Works at all branches or only at assigned ones. |
 | Plan | What a gym sells: a price and a length in days or months (e.g. Monthly, 2,500 ETB), valid at all branches or only some, with a number of days it can be frozen. |
 | Membership | A plan sold to a member for set dates, both included. A member has one membership at a time. |
+| Visit pack | A plan that allows a number of visits within its dates, such as 10 visits in 60 days. A visit is a day with a check-in that let the member in (ADR 0016). |
+| Opening hours | When a branch is open, by weekday, in the gym's time zone. A branch without any is always open. Check-ins outside them are turned away. |
 | Freeze | A pause in a membership. The membership's end date moves later by the number of frozen days. |
 | Discount | A reduction of a plan's price at sale, as an amount or a percentage, with a reason. Only owners and managers can give one. |
 | Payment | Money a member paid towards a membership, by cash, Telebirr, CBE Birr or bank transfer, or online through Chapa. A membership can be paid in parts. |
@@ -89,6 +91,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0013](adr/0013-buying-a-membership-in-the-app.md) | Buying a membership in the app |
 | [0014](adr/0014-dashboards.md) | Dashboards |
 | [0015](adr/0015-announcements.md) | Announcements |
+| [0016](adr/0016-visit-packs-and-opening-hours.md) | Visit packs and opening hours |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 

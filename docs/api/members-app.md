@@ -41,7 +41,7 @@ The contract between the backend and the members app (Volt). Where this file and
 - `open_payment_link`: an open link to pay or to buy, or `null`;
 - `unread_notifications`: the inbox's unread count.
 
-Volt's `visits_remaining` and `grace_ends_on` aren't there: visit packs and grace periods don't exist yet.
+The membership has `visits_remaining` for a visit pack (ADR 0016). Volt's `grace_ends_on` isn't there: grace periods don't exist yet.
 
 ## Gyms and memberships
 
@@ -50,14 +50,17 @@ Volt's `visits_remaining` and `grace_ends_on` aren't there: visit packs and grac
 | `GET /me/gyms` | Every gym where the phone number is a member: `slug`, `name`, `member` (`id`, `full_name`, `home_branch`), `membership` at a glance (`id`, `plan`, `status`, `starts_on`, `ends_on`) or `null`, and `balance_due` there |
 | `GET /me/gyms/{gym}/memberships` | The member's memberships, newest first |
 | `GET /me/gyms/{gym}/memberships/{id}` | One membership |
+| `GET /me/gyms/{gym}/branches` | The gym's branches, by name, each with its `opening_hours` |
 | `GET /me/gyms/{gym}/payments` | Receipts, newest first |
 | `GET /me/gyms/{gym}/payments/{id}` | One receipt |
 
-**A membership:** `id`, `plan` (`id`, `name`), `status` (`upcoming`, `active`, `frozen`, `expired` or `cancelled`), `starts_on`, `ends_on` (both included), `price`, `amount_paid`, `balance_due`, `valid_at_all_branches`, `branches`, `freeze_days_allowed`, `freeze_days_used`, `freeze_days_left`, `freezes` (`starts_on`, `ends_on`, `days`), `cancelled_at`, `open_payment_link`.
+**A membership:** `id`, `plan` (`id`, `name`), `status` (`upcoming`, `active`, `frozen`, `expired` or `cancelled`), `starts_on`, `ends_on` (both included), `price`, `amount_paid`, `balance_due`, `valid_at_all_branches`, `branches`, `visits_remaining` (visits left on a visit pack, or `null` when there is no limit), `freeze_days_allowed`, `freeze_days_used`, `freeze_days_left`, `freezes` (`starts_on`, `ends_on`, `days`), `cancelled_at`, `open_payment_link`.
 
 **A receipt:** `id`, `receipt_number`, `type` (`payment` or `refund`), `amount`, `method` (`cash`, `telebirr`, `cbe_birr`, `bank_transfer` or `chapa`), `reference`, `paid_on`, `branch`, `membership` (`id`, `plan`), `voided`.
 
-**A branch:** `id`, `code`, `name`, `address`.
+**A branch:** `id`, `code`, `name`, `address`, and in the branch list `opening_hours`: a list of `weekday` (1 is Monday, 7 is Sunday), `opens_at` and `closes_at` (`"06:00"`, in the gym's time zone). An empty list means always open; once a branch has hours, a weekday not listed is closed.
+
+**A visit pack** allows a number of visits within its dates. A visit is a day, where the gym is, with a check-in that let the member in: coming back the same day, at any branch, uses nothing.
 
 ## Paying
 
@@ -136,6 +139,7 @@ A push has a `title` and `body`, safe for a lock screen, and `data`, every value
 | `membership_frozen` | the gym freezes it | `membership_id` | that membership |
 | `payment_succeeded` | a payment is recorded | `payment_id`, `membership_id` | that receipt |
 | `visit_denied` | a check-in is turned away | `check_in_id`, `reason_code` | visits |
+| `visits_running_low` | a visit pack has one visit left | `membership_id` | that membership |
 | `announcement` | the gym sends an announcement | `announcement_id` | that announcement |
 
 Every push also has `notification_id` (mark it read when tapped) and `organization_id`, to switch to the right gym first.
@@ -182,10 +186,12 @@ Checked in this order; the first that applies is the answer.
 | `CREDENTIAL_REVOKED` | The credential was replaced by another phone, or its phone signed out |
 | `CODE_EXPIRED` | The code is more than one 30-second step away from the server's time |
 | `CODE_ALREADY_USED` | This code, or a later one, was already scanned |
+| `OUTSIDE_HOURS` | The branch is closed now, by its opening hours |
 | `MEMBERSHIP_NONE` | No membership today: none, not started yet, or cancelled |
 | `MEMBERSHIP_EXPIRED` | The membership ended |
 | `MEMBERSHIP_FROZEN` | The membership is frozen today |
 | `BRANCH_NOT_ALLOWED` | The membership isn't valid at this branch |
+| `VISITS_USED_UP` | Every visit of the pack is used, and the member hasn't come in today |
 | `ALREADY_CHECKED_IN` | The member was let in less than 5 minutes ago |
 
 ## Not built yet
@@ -193,4 +199,4 @@ Checked in this order; the first that applies is the answer.
 - Offline scanning (Volt's phase 7).
 - Member photos.
 - Freezing a membership in the app, and discounts in the app.
-- Opening hours and visit packs.
+- Opening hours past midnight, and holiday closures.

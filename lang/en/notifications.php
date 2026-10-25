@@ -36,6 +36,11 @@ return [
         'body' => 'You couldn\'t check in at :branch: :reason',
     ],
 
+    'visits_running_low' => [
+        'title' => 'One visit left',
+        'body' => 'You have one visit left on your :plan membership at :gym. Renew it to keep training.',
+    ],
+
     // The gym's own words, the same in every language (ADR 0015).
     'announcement' => [
         'title' => ':title',
@@ -48,10 +53,12 @@ return [
         'CREDENTIAL_REVOKED' => 'this phone\'s QR code was replaced. Open the app to get a new one.',
         'CODE_EXPIRED' => 'the QR code had expired. Check your phone\'s clock.',
         'CODE_ALREADY_USED' => 'that QR code was already used.',
+        'OUTSIDE_HOURS' => 'the branch is closed at this time.',
         'MEMBERSHIP_NONE' => 'you have no membership for today.',
         'MEMBERSHIP_EXPIRED' => 'your membership has ended.',
         'MEMBERSHIP_FROZEN' => 'your membership is frozen today.',
         'BRANCH_NOT_ALLOWED' => 'your membership isn\'t valid at this branch.',
+        'VISITS_USED_UP' => 'you have used every visit of your membership.',
         'ALREADY_CHECKED_IN' => 'you checked in less than 5 minutes ago.',
     ],
 

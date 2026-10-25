@@ -23,6 +23,7 @@ class BranchResource extends JsonResource
             'code' => $this->code,
             'name' => $this->name,
             'address' => $this->address,
+            'opening_hours' => $this->whenLoaded('openingHours', fn () => OpeningHoursResource::collection($this->openingHours)),
         ];
     }
 }

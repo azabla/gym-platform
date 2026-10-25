@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\V1;
 
+use App\Domains\Attendance\Access\Visits;
 use App\Domains\Billing\Balances\MembershipBalance;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Memberships\Models\Membership;
@@ -30,6 +31,21 @@ class MembershipResource extends JsonResource
     {
         (new Collection($memberships))->load(self::RELATIONS);
         self::attachBalances(...$memberships);
+        self::attachVisitsUsed(...$memberships);
+    }
+
+    /**
+     * Give each membership the visits used on it, from Attendance, in one
+     * query for all of them (ADR 0016). Looked up here, in the HTTP layer,
+     * because the Memberships domain doesn't depend on Attendance.
+     */
+    public static function attachVisitsUsed(Membership ...$memberships): void
+    {
+        $visitsUsed = app(Visits::class)->usedOn(app(CurrentOrganization::class)->get()->timezone, ...$memberships);
+
+        foreach ($memberships as $membership) {
+            $membership->setRelation('visitsUsed', $visitsUsed[$membership->id]);
+        }
     }
 
     /**
@@ -74,6 +90,8 @@ class MembershipResource extends JsonResource
             'balance_due' => $this->whenLoaded('balance', fn (MembershipBalance $balance) => $balance->balanceDue),
             'valid_at_all_branches' => $this->valid_at_all_branches,
             'branches' => BranchResource::collection($this->whenLoaded('branches')),
+            'visit_limit' => $this->visit_limit,
+            'visits_used' => $this->whenLoaded('visitsUsed'),
             'freeze_days_allowed' => $this->freeze_days_allowed,
             'freeze_days_used' => $this->whenLoaded('freezes', fn () => $this->freezeDaysUsed()),
             'freezes' => MembershipFreezeResource::collection($this->whenLoaded('freezes')),

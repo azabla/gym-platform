@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Organizations;
 
+use App\Domains\Attendance\Access\Visits;
 use App\Domains\Attendance\Enums\CheckInResult;
 use App\Domains\Attendance\Models\CheckIn;
 use App\Domains\Billing\Models\Payment;
@@ -47,7 +48,7 @@ class DashboardController extends Controller
                 $branchIds,
             ),
             'members' => $this->members($request->today(), $from, $to, $timezone, $branchIds),
-            'expiring' => $this->expiring($request->today(), $branchIds, $seesMoney),
+            'expiring' => $this->expiring($request->today(), $branchIds, $seesMoney, $timezone),
         ], fn (mixed $section): bool => $section !== null)]);
     }
 
@@ -166,18 +167,19 @@ class DashboardController extends Controller
     }
 
     /**
-     * Memberships ending in the next week, of members still with the gym,
-     * with nothing sold to follow them: the members to call. Soonest first.
+     * Memberships ending in the next week, and visit packs valid today with
+     * at most one visit left, of members still with the gym, with nothing
+     * sold to follow them: the members to call. Soonest end first.
      *
      * @param  list<int>|null  $branchIds
      * @return list<array<string, mixed>>
      */
-    private function expiring(CarbonImmutable $today, ?array $branchIds, bool $seesMoney): array
+    private function expiring(CarbonImmutable $today, ?array $branchIds, bool $seesMoney, string $timezone): array
     {
-        $memberships = Membership::query()
+        $endOfWindow = $today->addDays(self::EXPIRING_DAYS)->toDateString();
+        $toCall = fn () => Membership::query()
             ->notCancelled()
             ->where('ends_on', '>=', $today->toDateString())
-            ->where('ends_on', '<', $today->addDays(self::EXPIRING_DAYS)->toDateString())
             ->whereIn('member_id', $this->membersAt($branchIds)->select('id'))
             ->whereNotExists(fn ($query) => $query
                 ->selectRaw('1')
@@ -185,10 +187,19 @@ class DashboardController extends Controller
                 ->whereColumn('later.member_id', 'memberships.member_id')
                 ->whereColumn('later.starts_on', '>', 'memberships.ends_on')
                 ->whereNull('later.cancelled_at'))
-            ->with(['member', 'plan'])
-            ->orderBy('ends_on')
-            ->orderBy('id')
-            ->get();
+            ->with(['member', 'plan']);
+
+        $endingSoon = $toCall()->where('ends_on', '<', $endOfWindow)->get();
+        $packs = $toCall()->where('ends_on', '>=', $endOfWindow)->where('starts_on', '<=', $today->toDateString())->whereNotNull('visit_limit')->get();
+        $visitsUsed = app(Visits::class)->usedOn($timezone, ...$endingSoon->all(), ...$packs->all());
+        $visitsLeft = fn (Membership $membership): ?int => $membership->visit_limit === null
+            ? null
+            : max(0, $membership->visit_limit - $visitsUsed[$membership->id]);
+
+        $memberships = $endingSoon
+            ->concat($packs->filter(fn (Membership $membership): bool => $visitsLeft($membership) <= 1))
+            ->sortBy([['ends_on', 'asc'], ['id', 'asc']])
+            ->values();
 
         $balances = $seesMoney ? Payment::balancesOf($memberships->all()) : [];
 
@@ -201,6 +212,7 @@ class DashboardController extends Controller
             ],
             'plan' => ['id' => $membership->plan->id, 'name' => $membership->plan->name],
             'ends_on' => $membership->ends_on->toDateString(),
+            'visits_remaining' => $visitsLeft($membership),
             'balance_due' => $seesMoney ? $balances[$membership->id]->balanceDue : null,
         ], fn (mixed $value): bool => $value !== null))->values()->all();
     }

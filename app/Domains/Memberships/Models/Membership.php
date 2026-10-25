@@ -91,6 +91,7 @@ class Membership extends Model
             $membership->price = $price;
             $membership->discount_reason = $discountReason;
             $membership->freeze_days_allowed = $plan->freeze_days_allowed;
+            $membership->visit_limit = $plan->visit_limit;
             $membership->valid_at_all_branches = $plan->available_at_all_branches;
             $membership->save();
 
@@ -354,6 +355,7 @@ class Membership extends Model
             'starts_on' => 'immutable_date',
             'ends_on' => 'immutable_date',
             'freeze_days_allowed' => 'integer',
+            'visit_limit' => 'integer',
             'list_price' => AsMoney::class.':list_price_minor,currency',
             'price' => AsMoney::class.':price_minor,currency',
             'cancelled_at' => 'immutable_datetime',
