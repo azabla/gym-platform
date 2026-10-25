@@ -45,6 +45,18 @@ return [
         'driver' => env('SMS_DRIVER', 'log'),
     ],
 
+    // How push notifications are sent: "log" (writes them to the log) or "fcm" (ADR 0012).
+    'push' => [
+        'driver' => env('PUSH_DRIVER', 'log'),
+    ],
+
+    // The platform's Firebase project, used when PUSH_DRIVER=fcm. The credentials are the path to
+    // its service account's JSON key, kept out of git.
+    'fcm' => [
+        'project_id' => env('FCM_PROJECT_ID'),
+        'credentials' => env('FCM_CREDENTIALS'),
+    ],
+
     // The platform's own AfroMessage account, used when SMS_DRIVER=afromessage.
     'afromessage' => [
         'base_url' => env('AFROMESSAGE_BASE_URL', 'https://api.afromessage.com/api'),

@@ -8,8 +8,11 @@ use App\Http\Controllers\Api\V1\Me\MyAccessCredentialController;
 use App\Http\Controllers\Api\V1\Me\MyCheckInController;
 use App\Http\Controllers\Api\V1\Me\MyGymController;
 use App\Http\Controllers\Api\V1\Me\MyMembershipController;
+use App\Http\Controllers\Api\V1\Me\MyNotificationController;
+use App\Http\Controllers\Api\V1\Me\MyNotificationPreferenceController;
 use App\Http\Controllers\Api\V1\Me\MyPaymentController;
 use App\Http\Controllers\Api\V1\Me\MyPaymentLinkController;
+use App\Http\Controllers\Api\V1\Me\MyPushTokenController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\Organizations\BranchController;
 use App\Http\Controllers\Api\V1\Organizations\ChapaAccountController;
@@ -46,6 +49,12 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::delete('auth/tokens/current', [TokenController::class, 'destroy'])->name('auth.tokens.destroy');
         Route::get('me', MeController::class)->name('me');
 
+        // This phone's push token from Firebase, for push notifications (ADR 0012).
+        Route::put('me/push-token', [MyPushTokenController::class, 'update'])
+            ->middleware('throttle:30,1')
+            ->name('me.push-token.update');
+        Route::delete('me/push-token', [MyPushTokenController::class, 'destroy'])->name('me.push-token.destroy');
+
         // The members app: the gyms where my phone number is registered, and my records at each (ADR 0010).
         Route::get('me/gyms', [MyGymController::class, 'index'])->name('me.gyms.index');
 
@@ -59,6 +68,15 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     ->name('memberships.show');
                 Route::get('payments', [MyPaymentController::class, 'index'])->name('payments.index');
                 Route::get('check-ins', [MyCheckInController::class, 'index'])->name('check-ins.index');
+                Route::get('notifications', [MyNotificationController::class, 'index'])->name('notifications.index');
+                Route::post('notifications/read-all', [MyNotificationController::class, 'readAll'])->name('notifications.read-all');
+                Route::post('notifications/{notification}/read', [MyNotificationController::class, 'read'])
+                    ->whereUuid('notification')
+                    ->name('notifications.read');
+                Route::get('notification-preferences', [MyNotificationPreferenceController::class, 'show'])
+                    ->name('notification-preferences.show');
+                Route::patch('notification-preferences', [MyNotificationPreferenceController::class, 'update'])
+                    ->name('notification-preferences.update');
                 Route::get('payments/{payment}', [MyPaymentController::class, 'show'])
                     ->whereNumber('payment')
                     ->name('payments.show');

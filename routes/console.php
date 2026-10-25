@@ -14,3 +14,6 @@ Schedule::command('billing:check-payment-links')->everyTenMinutes()->withoutOver
 
 // Sign-in codes are deleted a day after they expire (ADR 0010).
 Schedule::command('model:prune', ['--model' => [SignInCode::class]])->daily();
+
+// Members hear before their membership ends, and the day after; each gym's go out from 09:00 its time (ADR 0012).
+Schedule::command('notifications:send-membership-reminders')->hourly()->withoutOverlapping();

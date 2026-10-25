@@ -8,6 +8,7 @@ use App\Casts\AsMoney;
 use App\Domains\Billing\Balances\MembershipBalance;
 use App\Domains\Billing\Enums\PaymentMethod;
 use App\Domains\Billing\Enums\PaymentType;
+use App\Domains\Billing\Events\PaymentRecorded;
 use App\Domains\Billing\Exceptions\PaymentRefused;
 use App\Domains\Billing\Policies\PaymentPolicy;
 use App\Domains\Memberships\Models\Membership;
@@ -353,6 +354,8 @@ class Payment extends Model
         $payment->branch()->associate($branch);
         $payment->receivedBy()->associate($receivedBy);
         $payment->save();
+
+        PaymentRecorded::dispatch($payment);
 
         return $payment;
     }

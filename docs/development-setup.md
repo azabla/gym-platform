@@ -423,6 +423,32 @@ curl -s http://localhost:8080/api/v1/me/gyms/demo-gym/check-ins \
 
 Tigist's membership in the demo data has expired, so the first scan answers `"decision":"deny"` with `MEMBERSHIP_EXPIRED`, and her membership and what she owes. Sell her a new one (above), and a fresh code lets her in; another within 5 minutes is denied with `ALREADY_CHECKED_IN`. `POST organizations/demo-gym/members/{id}/check-ins` checks a member in at the desk instead.
 
+### Notifications
+
+In development `PUSH_DRIVER=log` and `SMS_DRIVER=log`, so pushes and SMS land in `storage/logs/laravel.log`. Messages go through the queue, so run `make workers` first.
+
+```bash
+# Tigist's phone registers its push token (any text works with the log driver)
+curl -s -X PUT http://localhost:8080/api/v1/me/push-token \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $MEMBER_TOKEN" \
+  -d '{"token":"tigists-test-token","locale":"en"}'
+
+# Take a payment from her at the desk (see "Trying the API"), then read her inbox
+curl -s http://localhost:8080/api/v1/me/gyms/demo-gym/notifications \
+  -H 'Accept: application/json' -H "Authorization: Bearer $MEMBER_TOKEN"
+grep 'Push to device' storage/logs/laravel.log | tail -1
+
+# Turn off pushes about visits
+curl -s -X PATCH http://localhost:8080/api/v1/me/gyms/demo-gym/notification-preferences \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $MEMBER_TOKEN" \
+  -d '{"visits":false}'
+
+# Expiry reminders run every hour from the scheduler; run them by hand
+make artisan c=notifications:send-membership-reminders
+```
+
+A membership ending in 5, 3 or 1 days gets a reminder from 09:00 the gym's time, and an SMS at 3 days. Running the command again sends nothing more. To try it, set a membership's end date 3 days ahead in the database first.
+
 Each part has an ADR:
 
 - ADR 0004: how sign-in and gym selection work;
@@ -432,7 +458,8 @@ Each part has an ADR:
 - ADR 0008: billing and payments;
 - ADR 0009: online payments with Chapa;
 - ADR 0010: the members app, with SMS sign-in;
-- ADR 0011: check-ins and rotating QR codes.
+- ADR 0011: check-ins and rotating QR codes;
+- ADR 0012: reminders and notifications.
 
 ## Troubleshooting
 

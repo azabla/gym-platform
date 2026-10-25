@@ -30,6 +30,7 @@ arch('value objects are final and readonly')
         'App\Domains\Billing\Balances\MembershipBalance',
         'App\Domains\Billing\Chapa\ChapaTransaction',
         'App\Domains\Attendance\Access\AccessDecision',
+        'App\Domains\Notifications\Push\PushMessage',
         'App\Domains\Attendance\Credentials\Gq1Payload',
     ])
     ->toBeFinal()
@@ -69,6 +70,10 @@ arch('Members, Memberships and Billing do not depend on Attendance')
 arch('the Notifications domain depends on no other domain but Shared')
     ->expect('App\Domains\Notifications')
     ->not->toUse(['App\Domains\Identity', 'App\Domains\Organizations', 'App\Domains\Members', 'App\Domains\Memberships', 'App\Domains\Billing', 'App\Domains\Attendance']);
+
+arch('domains announce events and never send messages to members themselves')
+    ->expect('App\Domains')
+    ->not->toUse(['App\Notifications', 'App\Listeners']);
 
 arch('domains do not depend on the HTTP layer')
     ->expect('App\Domains')

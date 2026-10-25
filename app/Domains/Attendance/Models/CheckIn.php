@@ -9,6 +9,7 @@ use App\Domains\Attendance\Credentials\Gq1;
 use App\Domains\Attendance\Enums\CheckInDenial;
 use App\Domains\Attendance\Enums\CheckInMethod;
 use App\Domains\Attendance\Enums\CheckInResult;
+use App\Domains\Attendance\Events\CheckInDenied;
 use App\Domains\Attendance\Policies\CheckInPolicy;
 use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Models\Membership;
@@ -145,6 +146,10 @@ class CheckIn extends Model
         $checkIn->checked_in_at = CarbonImmutable::now();
         $checkIn->idempotency_key = $idempotencyKey;
         $checkIn->save();
+
+        if ($denial !== null && $member !== null) {
+            CheckInDenied::dispatch($checkIn);
+        }
 
         return $checkIn;
     }
