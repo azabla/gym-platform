@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Auth\TokenController;
 use App\Http\Controllers\Api\V1\ChapaCallbackController;
 use App\Http\Controllers\Api\V1\Me\MyAccessCredentialController;
 use App\Http\Controllers\Api\V1\Me\MyCheckInController;
+use App\Http\Controllers\Api\V1\Me\MyDashboardController;
 use App\Http\Controllers\Api\V1\Me\MyGymController;
 use App\Http\Controllers\Api\V1\Me\MyMembershipController;
 use App\Http\Controllers\Api\V1\Me\MyNotificationController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\Organizations\BranchController;
 use App\Http\Controllers\Api\V1\Organizations\ChapaAccountController;
 use App\Http\Controllers\Api\V1\Organizations\CheckInController;
+use App\Http\Controllers\Api\V1\Organizations\DashboardController;
 use App\Http\Controllers\Api\V1\Organizations\MemberController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipCancellationController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipController;
@@ -64,6 +66,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->middleware('member')
             ->name('me.gyms.')
             ->group(function (): void {
+                Route::get('dashboard', MyDashboardController::class)->name('dashboard');
                 Route::get('memberships', [MyMembershipController::class, 'index'])->name('memberships.index');
                 Route::get('plans', [MyPlanController::class, 'index'])->name('plans.index');
                 Route::post('plans/{plan}/purchase', [MyPlanPurchaseController::class, 'store'])
@@ -108,6 +111,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->middleware('organization')
             ->name('organizations.')
             ->group(function (): void {
+                Route::get('dashboard', DashboardController::class)->name('dashboard');
                 Route::apiResource('branches', BranchController::class)->only(['index', 'show']);
                 Route::apiResource('members', MemberController::class);
                 Route::apiResource('plans', PlanController::class);

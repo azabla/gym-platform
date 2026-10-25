@@ -297,6 +297,11 @@ curl -s http://localhost:8080/api/v1/organizations/demo-gym/memberships/1/refund
   -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
   -d '{"amount":"1,000","method":"cash","branch_id":1}'
 
+# The gym at a glance today: money (owners, managers and accountants only), check-ins,
+# members and the memberships ending this week. Add ?from=2026-10-01&to=2026-10-31 for a month.
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/dashboard \
+  -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
+
 # Sign out (revokes the token)
 curl -s -X DELETE http://localhost:8080/api/v1/auth/tokens/current \
   -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
@@ -370,6 +375,10 @@ MEMBER_TOKEN=$(curl -s http://localhost:8080/api/v1/auth/sms-tokens \
 
 # Tigist's gyms: Demo Gym, with what she still owes there
 curl -s http://localhost:8080/api/v1/me/gyms \
+  -H 'Accept: application/json' -H "Authorization: Bearer $MEMBER_TOKEN"
+
+# Her home screen in one call: membership, what she owes, recent visits, unread messages
+curl -s http://localhost:8080/api/v1/me/gyms/demo-gym/dashboard \
   -H 'Accept: application/json' -H "Authorization: Bearer $MEMBER_TOKEN"
 
 # Her memberships and her receipts at Demo Gym
@@ -480,7 +489,8 @@ Each part has an ADR:
 - ADR 0010: the members app, with SMS sign-in;
 - ADR 0011: check-ins and rotating QR codes;
 - ADR 0012: reminders and notifications;
-- ADR 0013: buying a membership in the app.
+- ADR 0013: buying a membership in the app;
+- ADR 0014: dashboards.
 
 ## Troubleshooting
 
