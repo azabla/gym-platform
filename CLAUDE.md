@@ -180,6 +180,6 @@ This is how the project has been built so far; keep to it so any session, local 
 ### Where to look
 
 - `docs/README.md`: where things live, conventions and the glossary.
-- `docs/adr/`: why things are the way they are (0001 to 0016 so far).
+- `docs/adr/`: why things are the way they are (0001 to 0017 so far).
 - `docs/api/members-app.md`: the contract with the members app.
 - Not built yet, and candidates for the next piece: staff notifications, freezing a membership in the app, reports and exports.
