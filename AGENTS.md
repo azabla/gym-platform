@@ -136,3 +136,7 @@ Before relying on a package's API, confirm its installed version:
 
 - Commit with the developer's own git identity (`git config user.name` and `user.email`), never as an AI assistant.
 - Never add AI co-author lines (such as `Co-Authored-By: Claude …`) or AI session links to commit messages or pull request descriptions.
+
+## How we work
+
+See the "How we work" section of `CLAUDE.md`: the questions, plan and approval loop, one pull request at a time into `main`, the checks before every commit, and the architecture rules.
