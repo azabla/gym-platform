@@ -63,6 +63,19 @@ it('shows a member with what they owe', function () {
         ->assertSee('1,500.00 ETB');
 });
 
+it('links a member to their memberships, payments and check-ins, as the staff member may see them', function (StaffRole $role, bool $seesPayments) {
+    actingAsStaffInPanel($this->gym, $role);
+
+    $page = Livewire::test(ViewMember::class, ['record' => $this->hana->getRouteKey()])
+        ->assertActionVisible('memberships')
+        ->assertActionVisible('checkIns');
+
+    $seesPayments ? $page->assertActionVisible('payments') : $page->assertActionHidden('payments');
+})->with([
+    'a receptionist' => [StaffRole::Receptionist, true],
+    'a trainer' => [StaffRole::Trainer, false],
+]);
+
 it('hides another gym\'s member', function () {
     actingAsStaffInPanel($this->gym, StaffRole::Owner);
 

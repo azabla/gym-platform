@@ -67,6 +67,7 @@ class MemberResource extends Resource
         return $table
             ->recordTitleAttribute('full_name')
             ->defaultSort('full_name')
+            ->defaultPaginationPageOption(25)
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('homeBranch'))
             ->splitSearchTerms(false)
             ->columns([
