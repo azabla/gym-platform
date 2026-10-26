@@ -9,6 +9,8 @@ use App\Filament\Staff\Resources\Members\MemberResource;
 use App\Filament\Staff\Resources\Memberships\MembershipResource;
 use App\Filament\Staff\Resources\Payments\PaymentResource;
 use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 
 /**
@@ -35,6 +37,8 @@ class ViewMember extends ViewRecord
                 ->label('Check-ins')
                 ->url(CheckInResource::getUrl('index', $filteredToMember))
                 ->visible(CheckInResource::canViewAny()),
+            EditAction::make(),
+            DeleteAction::make()->label('Archive')->modalHeading('Archive this member?'),
         ];
     }
 }
