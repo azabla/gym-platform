@@ -18,6 +18,9 @@ app/Domains/Billing/       Payments and refunds against memberships, receipts an
 app/Domains/Notifications/ Sending messages: SMS through AfroMessage, or to the log in development
 app/Domains/Announcements/ Announcements from a gym to its members, now or scheduled
 app/Http/                  The API: controllers, form requests, middleware and resources (v1); Me/ folders hold the members app's side
+app/Filament/Staff/        The staff panel at /staff (Filament): its user, tenant middleware, dashboard, widgets and lists
+app/Dashboards/            Figures drawn from several domains, shared by the API and the staff panel
+app/Providers/Filament/    The staff panel's configuration
 app/Console/Commands/      Artisan commands, such as the check of open payment links
 routes/api.php             API routes, versioned under /api/v1
 routes/console.php         Scheduled tasks, run by the scheduler container
@@ -40,6 +43,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 8. Gym-specific API routes sit under `/api/v1/organizations/{slug}` inside the `organization` middleware group. See ADR 0004.
 9. Phone numbers are a `PhoneNumber` in code and an E.164 string (`+251911234567`) in the database, never stored as typed. See ADR 0005.
 10. Anything that depends on "today" uses the gym's date, `Organization::today()`, never the server's (UTC) date. See ADR 0006.
+11. The staff panel shows and does only what the API allows: it goes through the same policies, and its figures come from the same code (`App\Dashboards`). Domains never depend on it. See ADR 0017.
 
 ## Glossary
 
@@ -48,6 +52,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Organization | The gym business. The tenant. |
 | Branch | A physical location of an organization. |
 | User | An identity that can log in: staff with an email and a password, members with a code sent to their phone. |
+| Staff panel | The website at /staff where staff sign in with their email and password, choose a gym, and see its dashboard, members, memberships, payments and check-ins (ADR 0017). |
 | Members app | The app where members see their memberships, what they owe and their receipts, and pay with Chapa. It shows every gym where their phone number is registered (ADR 0010). |
 | Sign-in code | A 6-digit code sent by SMS that signs a member in to the members app. It works for 10 minutes and 5 tries. |
 | QR credential | What lets a member's phone show their QR code at one gym: a secret given to the phone once, from which it makes a code every 30 seconds (GQ1), even offline. One phone per member (ADR 0011). |
@@ -92,6 +97,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0014](adr/0014-dashboards.md) | Dashboards |
 | [0015](adr/0015-announcements.md) | Announcements |
 | [0016](adr/0016-visit-packs-and-opening-hours.md) | Visit packs and opening hours |
+| [0017](adr/0017-staff-panel.md) | The staff panel |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 
