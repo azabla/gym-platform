@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Staff\Resources\Members\Pages;
 
+use App\Filament\Staff\Actions\CheckInAction;
 use App\Filament\Staff\Actions\SellMembershipAction;
 use App\Filament\Staff\Resources\CheckIns\CheckInResource;
 use App\Filament\Staff\Resources\Members\MemberResource;
@@ -28,6 +29,7 @@ class ViewMember extends ViewRecord
         $filteredToMember = ['filters' => ['member' => ['value' => $this->getRecord()->getKey()]]];
 
         return [
+            CheckInAction::make(),
             SellMembershipAction::make(),
             Action::make('memberships')
                 ->url(MembershipResource::getUrl('index', $filteredToMember))

@@ -54,7 +54,7 @@ class CheckInResource extends Resource
                     ->formatStateUsing(fn (CheckInResult $state): string => ucfirst($state->value)),
                 TextColumn::make('reason_code')
                     ->label('Reason')
-                    ->formatStateUsing(fn (CheckInDenial $state): string => Str::of($state->value)->lower()->replace('_', ' ')->ucfirst()->toString()),
+                    ->formatStateUsing(fn (CheckInDenial $state): string => self::reasonLabel($state)),
             ])
             ->filters([
                 Filter::make('on')
@@ -85,6 +85,15 @@ class CheckInResource extends Resource
         return [
             'index' => ListCheckIns::route('/'),
         ];
+    }
+
+    /**
+     * Why a member was turned away, in words: MEMBERSHIP_EXPIRED reads
+     * "Membership expired".
+     */
+    public static function reasonLabel(CheckInDenial $reason): string
+    {
+        return Str::of($reason->value)->lower()->replace('_', ' ')->ucfirst()->toString();
     }
 
     /**

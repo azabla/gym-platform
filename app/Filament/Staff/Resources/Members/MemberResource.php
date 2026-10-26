@@ -12,6 +12,7 @@ use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Domains\Shared\Money\Money;
 use App\Domains\Shared\PhoneNumber\Exceptions\InvalidPhoneNumber;
 use App\Domains\Shared\PhoneNumber\PhoneNumber;
+use App\Filament\Staff\Actions\CheckInAction;
 use App\Filament\Staff\Resources\Members\Pages\CreateMember;
 use App\Filament\Staff\Resources\Members\Pages\EditMember;
 use App\Filament\Staff\Resources\Members\Pages\ListMembers;
@@ -141,6 +142,7 @@ class MemberResource extends Resource
                     ->relationship('homeBranch', 'name'),
             ])
             ->recordActions([
+                CheckInAction::make(),
                 ViewAction::make(),
                 EditAction::make(),
             ]);
