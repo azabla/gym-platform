@@ -2,6 +2,7 @@
 
 use App\Domains\Billing\Chapa\Exceptions\ChapaRequestFailed;
 use App\Domains\Billing\Exceptions\PaymentRefused;
+use App\Domains\Memberships\Exceptions\MembershipRefused;
 use App\Http\Middleware\ActAsMember;
 use App\Http\Middleware\ActAsOrganization;
 use Illuminate\Foundation\Application;
@@ -50,6 +51,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // A payment that another desk's payment made too large gets the same
         // answer as one the request refused.
         $exceptions->map(fn (PaymentRefused $exception) => ValidationException::withMessages([
+            $exception->field => $exception->getMessage(),
+        ]));
+
+        // A sale, freeze or cancellation the membership rules refuse.
+        $exceptions->map(fn (MembershipRefused $exception) => ValidationException::withMessages([
             $exception->field => $exception->getMessage(),
         ]));
 

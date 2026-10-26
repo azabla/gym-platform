@@ -178,7 +178,7 @@ class StorePaymentRequest extends FormRequest
                 return;
             }
 
-            $paymentWithTheReference = Payment::query()->counted()->where('method', $method)->where('reference', $value)->first();
+            $paymentWithTheReference = Payment::recordedWithReference($method, (string) $value);
 
             if ($paymentWithTheReference !== null) {
                 $fail("This transaction number is already recorded, on receipt {$paymentWithTheReference->receipt_number}.");
