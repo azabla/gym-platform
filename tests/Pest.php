@@ -11,6 +11,9 @@ use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
+use App\Domains\Organizations\Tenancy\CurrentStaff;
+use App\Filament\Staff\PanelUser;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -44,6 +47,28 @@ function actingAsStaff(Organization $organization, StaffRole $role, Branch ...$o
     }
 
     Sanctum::actingAs($staff->user);
+
+    return $staff;
+}
+
+/**
+ * Sign in to the staff panel as a new staff member of the gym, limited to the
+ * given branches if any are passed, working in that gym. Livewire::test() skips
+ * the panel's middleware, so this sets the current gym and staff as it would.
+ */
+function actingAsStaffInPanel(Organization $organization, StaffRole $role, Branch ...$onlyAtBranches): Staff
+{
+    $staff = Staff::factory()->for($organization)->create(['role' => $role]);
+
+    if ($onlyAtBranches !== []) {
+        $staff->assignToBranches(...$onlyAtBranches);
+    }
+
+    test()->actingAs(PanelUser::query()->findOrFail($staff->user_id), 'staff_panel');
+    Filament::setCurrentPanel('staff');
+    Filament::setTenant($organization);
+    app(CurrentOrganization::class)->set($organization);
+    app(CurrentStaff::class)->set($staff);
 
     return $staff;
 }
