@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Api\V1\Dashboard;
 
-use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
@@ -19,13 +18,6 @@ class ShowDashboardRequest extends FormRequest
      * The longest period the dashboard adds up, in days.
      */
     private const MOST_DAYS = 366;
-
-    /**
-     * The roles that see the gym's money on the dashboard: what was taken and
-     * what is owed. Receptionists take payments but don't see the totals, and
-     * trainers don't handle money. See ADR 0014.
-     */
-    private const ROLES_THAT_SEE_MONEY = [StaffRole::Owner, StaffRole::Manager, StaffRole::Accountant];
 
     /**
      * Every staff member of the gym sees the dashboard.
@@ -94,7 +86,7 @@ class ShowDashboardRequest extends FormRequest
 
     public function seesMoney(): bool
     {
-        return in_array($this->staff()->role, self::ROLES_THAT_SEE_MONEY, true);
+        return $this->staff()->role->seesMoney();
     }
 
     /**
@@ -109,9 +101,7 @@ class ShowDashboardRequest extends FormRequest
             return [$this->integer('branch_id')];
         }
 
-        $staff = $this->staff();
-
-        return $staff->works_at_all_branches ? null : array_values($staff->branchesWorkedAt()->modelKeys());
+        return $this->staff()->limitedToBranchIds();
     }
 
     private function staff(): Staff

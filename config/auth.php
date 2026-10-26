@@ -1,6 +1,7 @@
 <?php
 
 use App\Domains\Identity\Models\User;
+use App\Filament\Staff\PanelUser;
 
 return [
 
@@ -42,6 +43,11 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        'staff_panel' => [
+            'driver' => 'session',
+            'provider' => 'panel_users',
+        ],
     ],
 
     /*
@@ -65,6 +71,11 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
+        ],
+
+        'panel_users' => [
+            'driver' => 'eloquent',
+            'model' => PanelUser::class,
         ],
 
         // 'users' => [

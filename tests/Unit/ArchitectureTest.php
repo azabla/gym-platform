@@ -83,3 +83,11 @@ arch('domains announce events and never send messages to members themselves')
 arch('domains do not depend on the HTTP layer')
     ->expect('App\Domains')
     ->not->toUse('App\Http');
+
+arch('domains do not depend on the staff panel')
+    ->expect('App\Domains')
+    ->not->toUse('App\Filament');
+
+arch('dashboards serve the API and the staff panel alike, depending on neither')
+    ->expect('App\Dashboards')
+    ->not->toUse(['App\Http', 'App\Filament']);

@@ -18,4 +18,17 @@ enum StaffRole: string
     case Receptionist = 'receptionist';
     case Trainer = 'trainer';
     case Accountant = 'accountant';
+
+    /**
+     * Whether the role sees the gym's money on the dashboard: what was taken
+     * and what is owed. Receptionists take payments but don't see the totals,
+     * and trainers don't handle money. See ADR 0014.
+     */
+    public function seesMoney(): bool
+    {
+        return match ($this) {
+            self::Owner, self::Manager, self::Accountant => true,
+            self::Receptionist, self::Trainer => false,
+        };
+    }
 }

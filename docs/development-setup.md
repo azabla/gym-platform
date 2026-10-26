@@ -505,7 +505,18 @@ Each part has an ADR:
 - ADR 0013: buying a membership in the app;
 - ADR 0014: dashboards;
 - ADR 0015: announcements;
-- ADR 0016: visit packs and opening hours.
+- ADR 0016: visit packs and opening hours;
+- ADR 0017: the staff panel.
+
+## Trying the staff panel
+
+`make composer c=install` also publishes the panel's assets. After `make fresh`, open http://localhost:8080/staff and sign in with one of the demo users above (password `password`). You land on Demo Gym's dashboard: today's figures and the members to call. Change the period or the branch at the top.
+
+- As `owner@demo-gym.test`, you see the money too, and every list: members, memberships, payments and check-ins.
+- As `frontdesk@demo-gym.test`, the dashboard covers Main Branch only, and the money is hidden. The lists still show the whole gym, as in the API.
+- As `accounts@demo-gym.test`, you see the money and the payments.
+
+The panel only looks for now: selling, payments and check-ins stay in the app. To give someone a panel login, make them staff of a gym through the API or the seeder; any staff member with an email and a password can sign in. See ADR 0017.
 
 ## Troubleshooting
 
