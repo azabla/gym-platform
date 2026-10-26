@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Filament\Staff\Pages\Auth;
+namespace App\Filament\Staff\Auth;
 
 use Filament\Auth\Pages\Login as BaseLogin;
 use Illuminate\Support\Str;

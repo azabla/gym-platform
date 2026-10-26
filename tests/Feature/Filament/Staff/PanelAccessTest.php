@@ -8,7 +8,7 @@ use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
-use App\Filament\Staff\Pages\Auth\Login;
+use App\Filament\Staff\Auth\Login;
 use App\Filament\Staff\PanelUser;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
