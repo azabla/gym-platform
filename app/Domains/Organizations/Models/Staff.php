@@ -91,6 +91,17 @@ class Staff extends Model
     }
 
     /**
+     * The ids of the branches the staff member is limited to, or null when
+     * they work at all branches, for lists and figures that cover only those.
+     *
+     * @return list<int>|null
+     */
+    public function limitedToBranchIds(): ?array
+    {
+        return $this->works_at_all_branches ? null : array_values($this->branchesWorkedAt()->modelKeys());
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

@@ -50,6 +50,20 @@ it('works only at the branches it is assigned to', function () {
         ->and($staff->worksAt($piassa))->toBeFalse();
 });
 
+it('is limited to the branches it is assigned to, and to none when at all branches', function () {
+    $organization = Organization::factory()->create();
+    $bole = Branch::factory()->for($organization)->create();
+    Branch::factory()->for($organization)->create();
+    $staff = Staff::factory()->for($organization)->create();
+    actingAsOrganization($organization);
+
+    expect($staff->limitedToBranchIds())->toBeNull();
+
+    $staff->assignToBranches($bole);
+
+    expect($staff->limitedToBranchIds())->toBe([$bole->id]);
+});
+
 it('drops its branch assignments when assigned back to all branches', function () {
     $organization = Organization::factory()->create();
     $bole = Branch::factory()->for($organization)->create();
