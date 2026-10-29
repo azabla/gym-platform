@@ -11,6 +11,7 @@ use App\Domains\Billing\Enums\PaymentType;
 use App\Domains\Billing\Events\PaymentRecorded;
 use App\Domains\Billing\Exceptions\PaymentRefused;
 use App\Domains\Billing\Policies\PaymentPolicy;
+use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Staff;
@@ -26,6 +27,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -301,6 +303,17 @@ class Payment extends Model
     public function membership(): BelongsTo
     {
         return $this->belongsTo(Membership::class);
+    }
+
+    /**
+     * The member who paid, through the membership, for lists that filter
+     * payments by member.
+     *
+     * @return HasOneThrough<Member, Membership, $this>
+     */
+    public function member(): HasOneThrough
+    {
+        return $this->hasOneThrough(Member::class, Membership::class, 'id', 'id', 'membership_id', 'member_id')->withTrashed();
     }
 
     /**

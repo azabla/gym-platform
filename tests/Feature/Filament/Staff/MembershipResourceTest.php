@@ -68,3 +68,12 @@ it('shows a membership with what is paid and owed', function () {
         ->assertSee('1,000.00 ETB')
         ->assertSee('1,500.00 ETB');
 });
+
+it('shows when a membership was cancelled in the gym\'s time, not UTC', function () {
+    actingAsStaffInPanel($this->gym, StaffRole::Owner);
+    $this->cancelled->forceFill(['cancelled_at' => CarbonImmutable::parse('2026-10-23 22:30:00', 'UTC')])->save();
+
+    Livewire::test(ViewMembership::class, ['record' => $this->cancelled->getRouteKey()])
+        ->assertSee('Oct 24, 2026 01:30:00')
+        ->assertDontSee('Oct 23, 2026 22:30:00');
+});

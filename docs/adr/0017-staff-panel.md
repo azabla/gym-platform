@@ -72,4 +72,6 @@ These are read-only, for looking things up:
 - Adding a list is a Filament resource that leans on the existing policies, and the tenancy comes free.
 - The project now depends on Filament and Livewire, which must be upgraded together with Laravel.
 - A gym's own data is protected twice: by the organization scope (ADR 0003) and by Filament's tenant scoping.
+- Times are stored in UTC and shown where the gym is, as the API's dates are (`ShowsGymTime`).
+- Member pickers in the lists' filters search as you type rather than loading every member, so they stay quick for large gyms.
 - Panel tests sign in with `actingAsStaffInPanel()`, which also sets the current gym and staff, because `Livewire::test()` skips the panel's middleware.

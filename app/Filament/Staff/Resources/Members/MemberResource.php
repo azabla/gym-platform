@@ -13,6 +13,7 @@ use App\Domains\Shared\Money\Money;
 use App\Domains\Shared\PhoneNumber\Exceptions\InvalidPhoneNumber;
 use App\Domains\Shared\PhoneNumber\PhoneNumber;
 use App\Filament\Staff\Actions\CheckInAction;
+use App\Filament\Staff\Resources\Concerns\ShowsGymTime;
 use App\Filament\Staff\Resources\Members\Pages\CreateMember;
 use App\Filament\Staff\Resources\Members\Pages\EditMember;
 use App\Filament\Staff\Resources\Members\Pages\ListMembers;
@@ -43,6 +44,8 @@ use Illuminate\Support\Arr;
  */
 class MemberResource extends Resource
 {
+    use ShowsGymTime;
+
     protected static ?string $model = Member::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
@@ -105,7 +108,7 @@ class MemberResource extends Resource
                         TextEntry::make('homeBranch.name')->label('Home branch'),
                         TextEntry::make('gender')->placeholder('Not given'),
                         TextEntry::make('date_of_birth')->date()->placeholder('Not given'),
-                        TextEntry::make('created_at')->label('Registered')->date(),
+                        TextEntry::make('created_at')->label('Registered')->date()->timezone(self::gymTimezone()),
                         TextEntry::make('balance_due')
                             ->label('Balance due')
                             ->state(fn (Member $record): string => self::balanceDueOf($record)->format()),
@@ -134,7 +137,7 @@ class MemberResource extends Resource
                     ->searchable(query: self::searchMembers(...)),
                 TextColumn::make('phone'),
                 TextColumn::make('homeBranch.name')->label('Home branch'),
-                TextColumn::make('created_at')->label('Registered')->date()->sortable(),
+                TextColumn::make('created_at')->label('Registered')->date()->timezone(self::gymTimezone())->sortable(),
             ])
             ->filters([
                 SelectFilter::make('home_branch_id')
