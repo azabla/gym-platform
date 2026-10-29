@@ -506,7 +506,8 @@ Each part has an ADR:
 - ADR 0014: dashboards;
 - ADR 0015: announcements;
 - ADR 0016: visit packs and opening hours;
-- ADR 0017: the staff panel.
+- ADR 0017: the staff panel;
+- ADR 0018: working the front desk in the staff panel.
 
 ## Trying the staff panel
 
@@ -516,7 +517,16 @@ Each part has an ADR:
 - As `frontdesk@demo-gym.test`, the dashboard covers Main Branch only, and the money is hidden. The lists still show the whole gym, as in the API.
 - As `accounts@demo-gym.test`, you see the money and the payments.
 
-The panel only looks for now: selling, payments and check-ins stay in the app. To give someone a panel login, make them staff of a gym through the API or the seeder; any staff member with an email and a password can sign in. See ADR 0017.
+To work the front desk, as `frontdesk@demo-gym.test`:
+
+1. On Members, choose **Register member**.
+2. On the new member's page, choose **Sell membership**: Monthly, from today.
+3. On the membership's page, choose **Take payment**: cash, the amount it suggests.
+4. Back on the member's page, choose **Check in**. The member is let in.
+
+Then sign in as `owner@demo-gym.test`. On that membership's page, **Cancel membership**, then **Refund** the cash. On the refund's page, **Void** it if it was a mistake. Each action asks only for what the API would, and refuses what the API would refuse, in the same words.
+
+Payment links stay in the app. To give someone a panel login, make them staff of a gym through the API or the seeder; any staff member with an email and a password can sign in. See ADR 0017 and ADR 0018.
 
 ## Troubleshooting
 

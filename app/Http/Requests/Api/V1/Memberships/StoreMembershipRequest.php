@@ -52,21 +52,10 @@ class StoreMembershipRequest extends FormRequest
                     return;
                 }
 
-                $startsOn = $this->startsOn();
-                $clash = Membership::query()
-                    ->whereBelongsTo($this->member())
-                    ->notCancelled()
-                    ->overlapping($startsOn, $this->plan()->endsOnFor($startsOn))
-                    ->orderBy('starts_on')
-                    ->first();
+                $refusal = Membership::refusalToSell($this->member(), $this->plan(), $this->startsOn(), $this->today());
 
-                if ($clash !== null) {
-                    $validator->errors()->add('starts_on', sprintf(
-                        'The member already has a membership from %s to %s. The first free start date is %s.',
-                        $clash->starts_on->format('j F Y'),
-                        $clash->ends_on->format('j F Y'),
-                        Membership::firstFreeDayFor($this->member(), $this->today())->format('j F Y'),
-                    ));
+                if ($refusal !== null) {
+                    $validator->errors()->add($refusal->field, $refusal->getMessage());
                 }
             },
         ];

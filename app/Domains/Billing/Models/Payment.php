@@ -251,6 +251,15 @@ class Payment extends Model
     }
 
     /**
+     * The payment that counts and already has this transaction number for the
+     * method, if any: the same transfer can't be recorded twice.
+     */
+    public static function recordedWithReference(PaymentMethod $method, string $reference): ?self
+    {
+        return static::query()->counted()->where('method', $method)->where('reference', static::tidyReference($reference))->first();
+    }
+
+    /**
      * Void the payment or refund, because it was recorded by mistake. It stays
      * on record, with who voided it and why, but no longer counts. Its
      * membership is locked first, like receive(). See refusalToVoid().
