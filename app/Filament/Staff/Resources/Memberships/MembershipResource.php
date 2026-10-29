@@ -7,6 +7,7 @@ namespace App\Filament\Staff\Resources\Memberships;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Memberships\Enums\MembershipStatus;
 use App\Domains\Memberships\Models\Membership;
+use App\Domains\Memberships\Models\MembershipFreeze;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Filament\Staff\Resources\Memberships\Pages\ListMemberships;
 use App\Filament\Staff\Resources\Memberships\Pages\ViewMembership;
@@ -52,6 +53,14 @@ class MembershipResource extends Resource
                         TextEntry::make('starts_on')->date(),
                         TextEntry::make('ends_on')->date(),
                         TextEntry::make('visit_limit')->label('Visits')->placeholder('No limit'),
+                        TextEntry::make('freeze_days_left')
+                            ->state(fn (Membership $record): string => max(0, $record->freeze_days_allowed - $record->freezeDaysUsed())." of {$record->freeze_days_allowed}"),
+                        TextEntry::make('freezes')
+                            ->state(fn (Membership $record): array => $record->freezes()->orderBy('starts_on')->get()->map(
+                                fn (MembershipFreeze $freeze): string => "{$freeze->starts_on->format('j M Y')} to {$freeze->ends_on->format('j M Y')}: {$freeze->reason}",
+                            )->all())
+                            ->listWithLineBreaks()
+                            ->placeholder('None'),
                         TextEntry::make('price')->state(fn (Membership $record): string => $record->price->format()),
                         TextEntry::make('amount_paid')
                             ->state(fn (Membership $record): string => Payment::balancesOf([$record])[$record->id]->amountPaid->format()),

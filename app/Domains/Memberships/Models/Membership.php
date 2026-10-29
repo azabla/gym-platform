@@ -9,6 +9,7 @@ use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Discount\Discount;
 use App\Domains\Memberships\Enums\MembershipStatus;
 use App\Domains\Memberships\Events\MembershipFrozen;
+use App\Domains\Memberships\Exceptions\MembershipRefused;
 use App\Domains\Memberships\Policies\MembershipPolicy;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Staff;
@@ -44,6 +45,9 @@ class Membership extends Model
 {
     /** @use HasFactory<MembershipFactory> */
     use BelongsToOrganization, HasFactory;
+
+    /** The longest a single freeze can last. */
+    public const MOST_DAYS_FROZEN_AT_ONCE = 366;
 
     /**
      * The same default as the database column, so a new membership knows it before it is saved.
@@ -124,6 +128,22 @@ class Membership extends Model
     }
 
     /**
+     * Why the plan can't be sold to the member from that day, or null when it
+     * can: it must fit around the member's other memberships.
+     */
+    public static function refusalToSell(Member $member, Plan $plan, CarbonImmutable $startsOn, CarbonImmutable $today): ?MembershipRefused
+    {
+        $clash = static::query()
+            ->whereBelongsTo($member)
+            ->notCancelled()
+            ->overlapping($startsOn, $plan->endsOnFor($startsOn))
+            ->orderBy('starts_on')
+            ->first();
+
+        return $clash === null ? null : MembershipRefused::clashesWith($clash, static::firstFreeDayFor($member, $today));
+    }
+
+    /**
      * For each of the members who have one, the membership that best shows where
      * they stand today: the one valid today, otherwise the next one coming up,
      * otherwise the last one that ended. One query for all the members, keyed by
@@ -147,6 +167,76 @@ class Membership extends Model
             ->with(['plan', 'branches', 'freezes'])
             ->get()
             ->keyBy('member_id');
+    }
+
+    /**
+     * Why the membership can't be frozen from the first day through the last,
+     * or null when it can. The freeze must start while the membership runs,
+     * not overlap another freeze, and stay within the freeze days its plan
+     * allowed, unless the staff member may go beyond them.
+     */
+    public function refusalToFreeze(CarbonImmutable $firstDay, CarbonImmutable $lastDay, bool $mayGoBeyondAllowance): ?MembershipRefused
+    {
+        if ($this->cancelled_at !== null) {
+            return MembershipRefused::cancelled();
+        }
+
+        if ($lastDay->isBefore($firstDay)) {
+            return MembershipRefused::freezeEndsBeforeItStarts();
+        }
+
+        $days = (int) $firstDay->diffInDays($lastDay) + 1;
+
+        if ($days > self::MOST_DAYS_FROZEN_AT_ONCE) {
+            return MembershipRefused::freezeTooLong(self::MOST_DAYS_FROZEN_AT_ONCE);
+        }
+
+        if ($firstDay->isBefore($this->starts_on) || $firstDay->isAfter($this->ends_on)) {
+            return MembershipRefused::freezeOutsideTheMembership($this);
+        }
+
+        $otherFreeze = $this->freezes()
+            ->where('starts_on', '<=', $lastDay->toDateString())
+            ->where('ends_on', '>=', $firstDay->toDateString())
+            ->first();
+
+        if ($otherFreeze !== null) {
+            return MembershipRefused::alreadyFrozen($otherFreeze);
+        }
+
+        $daysLeft = $this->freeze_days_allowed - $this->freezeDaysUsed();
+
+        if ($days > $daysLeft && ! $mayGoBeyondAllowance) {
+            return MembershipRefused::noFreezeDaysLeft($daysLeft);
+        }
+
+        return null;
+    }
+
+    /**
+     * Why the freeze can't end early, or null when it can: only a freeze still
+     * to come or going on today, of a membership that isn't cancelled.
+     */
+    public function refusalToEndFreeze(MembershipFreeze $freeze, CarbonImmutable $today): ?MembershipRefused
+    {
+        if ($this->cancelled_at !== null) {
+            return MembershipRefused::cancelled();
+        }
+
+        return $freeze->ends_on->isBefore($today) ? MembershipRefused::freezeAlreadyEnded() : null;
+    }
+
+    /**
+     * Why the membership can't be cancelled, or null when it can: only one
+     * that is going on or still to come.
+     */
+    public function refusalToCancel(CarbonImmutable $today): ?MembershipRefused
+    {
+        return match ($this->statusOn($today)) {
+            MembershipStatus::Cancelled => MembershipRefused::alreadyCancelled(),
+            MembershipStatus::Expired => MembershipRefused::alreadyEnded(),
+            default => null,
+        };
     }
 
     /**

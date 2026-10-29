@@ -5,12 +5,26 @@ declare(strict_types=1);
 namespace App\Filament\Staff\Resources\Members;
 
 use App\Domains\Billing\Models\Payment;
+use App\Domains\Members\Enums\Gender;
 use App\Domains\Members\Models\Member;
+use App\Domains\Organizations\Models\Branch;
+use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Domains\Shared\Money\Money;
+use App\Domains\Shared\PhoneNumber\Exceptions\InvalidPhoneNumber;
+use App\Domains\Shared\PhoneNumber\PhoneNumber;
+use App\Filament\Staff\Actions\CheckInAction;
+use App\Filament\Staff\Resources\Members\Pages\CreateMember;
+use App\Filament\Staff\Resources\Members\Pages\EditMember;
 use App\Filament\Staff\Resources\Members\Pages\ListMembers;
 use App\Filament\Staff\Resources\Members\Pages\ViewMember;
+use App\Rules\ValidPhoneNumber;
 use BackedEnum;
+use Closure;
+use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -20,10 +34,12 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Arr;
 
 /**
- * The gym's members, to look up: registering and changing them stays in the
- * app for now. Archived members are left out, as in the API. See ADR 0017.
+ * The gym's members: registering, finding, editing and archiving them, with
+ * the API's rules. Archived members are left out, as in the API. See ADR 0017
+ * and ADR 0018.
  */
 class MemberResource extends Resource
 {
@@ -34,6 +50,47 @@ class MemberResource extends Resource
     protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'full_name';
+
+    /**
+     * The API's rules for a member (StoreMemberRequest): one member per phone
+     * number in the gym, and a home branch the staff member works at.
+     */
+    public static function form(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make('Member')
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make('full_name')->required()->maxLength(255),
+                        TextInput::make('phone')
+                            ->tel()
+                            ->required()
+                            ->rules(fn (?Member $record): array => [new ValidPhoneNumber, self::phoneNotTakenInTheGym($record)]),
+                        TextInput::make('email')->email()->maxLength(255),
+                        Select::make('home_branch_id')
+                            ->label('Home branch')
+                            ->required()
+                            ->options(fn (): array => app(CurrentStaff::class)->get()->branchesWorkedAt()->pluck('name', 'id')->all())
+                            ->default(fn (): ?int => self::onlyBranchWorkedAt()),
+                        Select::make('gender')->options([
+                            Gender::Female->value => 'Female',
+                            Gender::Male->value => 'Male',
+                        ]),
+                        DatePicker::make('date_of_birth')->beforeOrEqual('yesterday'),
+                    ]),
+                Section::make('Emergency contact')
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make('emergency_contact_name')->label('Name')->maxLength(255)->requiredWith('emergency_contact_phone'),
+                        TextInput::make('emergency_contact_phone')
+                            ->label('Phone')
+                            ->tel()
+                            ->requiredWith('emergency_contact_name')
+                            ->rules([new ValidPhoneNumber]),
+                    ]),
+            ]);
+    }
 
     public static function infolist(Schema $schema): Schema
     {
@@ -85,7 +142,9 @@ class MemberResource extends Resource
                     ->relationship('homeBranch', 'name'),
             ])
             ->recordActions([
+                CheckInAction::make(),
                 ViewAction::make(),
+                EditAction::make(),
             ]);
     }
 
@@ -93,8 +152,59 @@ class MemberResource extends Resource
     {
         return [
             'index' => ListMembers::route('/'),
+            'create' => CreateMember::route('/create'),
             'view' => ViewMember::route('/{record}'),
+            'edit' => EditMember::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Fill the member from the form. The home branch isn't mass assignable,
+     * so it is set through the relation, as the API does.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public static function fillMember(Member $member, array $data): Member
+    {
+        $member->fill(Arr::except($data, 'home_branch_id'));
+        $member->homeBranch()->associate(Branch::query()->findOrFail((int) $data['home_branch_id']));
+        $member->save();
+
+        return $member;
+    }
+
+    /**
+     * The branch to preset when the staff member works at only one.
+     */
+    public static function onlyBranchWorkedAt(): ?int
+    {
+        $branches = app(CurrentStaff::class)->get()->branchesWorkedAt();
+
+        return $branches->count() === 1 ? (int) $branches->first()?->getKey() : null;
+    }
+
+    /**
+     * One member per phone number in the gym, compared in E.164 form however
+     * it was typed. Archived members free their number.
+     */
+    private static function phoneNotTakenInTheGym(?Member $ignoring): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail) use ($ignoring): void {
+            try {
+                $phone = PhoneNumber::of(is_string($value) ? $value : '')->e164;
+            } catch (InvalidPhoneNumber) {
+                return;
+            }
+
+            $taken = Member::query()
+                ->where('phone', $phone)
+                ->when($ignoring !== null, fn (Builder $query): Builder => $query->whereKeyNot($ignoring?->getKey()))
+                ->exists();
+
+            if ($taken) {
+                $fail('Another member of this gym already has this phone number.');
+            }
+        };
     }
 
     /**

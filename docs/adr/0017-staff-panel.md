@@ -60,7 +60,7 @@ These are read-only, for looking things up:
 
 ### Deferred
 
-- Doing things from the panel: registering and editing members, selling, freezing and cancelling memberships, taking, refunding and voiding payments, sending payment links, checking members in, and announcements, plans and branches. All of these stay in the app for now.
+- Doing things from the panel. ADR 0018 adds the front desk: members, selling, freezing, cancelling, payments, refunds, voids and check-ins. Payment links, announcements, plans and branches stay in the app.
 - Lists limited to a staff member's branches. Like the API's lists, they show the whole gym.
 - Charts over time, comparing periods, and exports (ADR 0014).
 - A platform-admin panel across all gyms.

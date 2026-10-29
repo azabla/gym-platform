@@ -39,10 +39,10 @@ class EndFreezeRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
-                if ($this->membership()->cancelled_at !== null) {
-                    $validator->errors()->add('membership', 'This membership is cancelled.');
-                } elseif ($this->freeze()->ends_on->isBefore(app(CurrentOrganization::class)->get()->today())) {
-                    $validator->errors()->add('freeze', 'This freeze has already ended.');
+                $refusal = $this->membership()->refusalToEndFreeze($this->freeze(), app(CurrentOrganization::class)->get()->today());
+
+                if ($refusal !== null) {
+                    $validator->errors()->add($refusal->field, $refusal->getMessage());
                 }
             },
         ];

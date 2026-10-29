@@ -43,7 +43,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 8. Gym-specific API routes sit under `/api/v1/organizations/{slug}` inside the `organization` middleware group. See ADR 0004.
 9. Phone numbers are a `PhoneNumber` in code and an E.164 string (`+251911234567`) in the database, never stored as typed. See ADR 0005.
 10. Anything that depends on "today" uses the gym's date, `Organization::today()`, never the server's (UTC) date. See ADR 0006.
-11. The staff panel shows and does only what the API allows: it goes through the same policies, and its figures come from the same code (`App\Dashboards`). Domains never depend on it. See ADR 0017.
+11. The staff panel shows and does only what the API allows: it goes through the same policies, its figures come from the same code (`App\Dashboards`), and the rules for a change live in the domain as `refusalTo…` methods that both call. Domains never depend on it. See ADR 0017 and ADR 0018.
 
 ## Glossary
 
@@ -52,7 +52,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Organization | The gym business. The tenant. |
 | Branch | A physical location of an organization. |
 | User | An identity that can log in: staff with an email and a password, members with a code sent to their phone. |
-| Staff panel | The website at /staff where staff sign in with their email and password, choose a gym, and see its dashboard, members, memberships, payments and check-ins (ADR 0017). |
+| Staff panel | The website at /staff where staff sign in with their email and password, choose a gym, see its dashboard and lists, and work the front desk: members, sales, freezes, payments and check-ins (ADR 0017 and ADR 0018). |
 | Members app | The app where members see their memberships, what they owe and their receipts, and pay with Chapa. It shows every gym where their phone number is registered (ADR 0010). |
 | Sign-in code | A 6-digit code sent by SMS that signs a member in to the members app. It works for 10 minutes and 5 tries. |
 | QR credential | What lets a member's phone show their QR code at one gym: a secret given to the phone once, from which it makes a code every 30 seconds (GQ1), even offline. One phone per member (ADR 0011). |
@@ -98,6 +98,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0015](adr/0015-announcements.md) | Announcements |
 | [0016](adr/0016-visit-packs-and-opening-hours.md) | Visit packs and opening hours |
 | [0017](adr/0017-staff-panel.md) | The staff panel |
+| [0018](adr/0018-front-desk-in-the-staff-panel.md) | Working the front desk in the staff panel |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 

@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Api\V1\Memberships;
 
-use App\Domains\Memberships\Enums\MembershipStatus;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use Closure;
@@ -41,14 +40,10 @@ class CancelMembershipRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
-                $status = $this->membership()->statusOn(app(CurrentOrganization::class)->get()->today());
+                $refusal = $this->membership()->refusalToCancel(app(CurrentOrganization::class)->get()->today());
 
-                if ($status === MembershipStatus::Cancelled) {
-                    $validator->errors()->add('membership', 'This membership is already cancelled.');
-                }
-
-                if ($status === MembershipStatus::Expired) {
-                    $validator->errors()->add('membership', 'This membership has already ended.');
+                if ($refusal !== null) {
+                    $validator->errors()->add($refusal->field, $refusal->getMessage());
                 }
             },
         ];

@@ -8,14 +8,10 @@ use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Validator;
 
 class FreezeMembershipRequest extends FormRequest
 {
-    /** The longest a single freeze can last. */
-    private const MAXIMUM_DAYS = 366;
-
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -53,11 +49,14 @@ class FreezeMembershipRequest extends FormRequest
                     return;
                 }
 
-                $problem = $this->problemWithTheDates();
+                $refusal = $this->membership()->refusalToFreeze(
+                    $this->startsOn(),
+                    $this->endsOn(),
+                    $this->user()->can('freezeBeyondAllowance', Membership::class),
+                );
 
-                if ($problem !== null) {
-                    [$field, $message] = $problem;
-                    $validator->errors()->add($field, $message);
+                if ($refusal !== null) {
+                    $validator->errors()->add($refusal->field, $refusal->getMessage());
                 }
             },
         ];
@@ -78,61 +77,6 @@ class FreezeMembershipRequest extends FormRequest
     public function endsOn(): CarbonImmutable
     {
         return CarbonImmutable::parse($this->string('ends_on')->toString());
-    }
-
-    /**
-     * @return array{0: string, 1: string}|null the field and the message, or null when the dates are fine
-     */
-    private function problemWithTheDates(): ?array
-    {
-        $membership = $this->membership();
-        $startsOn = $this->startsOn();
-        $endsOn = $this->endsOn();
-
-        if ($membership->cancelled_at !== null) {
-            return ['membership', 'This membership is cancelled.'];
-        }
-
-        if ($endsOn->isBefore($startsOn)) {
-            return ['ends_on', 'The last day of the freeze can\'t be before its first day.'];
-        }
-
-        $days = (int) $startsOn->diffInDays($endsOn) + 1;
-
-        if ($days > self::MAXIMUM_DAYS) {
-            return ['ends_on', 'A freeze can last at most '.self::MAXIMUM_DAYS.' days.'];
-        }
-
-        if ($startsOn->isBefore($membership->starts_on) || $startsOn->isAfter($membership->ends_on)) {
-            return ['starts_on', sprintf(
-                'A freeze must start while the membership runs, from %s to %s.',
-                $membership->starts_on->format('j F Y'),
-                $membership->ends_on->format('j F Y'),
-            )];
-        }
-
-        $otherFreeze = $membership->freezes()
-            ->where('starts_on', '<=', $endsOn->toDateString())
-            ->where('ends_on', '>=', $startsOn->toDateString())
-            ->first();
-
-        if ($otherFreeze !== null) {
-            return ['starts_on', sprintf(
-                'This membership is already frozen from %s to %s.',
-                $otherFreeze->starts_on->format('j F Y'),
-                $otherFreeze->ends_on->format('j F Y'),
-            )];
-        }
-
-        $daysLeft = $membership->freeze_days_allowed - $membership->freezeDaysUsed();
-
-        if ($days > $daysLeft && ! $this->user()->can('freezeBeyondAllowance', Membership::class)) {
-            return ['ends_on', $daysLeft > 0
-                ? "This membership can be frozen for {$daysLeft} more ".Str::plural('day', $daysLeft).'.'
-                : 'This membership has no freeze days left.'];
-        }
-
-        return null;
     }
 
     private function notInThePastUnlessAllowed(): Closure
