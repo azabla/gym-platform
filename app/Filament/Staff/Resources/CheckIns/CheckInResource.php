@@ -8,7 +8,6 @@ use App\Domains\Attendance\Enums\CheckInDenial;
 use App\Domains\Attendance\Enums\CheckInMethod;
 use App\Domains\Attendance\Enums\CheckInResult;
 use App\Domains\Attendance\Models\CheckIn;
-use App\Domains\Members\Models\Member;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Filament\Staff\Resources\CheckIns\Pages\ListCheckIns;
@@ -71,12 +70,8 @@ class CheckInResource extends Resource
                     CheckInResult::Denied->value => 'Denied',
                 ]),
                 SelectFilter::make('member')
-                    ->options(fn (): array => Member::query()->orderBy('full_name')->pluck('full_name', 'id')->all())
-                    ->searchable()
-                    ->query(fn (Builder $query, array $data): Builder => $query->when(
-                        $data['value'] ?? null,
-                        fn (Builder $query, int|string $memberId): Builder => $query->where('member_id', (int) $memberId),
-                    )),
+                    ->relationship('member', 'full_name')
+                    ->searchable(),
             ]);
     }
 

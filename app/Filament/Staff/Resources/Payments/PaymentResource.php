@@ -7,8 +7,8 @@ namespace App\Filament\Staff\Resources\Payments;
 use App\Domains\Billing\Enums\PaymentMethod;
 use App\Domains\Billing\Enums\PaymentType;
 use App\Domains\Billing\Models\Payment;
-use App\Domains\Members\Models\Member;
 use App\Domains\Shared\Money\Money;
+use App\Filament\Staff\Resources\Concerns\ShowsGymTime;
 use App\Filament\Staff\Resources\Payments\Pages\ListPayments;
 use App\Filament\Staff\Resources\Payments\Pages\ViewPayment;
 use BackedEnum;
@@ -34,6 +34,8 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class PaymentResource extends Resource
 {
+    use ShowsGymTime;
+
     protected static ?string $model = Payment::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
@@ -57,7 +59,7 @@ class PaymentResource extends Resource
                         TextEntry::make('paid_on')->date(),
                         TextEntry::make('branch.name')->label('Branch'),
                         TextEntry::make('receivedBy.user.name')->label('Received by'),
-                        TextEntry::make('voided_at')->label('Voided')->dateTime()->placeholder('No'),
+                        TextEntry::make('voided_at')->label('Voided')->dateTime()->timezone(self::gymTimezone())->placeholder('No'),
                         TextEntry::make('void_reason')->placeholder('None'),
                     ]),
             ]);
@@ -78,7 +80,7 @@ class PaymentResource extends Resource
                 TextColumn::make('amount')->state(fn (Payment $record): string => $record->amount->format()),
                 TextColumn::make('method')->formatStateUsing(fn (PaymentMethod $state): string => self::methodLabel($state)),
                 TextColumn::make('branch.name')->label('Branch'),
-                TextColumn::make('voided_at')->label('Voided')->date()->placeholder('No'),
+                TextColumn::make('voided_at')->label('Voided')->date()->timezone(self::gymTimezone())->placeholder('No'),
             ])
             ->filters([
                 Filter::make('paid_on')
@@ -94,12 +96,8 @@ class PaymentResource extends Resource
                     fn (PaymentMethod $method): array => [$method->value => self::methodLabel($method)],
                 )->all()),
                 SelectFilter::make('member')
-                    ->options(fn (): array => Member::query()->orderBy('full_name')->pluck('full_name', 'id')->all())
-                    ->searchable()
-                    ->query(fn (Builder $query, array $data): Builder => $query->when(
-                        $data['value'] ?? null,
-                        fn (Builder $query, int|string $memberId): Builder => $query->whereRelation('membership', 'member_id', (int) $memberId),
-                    )),
+                    ->relationship('member', 'full_name')
+                    ->searchable(),
             ])
             ->recordActions([
                 ViewAction::make(),

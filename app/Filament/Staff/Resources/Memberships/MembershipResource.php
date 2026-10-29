@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Filament\Staff\Resources\Memberships;
 
+use App\Domains\Billing\Balances\MembershipBalance;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Memberships\Enums\MembershipStatus;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
+use App\Filament\Staff\Resources\Concerns\ShowsGymTime;
 use App\Filament\Staff\Resources\Memberships\Pages\ListMemberships;
 use App\Filament\Staff\Resources\Memberships\Pages\ViewMembership;
 use BackedEnum;
@@ -30,6 +32,8 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class MembershipResource extends Resource
 {
+    use ShowsGymTime;
+
     protected static ?string $model = Membership::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedIdentification;
@@ -54,10 +58,10 @@ class MembershipResource extends Resource
                         TextEntry::make('visit_limit')->label('Visits')->placeholder('No limit'),
                         TextEntry::make('price')->state(fn (Membership $record): string => $record->price->format()),
                         TextEntry::make('amount_paid')
-                            ->state(fn (Membership $record): string => Payment::balancesOf([$record])[$record->id]->amountPaid->format()),
+                            ->state(fn (Membership $record): string => self::balanceOf($record)->amountPaid->format()),
                         TextEntry::make('balance_due')
-                            ->state(fn (Membership $record): string => Payment::balancesOf([$record])[$record->id]->balanceDue->format()),
-                        TextEntry::make('cancelled_at')->dateTime()->placeholder('Not cancelled'),
+                            ->state(fn (Membership $record): string => self::balanceOf($record)->balanceDue->format()),
+                        TextEntry::make('cancelled_at')->dateTime()->timezone(self::gymTimezone())->placeholder('Not cancelled'),
                     ]),
             ]);
     }
@@ -100,6 +104,20 @@ class MembershipResource extends Resource
             'index' => ListMemberships::route('/'),
             'view' => ViewMembership::route('/{record}'),
         ];
+    }
+
+    /**
+     * What is paid and owed on the membership, from Billing, looked up once
+     * for the page however many entries show it.
+     */
+    private static function balanceOf(Membership $membership): MembershipBalance
+    {
+        if (! $membership->relationLoaded('balance')) {
+            $membership->setRelation('balance', Payment::balancesOf([$membership])[$membership->id]);
+        }
+
+        /** @var MembershipBalance */
+        return $membership->getRelation('balance');
     }
 
     private static function statusOf(Membership $membership): MembershipStatus

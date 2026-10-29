@@ -7,6 +7,7 @@ namespace App\Filament\Staff\Resources\Members;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Members\Models\Member;
 use App\Domains\Shared\Money\Money;
+use App\Filament\Staff\Resources\Concerns\ShowsGymTime;
 use App\Filament\Staff\Resources\Members\Pages\ListMembers;
 use App\Filament\Staff\Resources\Members\Pages\ViewMember;
 use BackedEnum;
@@ -27,6 +28,8 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class MemberResource extends Resource
 {
+    use ShowsGymTime;
+
     protected static ?string $model = Member::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
@@ -48,7 +51,7 @@ class MemberResource extends Resource
                         TextEntry::make('homeBranch.name')->label('Home branch'),
                         TextEntry::make('gender')->placeholder('Not given'),
                         TextEntry::make('date_of_birth')->date()->placeholder('Not given'),
-                        TextEntry::make('created_at')->label('Registered')->date(),
+                        TextEntry::make('created_at')->label('Registered')->date()->timezone(self::gymTimezone()),
                         TextEntry::make('balance_due')
                             ->label('Balance due')
                             ->state(fn (Member $record): string => self::balanceDueOf($record)->format()),
@@ -77,7 +80,7 @@ class MemberResource extends Resource
                     ->searchable(query: self::searchMembers(...)),
                 TextColumn::make('phone'),
                 TextColumn::make('homeBranch.name')->label('Home branch'),
-                TextColumn::make('created_at')->label('Registered')->date()->sortable(),
+                TextColumn::make('created_at')->label('Registered')->date()->timezone(self::gymTimezone())->sortable(),
             ])
             ->filters([
                 SelectFilter::make('home_branch_id')
