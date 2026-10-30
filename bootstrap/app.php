@@ -3,6 +3,7 @@
 use App\Domains\Billing\Chapa\Exceptions\ChapaRequestFailed;
 use App\Domains\Billing\Exceptions\PaymentRefused;
 use App\Domains\Memberships\Exceptions\MembershipRefused;
+use App\Domains\Organizations\Exceptions\StaffRefused;
 use App\Http\Middleware\ActAsMember;
 use App\Http\Middleware\ActAsOrganization;
 use Illuminate\Foundation\Application;
@@ -56,6 +57,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // A sale, freeze or cancellation the membership rules refuse.
         $exceptions->map(fn (MembershipRefused $exception) => ValidationException::withMessages([
+            $exception->field => $exception->getMessage(),
+        ]));
+
+        // A staff change that would leave the gym without an owner (ADR 0019).
+        $exceptions->map(fn (StaffRefused $exception) => ValidationException::withMessages([
             $exception->field => $exception->getMessage(),
         ]));
 

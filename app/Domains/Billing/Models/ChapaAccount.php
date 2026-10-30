@@ -55,7 +55,7 @@ class ChapaAccount extends Model
     /** @return BelongsTo<Staff, $this> */
     public function connectedBy(): BelongsTo
     {
-        return $this->belongsTo(Staff::class, 'connected_by_staff_id');
+        return $this->belongsTo(Staff::class, 'connected_by_staff_id')->withTrashed();
     }
 
     /**

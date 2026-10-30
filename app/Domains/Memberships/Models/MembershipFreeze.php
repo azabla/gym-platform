@@ -34,7 +34,7 @@ class MembershipFreeze extends Model
     /** @return BelongsTo<Staff, $this> */
     public function frozenBy(): BelongsTo
     {
-        return $this->belongsTo(Staff::class, 'frozen_by_staff_id');
+        return $this->belongsTo(Staff::class, 'frozen_by_staff_id')->withTrashed();
     }
 
     /**

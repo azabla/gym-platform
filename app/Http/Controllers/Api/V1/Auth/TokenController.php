@@ -17,22 +17,24 @@ use Illuminate\Validation\ValidationException;
 class TokenController extends Controller
 {
     /**
-     * Sign in: exchange an email and password for an API token for one device.
+     * Sign in: exchange a phone (or email) and password for an API token for
+     * one device.
      *
-     * The web guard checks the password inside a Timebox, so an unknown email
+     * The web guard checks the password inside a Timebox, so an unknown phone
      * and a wrong password take the same time and get the same answer.
      */
     public function store(IssueTokenRequest $request): JsonResponse
     {
-        $credentials = $request->only('email', 'password');
+        [$field, $value] = $request->identifier();
 
-        if (! Auth::guard('web')->validate($credentials)) {
+        if (! Auth::guard('web')->validate([$field => $value, 'password' => $request->string('password')->toString()])) {
             throw ValidationException::withMessages([
-                'email' => __('auth.failed'),
+                $field => __('auth.failed'),
             ]);
         }
 
-        $user = User::query()->where('email', $credentials['email'])->sole();
+        $user = User::query()->where($field, $value)->sole();
+
         $token = $user->createToken($request->string('device_name')->toString());
 
         return response()->json([

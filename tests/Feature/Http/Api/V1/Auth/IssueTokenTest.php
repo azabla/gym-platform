@@ -52,6 +52,31 @@ it('gives an unknown email the same answer as a wrong password', function () {
     ])->assertUnprocessable()->assertJsonValidationErrors(['email' => __('auth.failed')]);
 });
 
+it('issues a token for a phone number and password, however the number is typed', function () {
+    $user = User::factory()->create(['phone' => '0911 22 33 44', 'password' => 'secret-password']);
+
+    $this->postJson(route('api.v1.auth.tokens.store'), [
+        'phone' => '+251 911 22 33 44',
+        'password' => 'secret-password',
+        'device_name' => 'Front desk tablet',
+    ])->assertCreated()->assertJsonPath('data.user.id', $user->id);
+});
+
+it('gives an unknown phone, a wrong password and a member without a password the same answer', function () {
+    User::factory()->create(['phone' => '0911 22 33 44', 'password' => 'secret-password']);
+    User::factory()->withPhone('0922 34 56 78')->create();
+
+    foreach ([['0911 22 33 44', 'wrong-password'], ['0933 00 00 00', 'secret-password'], ['0922 34 56 78', '']] as [$phone, $password]) {
+        $this->postJson(route('api.v1.auth.tokens.store'), [
+            'phone' => $phone,
+            'password' => $password === '' ? 'anything' : $password,
+            'device_name' => 'Front desk tablet',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['phone' => __('auth.failed')]);
+    }
+
+    expect(PersonalAccessToken::query()->count())->toBe(0);
+});
+
 it('requires an email, a password and a device name', function () {
     $this->postJson(route('api.v1.auth.tokens.store'))
         ->assertUnprocessable()

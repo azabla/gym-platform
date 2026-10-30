@@ -13,11 +13,13 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\HtmlString;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /**
@@ -33,6 +35,13 @@ class StaffPanelProvider extends PanelProvider
             ->id('staff')
             ->path('staff')
             ->login(Login::class)
+            ->renderHook(
+                PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
+                fn (): HtmlString => new HtmlString(sprintf(
+                    '<p style="text-align: center; margin-top: 1rem;"><a href="%s" style="text-decoration: underline;">Forgot your password?</a></p>',
+                    e(route('staff.password.forgot')),
+                )),
+            )
             ->authGuard('staff_panel')
             ->tenant(Organization::class, slugAttribute: 'slug', ownershipRelationship: 'organization')
             ->tenantMiddleware([

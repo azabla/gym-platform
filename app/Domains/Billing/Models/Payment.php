@@ -329,13 +329,13 @@ class Payment extends Model
     /** @return BelongsTo<Staff, $this> */
     public function receivedBy(): BelongsTo
     {
-        return $this->belongsTo(Staff::class, 'received_by_staff_id');
+        return $this->belongsTo(Staff::class, 'received_by_staff_id')->withTrashed();
     }
 
     /** @return BelongsTo<Staff, $this> */
     public function voidedBy(): BelongsTo
     {
-        return $this->belongsTo(Staff::class, 'voided_by_staff_id');
+        return $this->belongsTo(Staff::class, 'voided_by_staff_id')->withTrashed();
     }
 
     /**

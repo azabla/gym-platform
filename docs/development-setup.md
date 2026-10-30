@@ -199,17 +199,17 @@ make composer c=install
 make fresh
 ```
 
-`make fresh` seeds Demo Gym (`demo-gym`) with two branches, three members, five plans (one valid only at Bole Branch), two memberships, two payments and three users, all with the password `password`:
+`make fresh` seeds Demo Gym (`demo-gym`) with two branches, three members, five plans (one valid only at Bole Branch), two memberships, two payments and three staff, all with the password `password`. Staff sign in with their phone; the API also takes the email:
 
-- `owner@demo-gym.test`, the Owner, who works at both branches;
-- `frontdesk@demo-gym.test`, a Receptionist limited to Main Branch;
-- `accounts@demo-gym.test`, an Accountant, who works at both branches.
+- `0911 00 00 01` (`owner@demo-gym.test`), the Owner, who works at both branches;
+- `0911 00 00 02` (`frontdesk@demo-gym.test`), a Receptionist limited to Main Branch;
+- `0911 00 00 03` (`accounts@demo-gym.test`), an Accountant, who works at both branches.
 
 ```bash
 # Sign in and keep the token
 TOKEN=$(curl -s http://localhost:8080/api/v1/auth/tokens \
   -H 'Accept: application/json' -H 'Content-Type: application/json' \
-  -d '{"email":"owner@demo-gym.test","password":"password","device_name":"curl"}' \
+  -d '{"phone":"0911 00 00 01","password":"password","device_name":"curl"}' \
   | sed -E 's/.*"token":"([^"]+)".*/\1/')
 
 # Who am I, and which gyms do I work at?
@@ -312,6 +312,18 @@ curl -s http://localhost:8080/api/v1/organizations/demo-gym/branches/1/opening-h
 curl -s http://localhost:8080/api/v1/organizations/demo-gym/announcements \
   -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
   -d '{"title":"Closed on Sunday","body":"The gym is closed this Sunday for maintenance."}'
+
+# The gym's staff (owners and managers). Add a trainer at Main Branch: they get an SMS with a link
+# to set their password, in the log in development. Leave out branch_ids for all branches.
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/staff \
+  -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
+curl -s http://localhost:8080/api/v1/organizations/demo-gym/staff \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+  -d '{"name":"Selam Tadesse","phone":"0944 55 66 77","role":"trainer","branch_ids":[1]}'
+
+# Archive them (staff 4 after make fresh): they lose the gym at once. POST .../staff/4/restore brings them back.
+curl -s -X DELETE http://localhost:8080/api/v1/organizations/demo-gym/staff/4 \
+  -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
 
 # Sign out (revokes the token)
 curl -s -X DELETE http://localhost:8080/api/v1/auth/tokens/current \
@@ -511,22 +523,35 @@ Each part has an ADR:
 
 ## Trying the staff panel
 
-`make composer c=install` also publishes the panel's assets. After `make fresh`, open http://localhost:8080/staff and sign in with one of the demo users above (password `password`). You land on Demo Gym's dashboard: today's figures and the members to call. Change the period or the branch at the top.
+`make composer c=install` also publishes the panel's assets. After `make fresh`, open http://localhost:8080/staff and sign in with one of the demo phones above (password `password`). You land on Demo Gym's dashboard: today's figures and the members to call. Change the period or the branch at the top.
 
-- As `owner@demo-gym.test`, you see the money too, and every list: members, memberships, payments and check-ins.
-- As `frontdesk@demo-gym.test`, the dashboard covers Main Branch only, and the money is hidden. The lists still show the whole gym, as in the API.
-- As `accounts@demo-gym.test`, you see the money and the payments.
+- As the owner (`0911 00 00 01`), you see the money too, and every list: members, memberships, payments, check-ins and staff.
+- As the receptionist (`0911 00 00 02`), the dashboard covers Main Branch only, and the money is hidden. The lists still show the whole gym, as in the API.
+- As the accountant (`0911 00 00 03`), you see the money and the payments.
 
-To work the front desk, as `frontdesk@demo-gym.test`:
+To work the front desk, as the receptionist:
 
 1. On Members, choose **Register member**.
 2. On the new member's page, choose **Sell membership**: Monthly, from today.
 3. On the membership's page, choose **Take payment**: cash, the amount it suggests.
 4. Back on the member's page, choose **Check in**. The member is let in.
 
-Then sign in as `owner@demo-gym.test`. On that membership's page, **Cancel membership**, then **Refund** the cash. On the refund's page, **Void** it if it was a mistake. Each action asks only for what the API would, and refuses what the API would refuse, in the same words.
+Then sign in as the owner. On that membership's page, **Cancel membership**, then **Refund** the cash. On the refund's page, **Void** it if it was a mistake. Each action asks only for what the API would, and refuses what the API would refuse, in the same words.
 
-Payment links stay in the app. To give someone a panel login, make them staff of a gym through the API or the seeder; any staff member with an email and a password can sign in. See ADR 0017 and ADR 0018.
+Payment links stay in the app.
+
+To add staff, as the owner, open **Staff** and choose **Add staff member**: name, phone, role and branches. The SMS goes through the queue (run `make workers` first) to `storage/logs/laravel.log`: `grep 'SMS to +251944556677' storage/logs/laravel.log | tail -1`. Open the link, choose a password, and sign in with their phone. On their page you can change the role or branches, **Archive** them (they lose the gym on their next click), **Restore** them, or **Send invite again** while it's pending. **Forgot your password?** on the sign-in page sends a reset link the same way. See ADR 0017 to ADR 0019.
+
+### Starting a real gym
+
+We create each gym, with its first branch and its owner; the owner adds the rest of the staff in the panel:
+
+```bash
+make shell
+php artisan gyms:create --name="Bole Fitness" --slug=bole-fitness --owner-name="Meron Assefa" --owner-phone="0911 22 33 44"
+```
+
+It asks for anything left out. `--timezone` (default `Africa/Addis_Ababa`) and `--branch` (default `Main Branch`) are optional. The owner gets an SMS with a link, valid for 7 days, to set their password. See ADR 0019.
 
 ## Troubleshooting
 

@@ -31,4 +31,26 @@ enum StaffRole: string
             self::Receptionist, self::Trainer => false,
         };
     }
+
+    /**
+     * Whether staff with the given role may add, change or archive staff with
+     * this role: owners manage everyone, managers manage the roles below
+     * them, and no one else manages staff. See ADR 0019.
+     */
+    public function isManagedBy(self $role): bool
+    {
+        return match ($role) {
+            self::Owner => true,
+            self::Manager => in_array($this, [self::Receptionist, self::Trainer, self::Accountant], true),
+            self::Receptionist, self::Trainer, self::Accountant => false,
+        };
+    }
+
+    /**
+     * Whether the role may see and manage the gym's staff at all.
+     */
+    public function managesStaff(): bool
+    {
+        return in_array($this, [self::Owner, self::Manager], true);
+    }
 }

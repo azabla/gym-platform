@@ -10,8 +10,8 @@ Laravel is scaffolded and dependencies are locked in `composer.lock`. For a new 
 docker/                    Dockerfile, nginx, Postgres init scripts, storage config
 app/Domains/<Domain>/      Business code, one folder per domain
 app/Domains/Shared/        Small, framework-free building blocks used by every domain (Money, PhoneNumber, ...)
-app/Domains/Identity/      Users: identities that can log in, independent of any gym
-app/Domains/Organizations/ Gyms, branches and staff; Tenancy/ keeps each gym's data separate
+app/Domains/Identity/      Users: identities that can log in, independent of any gym; sign-in codes and password links
+app/Domains/Organizations/ Gyms, branches and staff (who manages whom, archiving); Tenancy/ keeps each gym's data separate
 app/Domains/Members/       Gym customers: registering, finding, editing and archiving members
 app/Domains/Memberships/   Plans a gym sells, and the memberships staff sell from them
 app/Domains/Billing/       Payments and refunds against memberships, receipts and balances; Chapa/ talks to each gym's Chapa account
@@ -21,7 +21,8 @@ app/Http/                  The API: controllers, form requests, middleware and r
 app/Filament/Staff/        The staff panel at /staff (Filament): its user, tenant middleware, dashboard, widgets and lists
 app/Dashboards/            Figures drawn from several domains, shared by the API and the staff panel
 app/Providers/Filament/    The staff panel's configuration
-app/Console/Commands/      Artisan commands, such as the check of open payment links
+app/Console/Commands/      Artisan commands, such as gyms:create and the check of open payment links
+resources/views/staff-password/ The pages where staff set or reset their password from an SMS link
 routes/api.php             API routes, versioned under /api/v1
 routes/console.php         Scheduled tasks, run by the scheduler container
 tests/Unit/Domains/...     Unit tests, mirroring app/Domains
@@ -51,8 +52,10 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 |---|---|
 | Organization | The gym business. The tenant. |
 | Branch | A physical location of an organization. |
-| User | An identity that can log in: staff with an email and a password, members with a code sent to their phone. |
-| Staff panel | The website at /staff where staff sign in with their email and password, choose a gym, see its dashboard and lists, and work the front desk: members, sales, freezes, payments and check-ins (ADR 0017 and ADR 0018). |
+| User | An identity that can log in: staff with their phone and a password, members with a code sent to their phone. One user per phone number. |
+| Staff panel | The website at /staff where staff sign in with their phone and password, choose a gym, see its dashboard and lists, work the front desk (members, sales, freezes, payments and check-ins), and, as owners and managers, manage the staff (ADRs 0017 to 0019). |
+| Password link | A one-time link sent by SMS to set a staff member's first password (an invite, valid 7 days) or reset a forgotten one (valid 60 minutes). See ADR 0019. |
+| Archived staff | Staff who left: they can no longer act at the gym, what they recorded still names them, and they can be restored (ADR 0019). |
 | Members app | The app where members see their memberships, what they owe and their receipts, and pay with Chapa. It shows every gym where their phone number is registered (ADR 0010). |
 | Sign-in code | A 6-digit code sent by SMS that signs a member in to the members app. It works for 10 minutes and 5 tries. |
 | QR credential | What lets a member's phone show their QR code at one gym: a secret given to the phone once, from which it makes a code every 30 seconds (GQ1), even offline. One phone per member (ADR 0011). |
@@ -99,6 +102,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0016](adr/0016-visit-packs-and-opening-hours.md) | Visit packs and opening hours |
 | [0017](adr/0017-staff-panel.md) | The staff panel |
 | [0018](adr/0018-front-desk-in-the-staff-panel.md) | Working the front desk in the staff panel |
+| [0019](adr/0019-gyms-and-staff.md) | Gyms and staff |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 
