@@ -103,6 +103,13 @@ class AppServiceProvider extends ServiceProvider
             Limit::perHour(20)->by('ip:'.$request->ip()),
         ]);
 
+        // Password links for staff who forgot theirs, counted the same way (ADR 0019).
+        RateLimiter::for('password-links', fn (Request $request): array => [
+            Limit::perMinute(1)->by('minute:'.$this->phoneNumberIn($request)),
+            Limit::perHour(5)->by('hour:'.$this->phoneNumberIn($request)),
+            Limit::perHour(20)->by('ip:'.$request->ip()),
+        ]);
+
         RateLimiter::for('sms-sign-in', fn (Request $request): Limit => Limit::perMinute(5)
             ->by($this->phoneNumberIn($request).'|'.$request->ip()));
     }

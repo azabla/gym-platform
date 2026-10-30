@@ -50,9 +50,9 @@ class Staff extends Model
     public static function add(User $user, StaffRole $role, Branch ...$onlyAtBranches): self
     {
         return DB::transaction(function () use ($user, $role, $onlyAtBranches): self {
-            $staff = static::query()->withTrashed()->whereBelongsTo($user)->first();
+            $staff = self::query()->withTrashed()->where('user_id', $user->getKey())->first();
 
-            if ($staff !== null && ! $staff->trashed()) {
+            if ($staff !== null && $staff->getAttribute('deleted_at') === null) {
                 throw StaffRefused::alreadyWorksHere();
             }
 

@@ -19,9 +19,9 @@ use Laravel\Sanctum\HasApiTokens;
 use Laravel\Sanctum\PersonalAccessToken;
 
 /**
- * Someone who can sign in: staff with an email and a password, members of a
- * gym with a code sent to their phone (ADR 0010). Every user has an email or
- * a phone number.
+ * Someone who can sign in: staff with their phone (or, for older accounts,
+ * email) and a password (ADR 0019), members of a gym with a code sent to
+ * their phone (ADR 0010). Every user has an email or a phone number.
  */
 #[Fillable(['name', 'email', 'phone', 'password'])]
 #[Hidden(['password', 'remember_token'])]
@@ -42,6 +42,14 @@ class User extends Authenticatable
     public static function forPhone(PhoneNumber $phone, string $name): self
     {
         return static::query()->firstOrCreate(['phone' => $phone->e164], ['name' => $name]);
+    }
+
+    /**
+     * Where SMS messages to the user go: their phone, if they have one.
+     */
+    public function routeNotificationForSms(): ?string
+    {
+        return $this->phone;
     }
 
     /**
