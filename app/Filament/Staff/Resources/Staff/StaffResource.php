@@ -127,9 +127,10 @@ class StaffResource extends Resource
      */
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
-            ->withoutGlobalScopes([SoftDeletingScope::class])
-            ->atAnyOfBranches(app(CurrentStaff::class)->get()->limitedToBranchIds());
+        /** @var Builder<Staff> $query */
+        $query = parent::getEloquentQuery()->withoutGlobalScopes([SoftDeletingScope::class]);
+
+        return $query->atAnyOfBranches(app(CurrentStaff::class)->get()->limitedToBranchIds());
     }
 
     /**
