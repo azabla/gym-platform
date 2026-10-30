@@ -553,6 +553,27 @@ php artisan gyms:create --name="Bole Fitness" --slug=bole-fitness --owner-name="
 
 It asks for anything left out. `--timezone` (default `Africa/Addis_Ababa`) and `--branch` (default `Main Branch`) are optional. The owner gets an SMS with a link, valid for 7 days, to set their password. See ADR 0019.
 
+## A free demo on Render
+
+Until the gym has a server, the API and the staff panel can run on Render's free tier with Neon's free Postgres (ADR 0020). It's for building and showing the members app, not for real gyms: it sleeps after about 15 minutes idle, and SMS go to the log.
+
+1. **Database:** sign up at [neon.tech](https://neon.tech), create a project (Postgres 17), and copy its connection string (`postgresql://…?sslmode=require`).
+2. **App key:** run `make artisan c="key:generate --show"` and copy the `base64:…` it prints.
+3. **Service:** sign up at [render.com](https://render.com) with GitHub, choose **New → Blueprint**, and pick this repository. Render reads `render.yaml` and asks for:
+   - `APP_KEY`: the key from step 2;
+   - `DB_URL`: the connection string from step 1;
+   - `APP_URL`: the service's address, such as `https://gym-platform.onrender.com` (set it after the first deploy shows the address, then redeploy).
+4. **First deploy:** it builds the image, migrates and seeds Demo Gym. Check `https://<your-address>/up`, then sign in at `/staff` with `0911 00 00 01` / `password`.
+5. **Redeploys:** each push to `main` deploys again. **Manual Deploy** in Render's dashboard redeploys by hand.
+
+Reading SMS codes: in Render's dashboard open **Logs** and search for `SMS to +2519…`. Set `SEED_DEMO` to `false` once you no longer want the demo data topped up at each start.
+
+To run the production image locally:
+
+```bash
+docker build --file docker/php/Dockerfile --tag gym-platform:prod .
+```
+
 ## Troubleshooting
 
 **"port is already allocated".** Something on your machine already uses that port (often a local PostgreSQL). Set a different one in `.env`, for example `FORWARD_DB_PORT=5433`, then `make up`.

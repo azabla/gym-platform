@@ -7,7 +7,8 @@ Laravel is scaffolded and dependencies are locked in `composer.lock`. For a new 
 ## Where things live
 
 ```text
-docker/                    Dockerfile, nginx, Postgres init scripts, storage config
+docker/                    Dockerfile (dev and prod stages), nginx, Postgres init scripts, storage config; production/ holds the prod image's nginx, PHP, supervisor and start script
+render.yaml                A free Render demo of the app, from the prod image (ADR 0020)
 app/Domains/<Domain>/      Business code, one folder per domain
 app/Domains/Shared/        Small, framework-free building blocks used by every domain (Money, PhoneNumber, ...)
 app/Domains/Identity/      Users: identities that can log in, independent of any gym; sign-in codes and password links
@@ -103,6 +104,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0017](adr/0017-staff-panel.md) | The staff panel |
 | [0018](adr/0018-front-desk-in-the-staff-panel.md) | Working the front desk in the staff panel |
 | [0019](adr/0019-gyms-and-staff.md) | Gyms and staff |
+| [0020](adr/0020-production-image-and-a-free-demo-host.md) | A production image, and a free demo host |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 
