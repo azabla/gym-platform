@@ -69,6 +69,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Trusted Proxies
+    |--------------------------------------------------------------------------
+    |
+    | The load balancers in front of the app, when a host has one (ADR 0020):
+    | "*" for any, or a comma-separated list of addresses. Links and redirects
+    | then use https, and rate limits see the client's IP. Empty in
+    | development, where nothing stands in front of the app.
+    |
+    */
+
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

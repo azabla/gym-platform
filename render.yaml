@@ -1,0 +1,53 @@
+# A free demo of the API and the staff panel on Render (ADR 0020), for building
+# and showing the members app until the gym has a real server. Not for real
+# gyms: the free service sleeps when idle, and SMS and pushes go to the log.
+#
+# The database is Neon's free Postgres; paste its connection string as DB_URL.
+# See docs/development-setup.md, "A free demo on Render".
+
+services:
+  - type: web
+    name: gym-platform
+    runtime: docker
+    plan: free
+    dockerfilePath: ./docker/php/Dockerfile
+    dockerContext: .
+    healthCheckPath: /up
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: APP_NAME
+        value: Gym Platform
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_URL
+        sync: false
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: FILESYSTEM_DISK
+        value: local
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: info
+      - key: TRUSTED_PROXIES
+        value: "*"
+      - key: SMS_DRIVER
+        value: log
+      - key: PUSH_DRIVER
+        value: log
+      - key: SEED_DEMO
+        value: "true"

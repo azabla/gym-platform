@@ -102,3 +102,59 @@ jobs:
 
       - name: Run tests
         run: php artisan test
+
+  production-image:
+    name: Production image
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: gym
+          POSTGRES_USER: gym
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U gym -d gym"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build the image
+        run: docker build --file docker/php/Dockerfile --tag gym-platform:ci .
+
+      # Start it as Render would (ADR 0020), against the Postgres service, and
+      # check it migrates, seeds the demo gym and answers.
+      - name: Start the image
+        run: |
+          docker run --detach --name gym --network host \
+            --env APP_ENV=production --env APP_DEBUG=false \
+            --env APP_KEY="base64:$(openssl rand -base64 32)" \
+            --env APP_URL=http://localhost:8080 \
+            --env DB_CONNECTION=pgsql --env DB_URL=postgres://gym:secret@127.0.0.1:5432/gym \
+            --env SESSION_DRIVER=database --env CACHE_STORE=database --env QUEUE_CONNECTION=database \
+            --env FILESYSTEM_DISK=local --env LOG_CHANNEL=stderr \
+            --env SMS_DRIVER=log --env PUSH_DRIVER=log --env SEED_DEMO=true \
+            gym-platform:ci
+
+      - name: Check it answers
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl --silent --fail http://localhost:8080/up > /dev/null; then break; fi
+            sleep 2
+          done
+          curl --silent --fail http://localhost:8080/up > /dev/null || { docker logs gym; exit 1; }
+          curl --silent --fail --output /dev/null http://localhost:8080/staff/login || { docker logs gym; exit 1; }
+          curl --silent --fail http://localhost:8080/api/v1/auth/tokens \
+            -H 'Accept: application/json' -H 'Content-Type: application/json' \
+            -d '{"phone":"0911 00 00 01","password":"password","device_name":"ci"}' | grep -q '"token"' \
+            || { docker logs gym; exit 1; }
+
+      - name: Show the logs
+        if: always()
+        run: docker logs gym || true

@@ -6,9 +6,10 @@
 # Multi-stage build:
 #   base -> everything production also needs (PHP + extensions + Composer)
 #   dev  -> base + developer tools + a non-root user matching your host user
+#   prod -> base + the code, `composer install --no-dev`, nginx and the
+#           workers in one container (the default target; see ADR 0020)
 #
-# A later lesson adds a "prod" stage that copies the code in and runs
-# `composer install --no-dev`. Dev mounts the code as a volume instead.
+# Dev mounts the code as a volume instead (compose.yaml asks for `dev`).
 # -----------------------------------------------------------------------------
 
 ARG PHP_VERSION=8.4
@@ -55,3 +56,32 @@ RUN (getent group "${GID}" || groupadd --gid "${GID}" app) \
     && useradd --uid "${UID}" --gid "${GID}" --create-home --shell /bin/bash app
 
 USER app
+
+
+FROM base AS prod
+
+# nginx serves the app and supervisor runs PHP-FPM, nginx, the queue worker
+# and the scheduler side by side, so one container is the whole app.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends nginx supervisor unzip \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /etc/nginx/sites-enabled/default
+
+COPY docker/production/php.ini /usr/local/etc/php/conf.d/zz-production.ini
+COPY docker/production/nginx.conf /etc/nginx/conf.d/gym.conf
+COPY docker/production/supervisord.conf /etc/supervisor/conf.d/gym.conf
+COPY docker/production/entrypoint.sh /usr/local/bin/gym-entrypoint
+
+# Dependencies first, so a code change doesn't reinstall them.
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --no-autoloader --no-interaction --no-progress --prefer-dist
+
+# Its scripts discover packages and publish Filament's assets.
+COPY . .
+RUN composer dump-autoload --optimize --no-dev \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod +x /usr/local/bin/gym-entrypoint
+
+EXPOSE 8080
+
+ENTRYPOINT ["gym-entrypoint"]

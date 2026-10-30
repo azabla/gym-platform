@@ -14,6 +14,7 @@ use App\Domains\Shared\PhoneNumber\Exceptions\InvalidPhoneNumber;
 use App\Domains\Shared\PhoneNumber\PhoneNumber;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -37,6 +38,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->storeAliasesInPolymorphicColumns();
+        $this->trustTheHostsProxies();
         $this->limitSignInAttempts();
         $this->limitSmsSignIn();
     }
@@ -78,6 +80,21 @@ class AppServiceProvider extends ServiceProvider
             'user' => User::class,
             'member' => Member::class,
         ]);
+    }
+
+    /**
+     * Trust the host's load balancer, when TRUSTED_PROXIES names it, so
+     * links use https and rate limits see the client's IP (ADR 0020).
+     */
+    private function trustTheHostsProxies(): void
+    {
+        $proxies = config('app.trusted_proxies');
+
+        if (! is_string($proxies) || $proxies === '') {
+            return;
+        }
+
+        TrustProxies::at($proxies === '*' ? '*' : array_map('trim', explode(',', $proxies)));
     }
 
     /**
