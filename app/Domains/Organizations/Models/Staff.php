@@ -191,6 +191,31 @@ class Staff extends Model
     }
 
     /**
+     * Whether this staff member may give someone the role at the branches
+     * (all of them when none are given): only a role they manage, and only
+     * branches they work at themselves. Owners always work at all branches,
+     * so the branches don't matter for them (ADR 0019).
+     */
+    public function mayAssign(StaffRole $role, Branch ...$onlyAtBranches): bool
+    {
+        if (! $role->isManagedBy($this->role)) {
+            return false;
+        }
+
+        if ($role === StaffRole::Owner || $onlyAtBranches === []) {
+            return $this->works_at_all_branches;
+        }
+
+        foreach ($onlyAtBranches as $branch) {
+            if (! $this->worksAt($branch)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Staff who work at any of the branches, those at all branches included;
      * every staff member when the branches are null (all of them).
      *

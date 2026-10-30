@@ -33,6 +33,7 @@ use App\Http\Controllers\Api\V1\Organizations\PaymentController;
 use App\Http\Controllers\Api\V1\Organizations\PaymentLinkController;
 use App\Http\Controllers\Api\V1\Organizations\PlanController;
 use App\Http\Controllers\Api\V1\Organizations\RefundController;
+use App\Http\Controllers\Api\V1\Organizations\StaffController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
@@ -158,6 +159,13 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     ->name('check-ins.scan');
                 Route::post('members/{member}/check-ins', [CheckInController::class, 'store'])
                     ->name('members.check-ins.store');
+                Route::apiResource('staff', StaffController::class)->parameters(['staff' => 'staff']);
+                Route::post('staff/{staff}/restore', [StaffController::class, 'restore'])
+                    ->withTrashed()
+                    ->name('staff.restore');
+                Route::post('staff/{staff}/invite', [StaffController::class, 'invite'])
+                    ->middleware('throttle:5,1')
+                    ->name('staff.invite');
                 Route::apiResource('announcements', AnnouncementController::class)->only(['index', 'store', 'update']);
                 Route::post('announcements/{announcement}/cancel', [AnnouncementController::class, 'cancel'])
                     ->name('announcements.cancel');
