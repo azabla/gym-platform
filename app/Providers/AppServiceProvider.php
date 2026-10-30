@@ -81,12 +81,17 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Allow five sign-in attempts a minute for each email address and IP.
+     * Allow five sign-in attempts a minute for each phone number (or email
+     * address) and IP.
      */
     private function limitSignInAttempts(): void
     {
         RateLimiter::for('login', function (Request $request): Limit {
-            return Limit::perMinute(5)->by(Str::lower($request->string('email')->toString()).'|'.$request->ip());
+            $signsInWith = $request->filled('phone')
+                ? $this->phoneNumberIn($request)
+                : Str::lower($request->string('email')->toString());
+
+            return Limit::perMinute(5)->by($signsInWith.'|'.$request->ip());
         });
     }
 

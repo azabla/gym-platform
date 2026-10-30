@@ -39,7 +39,7 @@ class OrganizationSeeder extends Seeder
 
                 $owner = User::query()->firstOrCreate(
                     ['email' => 'owner@demo-gym.test'],
-                    ['name' => 'Demo Owner', 'password' => 'password'],
+                    ['name' => 'Demo Owner', 'phone' => '+251911000001', 'password' => 'password'],
                 );
 
                 $organization->staff()->firstOrCreate(
@@ -49,7 +49,7 @@ class OrganizationSeeder extends Seeder
 
                 $receptionist = User::query()->firstOrCreate(
                     ['email' => 'frontdesk@demo-gym.test'],
-                    ['name' => 'Demo Receptionist', 'password' => 'password'],
+                    ['name' => 'Demo Receptionist', 'phone' => '+251911000002', 'password' => 'password'],
                 );
 
                 $organization->staff()
@@ -58,7 +58,7 @@ class OrganizationSeeder extends Seeder
 
                 $accountant = User::query()->firstOrCreate(
                     ['email' => 'accounts@demo-gym.test'],
-                    ['name' => 'Demo Accountant', 'password' => 'password'],
+                    ['name' => 'Demo Accountant', 'phone' => '+251911000003', 'password' => 'password'],
                 );
 
                 $organization->staff()->firstOrCreate(

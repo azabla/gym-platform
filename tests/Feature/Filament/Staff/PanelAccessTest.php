@@ -20,17 +20,40 @@ beforeEach(function () {
     Filament::setCurrentPanel('staff');
 });
 
-it('signs staff in with their email and password and takes them to their gym', function () {
+it('signs staff in with their phone and password and takes them to their gym', function () {
     $staff = Staff::factory()->for($this->gym)->create();
-    $staff->user->update(['email' => 'hana@example.com', 'password' => 'secret-password']);
+    $staff->user->update(['phone' => '+251911223344', 'password' => 'secret-password']);
 
     Livewire::test(Login::class)
-        ->fillForm(['email' => 'Hana@Example.com', 'password' => 'secret-password'])
+        ->fillForm(['phone' => '0911 22 33 44', 'password' => 'secret-password'])
         ->call('authenticate')
         ->assertHasNoFormErrors()
         ->assertRedirect(route('filament.staff.pages.dashboard', ['tenant' => 'demo-gym']));
 
     $this->assertAuthenticatedAs(PanelUser::query()->findOrFail($staff->user_id), 'staff_panel');
+});
+
+it('refuses a wrong password or a number that isn\'t a phone', function () {
+    $staff = Staff::factory()->for($this->gym)->create();
+    $staff->user->update(['phone' => '+251911223344', 'password' => 'secret-password']);
+
+    Livewire::test(Login::class)
+        ->fillForm(['phone' => '0911 22 33 44', 'password' => 'wrong-password'])
+        ->call('authenticate')
+        ->assertHasFormErrors(['phone']);
+
+    Livewire::test(Login::class)
+        ->fillForm(['phone' => '12', 'password' => 'secret-password'])
+        ->call('authenticate')
+        ->assertHasFormErrors(['phone']);
+
+    $this->assertGuest('staff_panel');
+});
+
+it('links to resetting a forgotten password from the sign-in page', function () {
+    $this->get(route('filament.staff.auth.login'))
+        ->assertOk()
+        ->assertSee(route('staff.password.forgot'), escape: false);
 });
 
 it('opens the gym the staff member works at, acting as that gym', function () {
