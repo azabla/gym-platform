@@ -119,7 +119,7 @@ class CheckIn extends Model
     /** @return BelongsTo<Staff, $this> */
     public function checkedInBy(): BelongsTo
     {
-        return $this->belongsTo(Staff::class, 'checked_in_by_staff_id');
+        return $this->belongsTo(Staff::class, 'checked_in_by_staff_id')->withTrashed();
     }
 
     /**

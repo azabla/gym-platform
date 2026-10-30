@@ -345,13 +345,13 @@ class Membership extends Model
     /** @return BelongsTo<Staff, $this> */
     public function soldBy(): BelongsTo
     {
-        return $this->belongsTo(Staff::class, 'sold_by_staff_id');
+        return $this->belongsTo(Staff::class, 'sold_by_staff_id')->withTrashed();
     }
 
     /** @return BelongsTo<Staff, $this> */
     public function cancelledBy(): BelongsTo
     {
-        return $this->belongsTo(Staff::class, 'cancelled_by_staff_id');
+        return $this->belongsTo(Staff::class, 'cancelled_by_staff_id')->withTrashed();
     }
 
     /**

@@ -189,7 +189,7 @@ class Announcement extends Model
     /** @return BelongsTo<Staff, $this> */
     public function postedBy(): BelongsTo
     {
-        return $this->belongsTo(Staff::class, 'posted_by_staff_id');
+        return $this->belongsTo(Staff::class, 'posted_by_staff_id')->withTrashed();
     }
 
     /**

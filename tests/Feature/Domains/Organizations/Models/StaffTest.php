@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domains\Identity\Models\User;
 use App\Domains\Organizations\Enums\StaffRole;
+use App\Domains\Organizations\Exceptions\StaffRefused;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Models\Staff;
@@ -91,3 +92,79 @@ it('cannot be assigned to a branch of another organization', function () {
 
     $staff->assignToBranches($otherOrganizationsBranch);
 })->throws(QueryException::class, 'violates foreign key constraint');
+
+it('adds a user to the gym at the given branches, or at all of them', function () {
+    $organization = actingAsOrganization(Organization::factory()->create());
+    $bole = Branch::factory()->for($organization)->create();
+
+    $receptionist = Staff::add(User::factory()->create(), StaffRole::Receptionist, $bole);
+    $manager = Staff::add(User::factory()->create(), StaffRole::Manager);
+
+    expect($receptionist->role)->toBe(StaffRole::Receptionist)
+        ->and($receptionist->limitedToBranchIds())->toBe([$bole->id])
+        ->and($manager->works_at_all_branches)->toBeTrue();
+});
+
+it('refuses to add someone who already works at the gym', function () {
+    $organization = actingAsOrganization(Organization::factory()->create());
+    $staff = Staff::factory()->for($organization)->create();
+
+    Staff::add($staff->user, StaffRole::Trainer);
+})->throws(StaffRefused::class, 'This person already works at the gym.');
+
+it('gives someone archived their old record back when added again', function () {
+    $organization = actingAsOrganization(Organization::factory()->create());
+    $staff = Staff::factory()->for($organization)->create();
+    $staff->archive();
+
+    $again = Staff::add($staff->user, StaffRole::Trainer);
+
+    expect($again->id)->toBe($staff->id)
+        ->and($again->trashed())->toBeFalse()
+        ->and($again->role)->toBe(StaffRole::Trainer)
+        ->and(Staff::query()->withTrashed()->count())->toBe(1);
+});
+
+it('puts an owner at all branches, whatever branches are given', function () {
+    $organization = actingAsOrganization(Organization::factory()->create());
+    $bole = Branch::factory()->for($organization)->create();
+    $staff = Staff::factory()->for($organization)->create();
+    $staff->assignToBranches($bole);
+
+    $staff->reassign(StaffRole::Owner, $bole);
+
+    expect($staff->fresh()->role)->toBe(StaffRole::Owner)
+        ->and($staff->fresh()->works_at_all_branches)->toBeTrue();
+});
+
+it('never demotes or archives the gym\'s last owner', function () {
+    $organization = actingAsOrganization(Organization::factory()->create());
+    $owner = Staff::factory()->for($organization)->owner()->create();
+
+    expect(fn () => $owner->reassign(StaffRole::Manager))->toThrow(StaffRefused::class, 'The gym must keep at least one owner.')
+        ->and(fn () => $owner->archive())->toThrow(StaffRefused::class)
+        ->and($owner->fresh()->role)->toBe(StaffRole::Owner)
+        ->and($owner->fresh()->trashed())->toBeFalse();
+
+    $secondOwner = Staff::factory()->for($organization)->owner()->create();
+    $owner->archive();
+
+    expect($owner->trashed())->toBeTrue()
+        ->and(fn () => $secondOwner->archive())->toThrow(StaffRefused::class);
+});
+
+it('covers staff who work only at its own branches', function () {
+    $organization = actingAsOrganization(Organization::factory()->create());
+    $bole = Branch::factory()->for($organization)->create();
+    $piassa = Branch::factory()->for($organization)->create();
+    $atBole = Staff::factory()->for($organization)->create();
+    $atBole->assignToBranches($bole);
+    $atBoth = Staff::factory()->for($organization)->create();
+    $atBoth->assignToBranches($bole, $piassa);
+    $everywhere = Staff::factory()->for($organization)->create();
+
+    expect($everywhere->covers($atBoth))->toBeTrue()
+        ->and($atBoth->covers($atBole))->toBeTrue()
+        ->and($atBole->covers($atBoth))->toBeFalse()
+        ->and($atBoth->covers($everywhere))->toBeFalse();
+});

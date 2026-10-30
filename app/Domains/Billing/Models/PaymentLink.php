@@ -272,13 +272,13 @@ class PaymentLink extends Model
     /** @return BelongsTo<Staff, $this> */
     public function createdBy(): BelongsTo
     {
-        return $this->belongsTo(Staff::class, 'created_by_staff_id');
+        return $this->belongsTo(Staff::class, 'created_by_staff_id')->withTrashed();
     }
 
     /** @return BelongsTo<Staff, $this> */
     public function cancelledBy(): BelongsTo
     {
-        return $this->belongsTo(Staff::class, 'cancelled_by_staff_id');
+        return $this->belongsTo(Staff::class, 'cancelled_by_staff_id')->withTrashed();
     }
 
     /**
