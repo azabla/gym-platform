@@ -9,7 +9,7 @@ use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Staff\StoreStaffRequest;
 use App\Http\Requests\Api\V1\Staff\UpdateStaffRequest;
-use App\Http\Resources\V1\StaffResource;
+use App\Http\Resources\V1\StaffMemberResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -37,14 +37,14 @@ class StaffController extends Controller
 
         $staff = Staff::query()
             ->atAnyOfBranches($this->currentStaff->get()->limitedToBranchIds())
-            ->with(StaffResource::RELATIONS)
+            ->with(StaffMemberResource::RELATIONS)
             ->orderBy('id');
 
         if ($request->boolean('archived')) {
             $staff->onlyTrashed();
         }
 
-        return StaffResource::collection($staff->paginate(25)->withQueryString());
+        return StaffMemberResource::collection($staff->paginate(25)->withQueryString());
     }
 
     /**
@@ -63,26 +63,26 @@ class StaffController extends Controller
 
         PasswordLink::invite($staff->user, $this->currentStaff->get()->organization->name);
 
-        return (new StaffResource($staff->load(StaffResource::RELATIONS)))
+        return (new StaffMemberResource($staff->load(StaffMemberResource::RELATIONS)))
             ->response()
             ->setStatusCode(Response::HTTP_CREATED);
     }
 
-    public function show(Staff $staff): StaffResource
+    public function show(Staff $staff): StaffMemberResource
     {
         Gate::authorize('view', $staff);
 
-        return new StaffResource($staff->load(StaffResource::RELATIONS));
+        return new StaffMemberResource($staff->load(StaffMemberResource::RELATIONS));
     }
 
     /**
      * Change the role, the branches, or both; what isn't sent stays.
      */
-    public function update(UpdateStaffRequest $request, Staff $staff): StaffResource
+    public function update(UpdateStaffRequest $request, Staff $staff): StaffMemberResource
     {
         $staff->reassign($request->role(), ...$request->branches());
 
-        return new StaffResource($staff->refresh()->load(StaffResource::RELATIONS));
+        return new StaffMemberResource($staff->refresh()->load(StaffMemberResource::RELATIONS));
     }
 
     /**
@@ -98,13 +98,13 @@ class StaffController extends Controller
         return response()->noContent();
     }
 
-    public function restore(Staff $staff): StaffResource
+    public function restore(Staff $staff): StaffMemberResource
     {
         Gate::authorize('restore', $staff);
 
         $staff->restore();
 
-        return new StaffResource($staff->load(StaffResource::RELATIONS));
+        return new StaffMemberResource($staff->load(StaffMemberResource::RELATIONS));
     }
 
     /**
