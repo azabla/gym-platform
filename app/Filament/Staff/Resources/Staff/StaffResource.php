@@ -60,13 +60,13 @@ class StaffResource extends Resource
                     ->columns(2)
                     ->schema([
                         TextInput::make('name')
-                            ->required()
+                            ->required(fn (string $operation): bool => $operation === 'create')
                             ->maxLength(255)
                             ->disabled(fn (string $operation): bool => $operation === 'edit')
                             ->dehydrated(fn (string $operation): bool => $operation === 'create'),
                         TextInput::make('phone')
                             ->tel()
-                            ->required()
+                            ->required(fn (string $operation): bool => $operation === 'create')
                             ->rules([new ValidPhoneNumber])
                             ->helperText('They sign in with this number, and get an SMS to set their password.')
                             ->disabled(fn (string $operation): bool => $operation === 'edit')
