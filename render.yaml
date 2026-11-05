@@ -1,6 +1,7 @@
 # Render Blueprint for the staging deploy (ADR 0020).
 # In Render: New > Blueprint, pick this repository and the "deployment" branch.
 # Values marked "sync: false" are asked for once in the dashboard and never committed.
+# The database is on Neon (neon.tech), outside Render; see ADR 0020.
 
 services:
   - type: web
@@ -35,10 +36,9 @@ services:
 
       - key: DB_CONNECTION
         value: pgsql
+      # Neon's direct (not pooled) connection string, ending in ?sslmode=require.
       - key: DB_URL
-        fromDatabase:
-          name: gym-db
-          property: connectionString
+        sync: false
 
       # Render allows one free Key Value per workspace, so staging keeps
       # sessions, cache and the queue in Postgres instead of Redis.
@@ -79,11 +79,3 @@ services:
         value: log
       - key: CHAPA_BASE_URL
         value: https://api.chapa.co/v1
-
-databases:
-  - name: gym-db
-    plan: free
-    region: frankfurt
-    postgresMajorVersion: "17"
-    databaseName: gym
-    user: gym

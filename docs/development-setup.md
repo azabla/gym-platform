@@ -555,7 +555,12 @@ It asks for anything left out. `--timezone` (default `Africa/Addis_Ababa`) and `
 
 ## Deploying staging to Render
 
-Staging runs on Render's free plan from the `deployment` branch: one web service that also runs the queue worker and the scheduler, and Postgres, which also holds the sessions, cache and queue (no Redis on staging). Everything is declared in `render.yaml`, and the image is `docker/render/Dockerfile`. See ADR 0020.
+Staging runs on Render's free plan from the `deployment` branch: one web service that also runs the queue worker and the scheduler. Its database is on Neon's free plan, and holds the sessions, cache and queue too (no Redis on staging). Everything is declared in `render.yaml`, and the image is `docker/render/Dockerfile`. See ADR 0020.
+
+### Once: the database on Neon
+
+1. At [neon.tech](https://neon.tech), create a project in **AWS Europe Central 1 (Frankfurt)**, the region of the Render service, with Postgres 17 and a database named `gym`.
+2. Under **Connect**, turn **Connection pooling** off and copy the connection string. It ends in `?sslmode=require`. The pooled one goes through PgBouncer, which doesn't keep Laravel's prepared statements between queries.
 
 ### Once: file storage on Cloudflare R2
 
@@ -564,13 +569,14 @@ Staging runs on Render's free plan from the `deployment` branch: one web service
 
 ### Once: the Blueprint
 
-1. In Render, choose **New > Blueprint**, connect the GitHub repository, and choose the `deployment` branch. Render reads `render.yaml` and lists `gym-platform` and `gym-db`.
+1. In Render, choose **New > Blueprint**, connect the GitHub repository, and choose the `deployment` branch. Render reads `render.yaml` and lists `gym-platform`.
 2. It asks for the values that are never committed:
 
    | Variable | Value |
    |---|---|
    | `APP_KEY` | The output of `make artisan c="key:generate --show"` |
    | `APP_URL` | Leave empty: the service's `onrender.com` address is used |
+   | `DB_URL` | Neon's direct connection string |
    | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | The R2 token's keys |
    | `AWS_BUCKET` | The bucket's name |
    | `AWS_ENDPOINT` | `https://<account id>.r2.cloudflarestorage.com` |
@@ -582,11 +588,11 @@ After that, every push to `deployment` deploys again. If a build or a migration 
 
 ### The first gym on staging
 
-The free plan has no shell, so create gyms from your machine against the staging database. In Render, copy `gym-db`'s **External Database URL**, then:
+Render's free plan has no shell, so create gyms from your machine against the staging database, with the same Neon connection string:
 
 ```bash
 docker compose exec \
-  -e DB_URL="postgresql://gym:...@....frankfurt-postgres.render.com/gym?sslmode=require" \
+  -e DB_URL="postgresql://...@ep-....eu-central-1.aws.neon.tech/gym?sslmode=require" \
   -e APP_URL="https://gym-platform.onrender.com" \
   -e QUEUE_CONNECTION=sync -e SMS_DRIVER=log \
   app php artisan gyms:create --name="Bole Fitness" --slug=bole-fitness --owner-name="Meron Assefa" --owner-phone="0911 22 33 44"
@@ -597,7 +603,7 @@ docker compose exec \
 ### What to expect from the free plan
 
 - The service sleeps after 15 minutes without visits, and the first visit after that takes about a minute. While it sleeps, scheduled work waits until it wakes.
-- Render's free Postgres expires 30 days after it is created. Staging data is disposable: create the database again from the Blueprint and run `gyms:create` again.
+- Neon's free plan doesn't expire, but holds 0.5 GB and suspends the database when idle; the first query after that waits a moment while it wakes.
 
 ## Troubleshooting
 
