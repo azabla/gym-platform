@@ -5,9 +5,10 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Route;
 
 /**
- * Boot the application again with TRUSTED_PROXIES set as the host would set it.
+ * Read config/trustedproxy.php with TRUSTED_PROXIES set as the host would set
+ * it, or unset, and use the result as the application's config.
  */
-function bootWithTrustedProxies(?string $proxies): void
+function configureTrustedProxiesFromEnvironment(?string $proxies): void
 {
     if ($proxies === null) {
         putenv('TRUSTED_PROXIES');
@@ -17,13 +18,15 @@ function bootWithTrustedProxies(?string $proxies): void
         $_ENV['TRUSTED_PROXIES'] = $_SERVER['TRUSTED_PROXIES'] = $proxies;
     }
 
-    test()->refreshApplication();
+    config(['trustedproxy' => require config_path('trustedproxy.php')]);
+}
 
+beforeEach(function () {
     Route::get('/proxy-check', fn () => [
         'secure' => request()->isSecure(),
         'url' => url('/panel'),
     ]);
-}
+});
 
 afterEach(function () {
     putenv('TRUSTED_PROXIES');
@@ -31,7 +34,7 @@ afterEach(function () {
 });
 
 test('requests through a trusted proxy keep the https and host the visitor used', function () {
-    bootWithTrustedProxies('*');
+    configureTrustedProxiesFromEnvironment('*');
 
     $this->withHeaders(['X-Forwarded-Proto' => 'https', 'X-Forwarded-Host' => 'gym.onrender.com'])
         ->get('/proxy-check')
@@ -39,7 +42,7 @@ test('requests through a trusted proxy keep the https and host the visitor used'
 });
 
 test('forwarded headers are ignored when TRUSTED_PROXIES is not set', function () {
-    bootWithTrustedProxies(null);
+    configureTrustedProxiesFromEnvironment(null);
 
     $response = $this->withHeaders(['X-Forwarded-Proto' => 'https', 'X-Forwarded-Host' => 'evil.example'])
         ->get('/proxy-check');
