@@ -555,7 +555,7 @@ It asks for anything left out. `--timezone` (default `Africa/Addis_Ababa`) and `
 
 ## Deploying staging to Render
 
-Staging runs on Render's free plan from the `deployment` branch: one web service that also runs the queue worker and the scheduler, Postgres and Key Value (Redis). Everything is declared in `render.yaml`, and the image is `docker/render/Dockerfile`. See ADR 0020.
+Staging runs on Render's free plan from the `deployment` branch: one web service that also runs the queue worker and the scheduler, and Postgres, which also holds the sessions, cache and queue (no Redis on staging). Everything is declared in `render.yaml`, and the image is `docker/render/Dockerfile`. See ADR 0020.
 
 ### Once: file storage on Cloudflare R2
 
@@ -564,7 +564,7 @@ Staging runs on Render's free plan from the `deployment` branch: one web service
 
 ### Once: the Blueprint
 
-1. In Render, choose **New > Blueprint**, connect the GitHub repository, and choose the `deployment` branch. Render reads `render.yaml` and lists `gym-platform`, `gym-db` and `gym-redis`.
+1. In Render, choose **New > Blueprint**, connect the GitHub repository, and choose the `deployment` branch. Render reads `render.yaml` and lists `gym-platform` and `gym-db`.
 2. It asks for the values that are never committed:
 
    | Variable | Value |

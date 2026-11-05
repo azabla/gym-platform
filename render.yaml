@@ -40,21 +40,16 @@ services:
           name: gym-db
           property: connectionString
 
-      - key: REDIS_CLIENT
-        value: phpredis
-      - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: gym-redis
-          property: connectionString
+      # Render allows one free Key Value per workspace, so staging keeps
+      # sessions, cache and the queue in Postgres instead of Redis.
       - key: SESSION_DRIVER
-        value: redis
+        value: database
       - key: SESSION_SECURE_COOKIE
         value: "true"
       - key: CACHE_STORE
-        value: redis
+        value: database
       - key: QUEUE_CONNECTION
-        value: redis
+        value: database
 
       # Cloudflare R2 through the s3 disk. The endpoint is
       # https://<account id>.r2.cloudflarestorage.com; AWS_URL is the bucket's public URL.
@@ -84,15 +79,6 @@ services:
         value: log
       - key: CHAPA_BASE_URL
         value: https://api.chapa.co/v1
-
-  - type: keyvalue
-    name: gym-redis
-    plan: free
-    region: frankfurt
-    # Queued jobs must never be evicted to make room.
-    maxmemoryPolicy: noeviction
-    # Empty: reachable only from services in this Render account.
-    ipAllowList: []
 
 databases:
   - name: gym-db
