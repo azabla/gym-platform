@@ -192,6 +192,8 @@ Use the Docker/Make commands above for this setup. The scaffold's `composer run 
 
 ## Trying the API
 
+Every endpoint, with its fields and answers, is in the API docs at http://localhost:8080/docs/api, generated from the code (ADR 0021). Sign in to the staff panel first (below); the docs then open. To try a call there, get a token from **Sign in** (`POST /api/v1/auth/tokens`), choose **Authorize** and paste it. `/docs/api.json` is the OpenAPI document, for Postman or an app's client. `make artisan c=scramble:analyze` lists what Scramble couldn't work out from the code.
+
 After pulling changes that add packages or migrations, install and rebuild the database with the demo data:
 
 ```bash

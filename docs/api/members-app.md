@@ -2,6 +2,8 @@
 
 The contract between the backend and the members app (Volt). Where this file and the Volt doc disagree, this file wins. Decisions behind it: ADR 0010 (sign-in, memberships, paying), ADR 0011 (check-ins and QR codes), ADR 0012 (notifications), ADR 0013 (buying a membership) and ADR 0014 (the home screen).
 
+Every endpoint's fields and answers are also in the generated API docs at `/docs/api`, for staff signed in to the panel (ADR 0021). This file covers what code can't show: the QR format, reason codes at the door, push data and how the pieces fit together.
+
 ## Conventions
 
 - **Base URL:** `/api/v1`. Send `Accept: application/json` on every request, and `Authorization: Bearer <token>` once signed in.

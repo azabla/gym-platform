@@ -22,6 +22,8 @@ class TokenController extends Controller
      *
      * The web guard checks the password inside a Timebox, so an unknown phone
      * and a wrong password take the same time and get the same answer.
+     *
+     * @unauthenticated
      */
     public function store(IssueTokenRequest $request): JsonResponse
     {

@@ -17,6 +17,8 @@ class ChapaCallbackController extends Controller
      * link's tx_ref as trx_ref. The call itself proves nothing, so we find the
      * link and ask Chapa ourselves, with the link's gym's own key, before
      * recording anything (see PaymentLink::check()). See ADR 0009.
+     *
+     * @unauthenticated
      */
     public function __invoke(Request $request, CurrentOrganization $currentOrganization): JsonResponse
     {

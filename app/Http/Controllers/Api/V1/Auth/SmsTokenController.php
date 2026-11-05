@@ -18,6 +18,8 @@ class SmsTokenController extends Controller
      * Sign in with a code sent by SMS: exchange the phone number and its code
      * for an API token for one device. The first sign-in creates the user,
      * named after the member. See ADR 0010.
+     *
+     * @unauthenticated
      */
     public function store(IssueSmsTokenRequest $request): JsonResponse
     {

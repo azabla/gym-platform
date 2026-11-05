@@ -54,6 +54,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Organization | The gym business. The tenant. |
 | Branch | A physical location of an organization. |
 | User | An identity that can log in: staff with their phone and a password, members with a code sent to their phone. One user per phone number. |
+| API docs | The interactive API documentation at /docs/api (and the OpenAPI document at /docs/api.json), generated from the code by Scramble, for staff signed in to the panel (ADR 0021). |
 | Staff panel | The website at /staff where staff sign in with their phone and password, choose a gym, see its dashboard and lists, work the front desk (members, sales, freezes, payments and check-ins), and, as owners and managers, manage the staff (ADRs 0017 to 0019). |
 | Password link | A one-time link sent by SMS to set a staff member's first password (an invite, valid 7 days) or reset a forgotten one (valid 60 minutes). See ADR 0019. |
 | Archived staff | Staff who left: they can no longer act at the gym, what they recorded still names them, and they can be restored (ADR 0019). |
@@ -104,7 +105,11 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0017](adr/0017-staff-panel.md) | The staff panel |
 | [0018](adr/0018-front-desk-in-the-staff-panel.md) | Working the front desk in the staff panel |
 | [0019](adr/0019-gyms-and-staff.md) | Gyms and staff |
+<<<<<<< HEAD
 | [0020](adr/0020-staging-on-render.md) | Staging on Render |
+=======
+| [0021](adr/0021-api-documentation-with-scramble.md) | API documentation with Scramble |
+>>>>>>> feature/api-docs
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 
