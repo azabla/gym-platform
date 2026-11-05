@@ -593,10 +593,13 @@ Render's free plan has no shell, so create gyms from your machine against the st
 ```bash
 docker compose exec \
   -e DB_URL="postgresql://...@ep-....eu-central-1.aws.neon.tech/gym?sslmode=require" \
+  -e APP_KEY="<the APP_KEY set on Render>" \
   -e APP_URL="https://gym-platform.onrender.com" \
   -e QUEUE_CONNECTION=sync -e SMS_DRIVER=log \
   app php artisan gyms:create --name="Bole Fitness" --slug=bole-fitness --owner-name="Meron Assefa" --owner-phone="0911 22 33 44"
 ```
+
+`APP_KEY` must be staging's own key: password links are stored as a hash keyed with it, so a link made with your local key never works on staging ("This link no longer works"). If that happened, choose **Forgot your password?** on staging's sign-in page; that link is made on Render and arrives in Render's **Logs**.
 
 `QUEUE_CONNECTION=sync` sends the owner's SMS right away instead of queueing it in your local Redis, and `SMS_DRIVER=log` writes it to your own `storage/logs/laravel.log`: `grep 'SMS to +251911223344' storage/logs/laravel.log | tail -1`. Open the link to set the password, then sign in at `/staff`. Staff the owner adds later get their SMS in Render's **Logs**, because staging uses the `log` drivers.
 
