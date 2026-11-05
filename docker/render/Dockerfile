@@ -45,6 +45,11 @@ COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 # Apache expands ${PORT} from the environment when it starts.
 ENV PORT=8080
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
+
+# PHP runs as www-data, whose home is /var/www. Left at /root, libpq can't look
+# for ~/.postgresql/ during the SSL handshake (Neon requires SSL) and refuses
+# to connect with "could not open certificate file: Permission denied".
+ENV HOME=/var/www
 RUN a2enmod rewrite \
     && echo 'ServerName localhost' > /etc/apache2/conf-available/servername.conf \
     && a2enconf servername \
