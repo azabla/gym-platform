@@ -47,7 +47,7 @@ Both dashboards are controllers in the HTTP layer that read from several domains
 
 ### Deferred
 
-- Charts over time (takings by day, check-ins by hour).
+- Charts over time (takings by day, check-ins by hour). ADR 0024 added them, with reports.
 - Comparing with the previous period.
 - Caching. The numbers are computed on each call, which is fine at a gym's size and keeps them exact.
 

@@ -17,6 +17,7 @@ use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -193,4 +194,18 @@ function fakePushes(): PushSender
     app()->instance(PushSender::class, $pushSender);
 
     return $pushSender;
+}
+
+/**
+ * The rows of a CSV report a response streamed, headings first, without the
+ * byte order mark.
+ *
+ * @return list<list<string>>
+ */
+function csvRowsOf(TestResponse $response): array
+{
+    $content = preg_replace('/^\xEF\xBB\xBF/', '', $response->streamedContent()) ?? '';
+    $lines = array_values(array_filter(preg_split('/\r\n|\n/', $content) ?: [], fn (string $line): bool => $line !== ''));
+
+    return array_map(fn (string $line): array => array_map('strval', str_getcsv($line, escape: '')), $lines);
 }

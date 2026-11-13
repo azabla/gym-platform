@@ -8,7 +8,6 @@ use App\Domains\Attendance\Models\CheckIn;
 use App\Domains\Members\Models\Member;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
-use App\Filament\Staff\Resources\CheckIns\CheckInResource;
 use App\Filament\Staff\Resources\Members\MemberResource;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -56,7 +55,7 @@ class CheckInAction extends Action
                 Notification::make()
                     ->danger()
                     ->title("{$record->full_name} is turned away.")
-                    ->body(CheckInResource::reasonLabel($checkIn->reason_code))
+                    ->body($checkIn->reason_code->label())
                     ->send();
             });
     }

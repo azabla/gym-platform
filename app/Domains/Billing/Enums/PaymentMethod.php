@@ -31,4 +31,18 @@ enum PaymentMethod: string
     {
         return $this === self::Chapa;
     }
+
+    /**
+     * The method in words, as the staff panel and reports show it.
+     */
+    public function label(): string
+    {
+        return match ($this) {
+            self::Cash => 'Cash',
+            self::Telebirr => 'telebirr',
+            self::CbeBirr => 'CBE Birr',
+            self::BankTransfer => 'Bank transfer',
+            self::Chapa => 'Chapa',
+        };
+    }
 }

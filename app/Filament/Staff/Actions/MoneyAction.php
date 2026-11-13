@@ -14,7 +14,6 @@ use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Domains\Shared\Money\Money;
 use App\Filament\Staff\Resources\Members\MemberResource;
-use App\Filament\Staff\Resources\Payments\PaymentResource;
 use App\Rules\ValidMoneyAmount;
 use Carbon\CarbonImmutable;
 use Closure;
@@ -66,7 +65,7 @@ abstract class MoneyAction extends Action
                 ->required()
                 ->options(collect(PaymentMethod::cases())
                     ->reject(fn (PaymentMethod $method): bool => $method->isOnline())
-                    ->mapWithKeys(fn (PaymentMethod $method): array => [$method->value => PaymentResource::methodLabel($method)])
+                    ->mapWithKeys(fn (PaymentMethod $method): array => [$method->value => $method->label()])
                     ->all())
                 ->live(),
             TextInput::make('reference')

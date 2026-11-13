@@ -39,6 +39,15 @@ final class PaymentPolicy
         return $this->hasRole($this->staffFor($user), self::ROLES_THAT_TAKE_PAYMENTS);
     }
 
+    /**
+     * Download the payments report: the roles that see the gym's money
+     * (ADR 0024).
+     */
+    public function export(User $user): bool
+    {
+        return $this->staffFor($user)?->role->seesMoney() === true;
+    }
+
     public function view(User $user, Payment $payment): bool
     {
         return $this->hasRole($this->staffFor($user, $payment), self::ROLES_THAT_TAKE_PAYMENTS);

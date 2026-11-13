@@ -37,6 +37,15 @@ final class MembershipPolicy
         return $this->staffFor($user) !== null;
     }
 
+    /**
+     * Download the memberships report, with prices and balances: the roles
+     * that see the gym's money (ADR 0024).
+     */
+    public function export(User $user): bool
+    {
+        return $this->staffFor($user)?->role->seesMoney() === true;
+    }
+
     public function view(User $user, Membership $membership): bool
     {
         return $this->staffFor($user, $membership) !== null;

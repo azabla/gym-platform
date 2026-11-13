@@ -21,6 +21,7 @@ app/Domains/Announcements/ Announcements from a gym to its members, now or sched
 app/Http/                  The API: controllers, form requests, middleware and resources (v1); Me/ folders hold the members app's side
 app/Filament/Staff/        The staff panel at /staff (Filament): its user, tenant middleware, dashboard, widgets and lists
 app/Dashboards/            Figures drawn from several domains, shared by the API and the staff panel
+app/Reports/               CSV reports of payments, memberships, check-ins and members, shared by the API and the staff panel
 app/Providers/Filament/    The staff panel's configuration
 app/Console/Commands/      Artisan commands, such as gyms:create and the check of open payment links
 resources/views/staff-password/ The pages where staff set or reset their password from an SMS link
@@ -55,6 +56,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Branch | A physical location of an organization. |
 | User | An identity that can log in: staff with their phone and a password, members with a code sent to their phone. One user per phone number. |
 | API docs | The interactive API documentation at /docs/api (and the OpenAPI document at /docs/api.json), generated from the code by Scramble, for staff signed in to the panel (ADR 0021). |
+| Report | A CSV file of the gym's payments, memberships sold, check-ins or members, for a period and the staff member's branches, from the API or the panel's lists. Who may download each one depends on the role (ADR 0024). |
 | Staff panel | The website at /staff where staff sign in with their phone and password, choose a gym, see its dashboard and lists, work the front desk (members, sales, freezes, payments and check-ins), and, as owners and managers, manage the staff and set up the gym: plans, branches, opening hours and announcements (ADRs 0017 to 0019 and 0023). |
 | Password link | A one-time link sent by SMS to set a staff member's first password (an invite, valid 7 days) or reset a forgotten one (valid 60 minutes). See ADR 0019. |
 | Archived staff | Staff who left: they can no longer act at the gym, what they recorded still names them, and they can be restored (ADR 0019). |
@@ -109,6 +111,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0021](adr/0021-api-documentation-with-scramble.md) | API documentation with Scramble |
 | [0022](adr/0022-back-from-chapa-and-the-gym-in-pushes.md) | Back from Chapa, and the gym in every push |
 | [0023](adr/0023-gym-setup-in-the-staff-panel.md) | Setting up a gym in the staff panel |
+| [0024](adr/0024-reports-exports-and-charts.md) | Reports, exports and charts over time |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 
