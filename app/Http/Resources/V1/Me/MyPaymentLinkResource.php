@@ -31,6 +31,7 @@ class MyPaymentLinkResource extends JsonResource
             'status' => $this->status,
             'amount' => $this->amount,
             'checkout_url' => $this->status === PaymentLinkStatus::Pending ? $this->checkout_url : null,
+            'return_url' => $this->status === PaymentLinkStatus::Pending ? route('payments.returned') : null,
             'membership_id' => $this->membership_id,
             'plan' => $this->whenLoaded('plan', fn (Plan $plan) => [
                 'id' => $plan->id,

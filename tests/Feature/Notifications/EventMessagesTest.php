@@ -69,6 +69,7 @@ it('tells the member about a payment taken at the desk, in the inbox and by push
             'type' => 'payment_succeeded',
             'notification_id' => $message->id,
             'organization_id' => (string) $this->gym->id,
+            'gym' => $this->gym->slug,
         ]);
 });
 

@@ -105,12 +105,10 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0017](adr/0017-staff-panel.md) | The staff panel |
 | [0018](adr/0018-front-desk-in-the-staff-panel.md) | Working the front desk in the staff panel |
 | [0019](adr/0019-gyms-and-staff.md) | Gyms and staff |
-<<<<<<< HEAD
 | [0020](adr/0020-staging-on-render.md) | Staging on Render |
-=======
 | [0021](adr/0021-api-documentation-with-scramble.md) | API documentation with Scramble |
+| [0022](adr/0022-back-from-chapa-and-the-gym-in-pushes.md) | Back from Chapa, and the gym in every push |
 | [0023](adr/0023-gym-setup-in-the-staff-panel.md) | Setting up a gym in the staff panel |
->>>>>>> feature/api-docs
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 
