@@ -64,7 +64,8 @@ class MembershipResource extends Resource
                             ->state(fn (Membership $record): string => max(0, $record->freeze_days_allowed - $record->freezeDaysUsed())." of {$record->freeze_days_allowed}"),
                         TextEntry::make('freezes')
                             ->state(fn (Membership $record): array => $record->freezes()->orderBy('starts_on')->get()->map(
-                                fn (MembershipFreeze $freeze): string => "{$freeze->starts_on->format('j M Y')} to {$freeze->ends_on->format('j M Y')}: {$freeze->reason}",
+                                fn (MembershipFreeze $freeze): string => "{$freeze->starts_on->format('j M Y')} to {$freeze->ends_on->format('j M Y')}: {$freeze->reason}"
+                                    .($freeze->isFromTheApp() ? ' (by the member, in the app)' : ''),
                             )->all())
                             ->listWithLineBreaks()
                             ->placeholder('None'),

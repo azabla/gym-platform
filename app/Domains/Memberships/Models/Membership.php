@@ -173,12 +173,18 @@ class Membership extends Model
      * Why the membership can't be frozen from the first day through the last,
      * or null when it can. The freeze must start while the membership runs,
      * not overlap another freeze, and stay within the freeze days its plan
-     * allowed, unless the staff member may go beyond them.
+     * allowed, unless the staff member may go beyond them. A member freezing
+     * in the app gives the gym's today as the earliest first day: only staff
+     * date a freeze in the past (ADR 0026).
      */
-    public function refusalToFreeze(CarbonImmutable $firstDay, CarbonImmutable $lastDay, bool $mayGoBeyondAllowance): ?MembershipRefused
+    public function refusalToFreeze(CarbonImmutable $firstDay, CarbonImmutable $lastDay, bool $mayGoBeyondAllowance, ?CarbonImmutable $notBefore = null): ?MembershipRefused
     {
         if ($this->cancelled_at !== null) {
             return MembershipRefused::cancelled();
+        }
+
+        if ($notBefore !== null && $firstDay->isBefore($notBefore)) {
+            return MembershipRefused::freezeInThePast();
         }
 
         if ($lastDay->isBefore($firstDay)) {
@@ -242,9 +248,10 @@ class Membership extends Model
     /**
      * Pause the membership from the first day through the last. Its end date
      * moves later by the number of frozen days, and so does every membership of
-     * the member queued after it.
+     * the member queued after it. No staff member means the member froze it
+     * themselves, in the app (ADR 0026).
      */
-    public function freeze(CarbonImmutable $firstDay, CarbonImmutable $lastDay, string $reason, Staff $frozenBy): MembershipFreeze
+    public function freeze(CarbonImmutable $firstDay, CarbonImmutable $lastDay, string $reason, ?Staff $frozenBy): MembershipFreeze
     {
         return DB::transaction(function () use ($firstDay, $lastDay, $reason, $frozenBy): MembershipFreeze {
             $days = (int) $firstDay->diffInDays($lastDay) + 1;

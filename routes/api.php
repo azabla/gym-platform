@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Me\MyAnnouncementController;
 use App\Http\Controllers\Api\V1\Me\MyBranchController;
 use App\Http\Controllers\Api\V1\Me\MyCheckInController;
 use App\Http\Controllers\Api\V1\Me\MyDashboardController;
+use App\Http\Controllers\Api\V1\Me\MyFreezeController;
 use App\Http\Controllers\Api\V1\Me\MyGymController;
 use App\Http\Controllers\Api\V1\Me\MyMembershipController;
 use App\Http\Controllers\Api\V1\Me\MyNotificationController;
@@ -103,6 +104,12 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 Route::post('memberships/{membership}/payment-link', [MyPaymentLinkController::class, 'store'])
                     ->whereNumber('membership')
                     ->name('memberships.payment-link.store');
+                Route::post('memberships/{membership}/freezes', [MyFreezeController::class, 'store'])
+                    ->whereNumber('membership')
+                    ->name('memberships.freezes.store');
+                Route::post('memberships/{membership}/freezes/{freeze}/end', [MyFreezeController::class, 'end'])
+                    ->whereNumber(['membership', 'freeze'])
+                    ->name('memberships.freezes.end');
                 Route::get('payment-links/{payment_link}', [MyPaymentLinkController::class, 'show'])
                     ->whereNumber('payment_link')
                     ->name('payment-links.show');

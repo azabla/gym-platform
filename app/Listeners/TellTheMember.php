@@ -46,6 +46,11 @@ final class TellTheMember
     {
         $freeze = $event->freeze;
 
+        // A member who froze it in the app knows already (ADR 0026).
+        if ($freeze->isFromTheApp()) {
+            return;
+        }
+
         $this->atTheGym($freeze->organization_id, fn () => $freeze->membership->member->notify(MembershipFrozen::for($freeze)));
     }
 

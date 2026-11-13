@@ -25,6 +25,7 @@ class MembershipFreezeResource extends JsonResource
             'ends_on' => $this->ends_on->toDateString(),
             'days' => $this->days(),
             'reason' => $this->reason,
+            'frozen_in_app' => $this->isFromTheApp(),
             'frozen_by' => $this->whenLoaded('frozenBy', fn (Staff $staff) => [
                 'id' => $staff->id,
                 'name' => $staff->user->name,

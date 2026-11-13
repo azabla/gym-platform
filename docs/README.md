@@ -73,7 +73,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Membership | A plan sold to a member for set dates, both included. A member has one membership at a time. |
 | Visit pack | A plan that allows a number of visits within its dates, such as 10 visits in 60 days. A visit is a day with a check-in that let the member in (ADR 0016). |
 | Opening hours | When a branch is open, by weekday, in the gym's time zone. A branch without any is always open. Check-ins outside them are turned away. |
-| Freeze | A pause in a membership. The membership's end date moves later by the number of frozen days. |
+| Freeze | A pause in a membership. The membership's end date moves later by the number of frozen days. Staff freeze at the desk; members freeze their own in the app, from today, within the freeze days left (ADR 0026). |
 | Discount | A reduction of a plan's price at sale, as an amount or a percentage, with a reason. Only owners and managers can give one. |
 | Payment | Money a member paid towards a membership, by cash, Telebirr, CBE Birr or bank transfer, or online through Chapa. A membership can be paid in parts. |
 | Chapa account | A gym's own account with Chapa, the payment gateway. The owner connects it with its secret key, and members' online payments go straight to it (ADR 0009). |
@@ -114,6 +114,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0023](adr/0023-gym-setup-in-the-staff-panel.md) | Setting up a gym in the staff panel |
 | [0024](adr/0024-reports-exports-and-charts.md) | Reports, exports and charts over time |
 | [0025](adr/0025-lists-limited-to-a-staff-members-branches.md) | Lists limited to a staff member's branches |
+| [0026](adr/0026-freezing-in-the-members-app.md) | Freezing a membership in the members app |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 
