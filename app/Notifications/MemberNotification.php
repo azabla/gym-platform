@@ -71,6 +71,7 @@ abstract class MemberNotification extends Notification implements SendableByPush
                 'type' => $type,
                 'notification_id' => (string) $this->id,
                 'organization_id' => $notifiable instanceof Member ? (string) $notifiable->organization_id : '',
+                'gym' => $notifiable instanceof Member ? $notifiable->organization->slug : '',
             ],
         );
     }

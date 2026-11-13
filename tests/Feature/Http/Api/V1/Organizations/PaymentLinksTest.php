@@ -83,6 +83,7 @@ it('lets a receptionist create a link for what the member still owes', function 
         && $request['phone_number'] === '0933456789'
         && $request['email'] === 'hana@example.com'
         && str_ends_with($request['callback_url'], '/api/v1/chapa/callback')
+        && $request['return_url'] === route('payments.returned')
         && $request['customization'] === ['title' => 'Demo Gym', 'description' => 'Monthly membership']);
 });
 
