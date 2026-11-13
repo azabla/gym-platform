@@ -61,7 +61,7 @@ return Application::configure(basePath: dirname(__DIR__))
             $exception->field => $exception->getMessage(),
         ]));
 
-        // An announcement the gym's rules don't allow (ADR 0022).
+        // An announcement the gym's rules don't allow (ADR 0023).
         $exceptions->map(fn (AnnouncementRefused $exception) => ValidationException::withMessages([
             $exception->field => $exception->getMessage(),
         ]));

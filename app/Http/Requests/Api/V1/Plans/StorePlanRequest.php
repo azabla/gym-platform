@@ -48,7 +48,7 @@ class StorePlanRequest extends FormRequest
 
     /**
      * Staff limited to some branches can't make a plan valid at every branch
-     * (ADR 0022).
+     * (ADR 0023).
      *
      * @return array<int, Closure(Validator): void>
      */
@@ -112,7 +112,7 @@ class StorePlanRequest extends FormRequest
     /**
      * branch_ids is null for all branches, or a list of branches of this gym.
      * Staff limited to some branches choose among those, and can't make a
-     * plan valid at every branch (ADR 0022).
+     * plan valid at every branch (ADR 0023).
      *
      * @return array<string, array<mixed>>
      */

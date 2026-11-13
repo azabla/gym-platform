@@ -63,7 +63,7 @@ These are read-only, for looking things up:
 - Doing things from the panel. Since then:
   - ADR 0018 added the front desk;
   - ADR 0019 added staff, with password links;
-  - ADR 0022 added plans, branches, opening hours and announcements.
+  - ADR 0023 added plans, branches, opening hours and announcements.
 
   Payment links stay in the app.
 - Lists limited to a staff member's branches. Like the API's lists, they show the whole gym.

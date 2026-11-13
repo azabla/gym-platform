@@ -32,7 +32,7 @@ final class BranchPolicy
     }
 
     /**
-     * Owners add branches (ADR 0022).
+     * Owners add branches (ADR 0023).
      */
     public function create(User $user): bool
     {
@@ -43,7 +43,7 @@ final class BranchPolicy
 
     /**
      * Owners and managers who work at the branch change its details and set
-     * its opening hours (ADR 0016 and ADR 0022).
+     * its opening hours (ADR 0016 and ADR 0023).
      */
     public function update(User $user, Branch $branch): bool
     {

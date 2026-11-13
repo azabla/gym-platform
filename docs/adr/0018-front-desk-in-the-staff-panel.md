@@ -51,7 +51,7 @@ Only the money refusals on Payment (ADR 0008) and the door's rules (ADR 0011) we
 ### Deferred
 
 - Payment links from the panel, which need Chapa (ADR 0009).
-- Plans, branches, opening hours, staff and announcements from the panel. ADR 0019 added staff, and ADR 0022 the rest.
+- Plans, branches, opening hours, staff and announcements from the panel. ADR 0019 added staff, and ADR 0023 the rest.
 - Showing a refusal next to its field rather than as a notification.
 
 ## Consequences

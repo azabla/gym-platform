@@ -30,7 +30,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * The gym's branches: owners add them, and owners and managers who work at
  * a branch change its details and opening hours, in the gym's time zone. A
- * branch without hours is always open. See ADR 0016 and ADR 0022.
+ * branch without hours is always open. See ADR 0016 and ADR 0023.
  */
 class BranchResource extends Resource
 {

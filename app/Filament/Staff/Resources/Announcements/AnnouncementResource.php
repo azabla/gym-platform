@@ -41,7 +41,7 @@ use Illuminate\Validation\ValidationException;
  * or at a time in the gym's time zone, kept in UTC. Owners and managers
  * post them; staff limited to some branches speak only to one of theirs.
  * One that hasn't gone out can be changed or cancelled. See ADR 0015 and
- * ADR 0022.
+ * ADR 0023.
  */
 class AnnouncementResource extends Resource
 {

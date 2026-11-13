@@ -9,7 +9,7 @@ use DomainException;
 /**
  * An announcement the gym's rules don't allow: Announcement::refusalToPost()
  * decides, so the API and the staff panel refuse the same things. The field
- * names the request field the message belongs to. See ADR 0022.
+ * names the request field the message belongs to. See ADR 0023.
  */
 final class AnnouncementRefused extends DomainException
 {

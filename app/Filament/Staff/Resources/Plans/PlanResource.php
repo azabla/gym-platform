@@ -40,7 +40,7 @@ use Illuminate\Validation\ValidationException;
  * a length of up to 366 days or 36 months, and branches the staff member
  * works at. A manager limited to some branches manages only plans valid
  * there. A new price applies to future sales only. See ADR 0006, ADR 0007
- * and ADR 0022.
+ * and ADR 0023.
  */
 class PlanResource extends Resource
 {

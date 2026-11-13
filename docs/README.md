@@ -45,7 +45,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 8. Gym-specific API routes sit under `/api/v1/organizations/{slug}` inside the `organization` middleware group. See ADR 0004.
 9. Phone numbers are a `PhoneNumber` in code and an E.164 string (`+251911234567`) in the database, never stored as typed. See ADR 0005.
 10. Anything that depends on "today" uses the gym's date, `Organization::today()`, never the server's (UTC) date. See ADR 0006.
-11. The staff panel shows and does only what the API allows: it goes through the same policies, its figures come from the same code (`App\Dashboards`), and the rules for a change live in the domain (`refusalTo…` methods, and checks such as `Plan::nameTakenBy()`) that both call. Domains never depend on it. See ADR 0017, ADR 0018 and ADR 0022.
+11. The staff panel shows and does only what the API allows: it goes through the same policies, its figures come from the same code (`App\Dashboards`), and the rules for a change live in the domain (`refusalTo…` methods, and checks such as `Plan::nameTakenBy()`) that both call. Domains never depend on it. See ADR 0017, ADR 0018 and ADR 0023.
 
 ## Glossary
 
@@ -55,7 +55,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Branch | A physical location of an organization. |
 | User | An identity that can log in: staff with their phone and a password, members with a code sent to their phone. One user per phone number. |
 | API docs | The interactive API documentation at /docs/api (and the OpenAPI document at /docs/api.json), generated from the code by Scramble, for staff signed in to the panel (ADR 0021). |
-| Staff panel | The website at /staff where staff sign in with their phone and password, choose a gym, see its dashboard and lists, work the front desk (members, sales, freezes, payments and check-ins), and, as owners and managers, manage the staff and set up the gym: plans, branches, opening hours and announcements (ADRs 0017 to 0019 and 0022). |
+| Staff panel | The website at /staff where staff sign in with their phone and password, choose a gym, see its dashboard and lists, work the front desk (members, sales, freezes, payments and check-ins), and, as owners and managers, manage the staff and set up the gym: plans, branches, opening hours and announcements (ADRs 0017 to 0019 and 0023). |
 | Password link | A one-time link sent by SMS to set a staff member's first password (an invite, valid 7 days) or reset a forgotten one (valid 60 minutes). See ADR 0019. |
 | Archived staff | Staff who left: they can no longer act at the gym, what they recorded still names them, and they can be restored (ADR 0019). |
 | Members app | The app where members see their memberships, what they owe and their receipts, and pay with Chapa. It shows every gym where their phone number is registered (ADR 0010). |
@@ -109,7 +109,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0020](adr/0020-staging-on-render.md) | Staging on Render |
 =======
 | [0021](adr/0021-api-documentation-with-scramble.md) | API documentation with Scramble |
-| [0022](adr/0022-gym-setup-in-the-staff-panel.md) | Setting up a gym in the staff panel |
+| [0023](adr/0023-gym-setup-in-the-staff-panel.md) | Setting up a gym in the staff panel |
 >>>>>>> feature/api-docs
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.

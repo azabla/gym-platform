@@ -1,4 +1,4 @@
-# ADR 0022: Setting up a gym in the staff panel
+# ADR 0023: Setting up a gym in the staff panel
 
 - **Status:** Accepted
 - **Date:** 2026-11-13

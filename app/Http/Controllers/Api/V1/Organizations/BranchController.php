@@ -23,7 +23,7 @@ class BranchController extends Controller
 
     /**
      * Add a branch to the gym, always open until it is given opening hours.
-     * Owners only (ADR 0022).
+     * Owners only (ADR 0023).
      */
     public function store(StoreBranchRequest $request): BranchResource
     {

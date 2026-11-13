@@ -51,7 +51,7 @@ final class PlanPolicy
     /**
      * Owners and managers manage a plan valid only at branches they work at:
      * a manager limited to some branches can't change a plan sold at others.
-     * See ADR 0022.
+     * See ADR 0023.
      */
     private function managesThePlan(?Staff $staff, Plan $plan): bool
     {
