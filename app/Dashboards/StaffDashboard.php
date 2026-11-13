@@ -89,11 +89,11 @@ final class StaffDashboard
         $payments = Payment::query()
             ->where('paid_on', '>=', $from->toDateString())
             ->where('paid_on', '<=', $to->toDateString())
-            ->when($branchIds !== null, fn ($query) => $query->whereIn('branch_id', $branchIds ?? []));
+            ->takenAtAnyOf($branchIds);
 
         $openLinks = PaymentLink::query()
             ->pending()
-            ->when($branchIds !== null, fn ($query) => $query->whereIn('branch_id', $branchIds ?? []));
+            ->forAnyOf($branchIds);
 
         return [
             ...Payment::totalsOf($payments),
@@ -133,7 +133,7 @@ final class StaffDashboard
         $counts = CheckIn::query()
             ->where('checked_in_at', '>=', $this->startOf($gym, $from))
             ->where('checked_in_at', '<', $this->startOf($gym, $to->addDay()))
-            ->when($branchIds !== null, fn ($query) => $query->whereIn('branch_id', $branchIds ?? []))
+            ->madeAtAnyOf($branchIds)
             ->groupBy('result', 'reason_code')
             ->selectRaw('result, reason_code, COUNT(*) AS total')
             ->toBase()
@@ -261,7 +261,7 @@ final class StaffDashboard
             ->counted()
             ->where('paid_on', '>=', $from->toDateString())
             ->where('paid_on', '<=', $to->toDateString())
-            ->when($branchIds !== null, fn ($query) => $query->whereIn('branch_id', $branchIds ?? []))
+            ->takenAtAnyOf($branchIds)
             ->groupBy('paid_on', 'type')
             ->selectRaw('paid_on, type, SUM(amount_minor) AS total_minor')
             ->toBase()
@@ -331,7 +331,7 @@ final class StaffDashboard
         return CheckIn::query()
             ->where('checked_in_at', '>=', $this->startOf($gym, $from))
             ->where('checked_in_at', '<', $this->startOf($gym, $to->addDay()))
-            ->when($branchIds !== null, fn ($query) => $query->whereIn('branch_id', $branchIds ?? []));
+            ->madeAtAnyOf($branchIds);
     }
 
     private function startOf(Organization $gym, CarbonImmutable $day): CarbonImmutable
@@ -347,6 +347,6 @@ final class StaffDashboard
      */
     private function membersAt(?array $branchIds): Builder
     {
-        return Member::query()->when($branchIds !== null, fn ($query) => $query->whereIn('home_branch_id', $branchIds ?? []));
+        return Member::query()->homeAtAnyOf($branchIds);
     }
 }

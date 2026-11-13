@@ -66,7 +66,7 @@ final class CheckInsReport extends Report
         return CheckIn::query()
             ->where('checked_in_at', '>=', $this->period->startsAt())
             ->where('checked_in_at', '<', $this->period->endsBefore())
-            ->when($branchIds !== null, fn (Builder $query) => $query->whereIn('branch_id', $branchIds ?? []))
+            ->madeAtAnyOf($branchIds)
             ->when($this->result !== null, fn (Builder $query) => $query->where('result', $this->result))
             ->with(['member' => fn ($query) => $query->withTrashed(), 'branch'])
             ->orderBy('checked_in_at')

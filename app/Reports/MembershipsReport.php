@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Reports;
 
 use App\Domains\Billing\Models\Payment;
-use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Organizations\Models\Organization;
 use Illuminate\Database\Eloquent\Builder;
@@ -85,10 +84,7 @@ final class MembershipsReport extends Report
         return Membership::query()
             ->where('created_at', '>=', $this->period->startsAt())
             ->where('created_at', '<', $this->period->endsBefore())
-            ->when($branchIds !== null, fn (Builder $query) => $query->whereIn(
-                'member_id',
-                Member::query()->withTrashed()->whereIn('home_branch_id', $branchIds ?? [])->select('id'),
-            ))
+            ->ofMembersAtAnyOf($branchIds)
             ->with(['member.homeBranch', 'plan', 'soldBy.user', 'freezes'])
             ->orderBy('created_at')
             ->orderBy('id');
