@@ -113,3 +113,15 @@ it('hides the sale from trainers', function () {
     Livewire::test(ViewMember::class, ['record' => $this->hana->getRouteKey()])
         ->assertActionHidden(SellMembershipAction::class);
 });
+
+it('offers only the plans on sale at the member\'s home branch', function () {
+    actingAsStaffInPanel($this->gym, StaffRole::Receptionist);
+    $boleMonthly = Plan::factory()->for($this->gym)->create(['name' => 'Bole Monthly']);
+    $boleMonthly->makeAvailableOnlyAt(Branch::factory()->for($this->gym)->create(['name' => 'Bole Branch']));
+
+    Livewire::test(ViewMember::class, ['record' => $this->hana->getRouteKey()])
+        ->callAction(SellMembershipAction::class, ['plan_id' => $boleMonthly->id])
+        ->assertHasFormErrors(['plan_id']);
+
+    expect(Membership::query()->count())->toBe(0);
+});

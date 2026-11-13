@@ -45,7 +45,8 @@ class SellMembershipAction extends Action
             ->schema(fn (Member $record): array => [
                 Select::make('plan_id')
                     ->label('Plan')
-                    ->options(fn (): array => Plan::query()->orderBy('name')->pluck('name', 'id')->all())
+                    ->options(fn (): array => Plan::query()->onSaleAt($record->home_branch_id)->orderBy('name')->pluck('name', 'id')->all())
+                    ->helperText('The plans on sale at the member\'s home branch.')
                     ->required()
                     ->live(),
                 DatePicker::make('starts_on')
