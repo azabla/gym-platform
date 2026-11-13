@@ -52,11 +52,13 @@ The membership has `visits_remaining` for a visit pack (ADR 0016). Volt's `grace
 | `GET /me/gyms` | Every gym where the phone number is a member: `slug`, `name`, `member` (`id`, `full_name`, `home_branch`), `membership` at a glance (`id`, `plan`, `status`, `starts_on`, `ends_on`) or `null`, and `balance_due` there |
 | `GET /me/gyms/{gym}/memberships` | The member's memberships, newest first |
 | `GET /me/gyms/{gym}/memberships/{id}` | One membership |
+| `POST /me/gyms/{gym}/memberships/{id}/freezes` | Freeze it: `starts_on` (optional, today when left out, never in the past), `ends_on` and an optional `reason`. `201` with the membership as it is now (new `ends_on`, `freeze_days_left`, `freezes`). `422` on `starts_on` or `ends_on` with the reason, for example "A freeze can start today at the earliest." or "This membership can be frozen for 4 more days."; a plan without freeze days answers "This membership has no freeze days left." (ADR 0026) |
+| `POST /me/gyms/{gym}/memberships/{id}/freezes/{freeze}/end` | End a freeze going on or still to come, early. `200` with the membership as it is now. `422` on `freeze` when it has already ended. |
 | `GET /me/gyms/{gym}/branches` | The gym's branches, by name, each with its `opening_hours` |
 | `GET /me/gyms/{gym}/payments` | Receipts, newest first |
 | `GET /me/gyms/{gym}/payments/{id}` | One receipt |
 
-**A membership:** `id`, `plan` (`id`, `name`), `status` (`upcoming`, `active`, `frozen`, `expired` or `cancelled`), `starts_on`, `ends_on` (both included), `price`, `amount_paid`, `balance_due`, `valid_at_all_branches`, `branches`, `visits_remaining` (visits left on a visit pack, or `null` when there is no limit), `freeze_days_allowed`, `freeze_days_used`, `freeze_days_left`, `freezes` (`starts_on`, `ends_on`, `days`), `cancelled_at`, `open_payment_link`.
+**A membership:** `id`, `plan` (`id`, `name`), `status` (`upcoming`, `active`, `frozen`, `expired` or `cancelled`), `starts_on`, `ends_on` (both included), `price`, `amount_paid`, `balance_due`, `valid_at_all_branches`, `branches`, `visits_remaining` (visits left on a visit pack, or `null` when there is no limit), `freeze_days_allowed`, `freeze_days_used`, `freeze_days_left`, `freezes` (`id`, `starts_on`, `ends_on`, `days`, `frozen_in_app`), `cancelled_at`, `open_payment_link`. Offer **Freeze** when `freeze_days_left` is above 0 and the membership isn't cancelled or expired, and **End freeze** on a freeze whose `ends_on` is today or later.
 
 **A receipt:** `id`, `receipt_number`, `type` (`payment` or `refund`), `amount`, `method` (`cash`, `telebirr`, `cbe_birr`, `bank_transfer` or `chapa`), `reference`, `paid_on`, `branch`, `membership` (`id`, `plan`), `voided`.
 
@@ -140,7 +142,7 @@ A push has a `title` and `body`, safe for a lock screen, and `data`, every value
 |---|---|---|---|
 | `membership_expiring` | 5, 3 and 1 days before a membership ends | `membership_id` | that membership |
 | `membership_expired` | the day after it ends | `membership_id` | that membership |
-| `membership_frozen` | the gym freezes it | `membership_id` | that membership |
+| `membership_frozen` | the gym freezes it (not when the member freezes it in the app) | `membership_id` | that membership |
 | `payment_succeeded` | a payment is recorded | `payment_id`, `membership_id` | that receipt |
 | `visit_denied` | a check-in is turned away | `check_in_id`, `reason_code` | visits |
 | `visits_running_low` | a visit pack has one visit left | `membership_id` | that membership |
@@ -202,5 +204,5 @@ Checked in this order; the first that applies is the answer.
 
 - Offline scanning (Volt's phase 7).
 - Member photos.
-- Freezing a membership in the app, and discounts in the app.
+- Discounts in the app.
 - Opening hours past midnight, and holiday closures.

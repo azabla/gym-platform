@@ -420,6 +420,13 @@ curl -s http://localhost:8080/api/v1/me/gyms/demo-gym/memberships \
 curl -s http://localhost:8080/api/v1/me/gyms/demo-gym/payments \
   -H 'Accept: application/json' -H "Authorization: Bearer $MEMBER_TOKEN"
 
+# Freeze membership 2 from today for three days, within its freeze days left (ADR 0026);
+# the answer has its new end date. End the freeze early with
+# POST .../memberships/2/freezes/{freeze id}/end. Tigist gets no message for her own freeze.
+curl -s http://localhost:8080/api/v1/me/gyms/demo-gym/memberships/2/freezes \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $MEMBER_TOKEN" \
+  -d "{\"ends_on\":\"$(date -d '+2 days' +%F)\",\"reason\":\"Travelling\"}"
+
 # Pay what she owes on membership 2. This needs the gym's Chapa test key (above),
 # and gives the open link if there is one. The response has the checkout_url.
 curl -s -X POST http://localhost:8080/api/v1/me/gyms/demo-gym/memberships/2/payment-link \
