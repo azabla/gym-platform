@@ -394,6 +394,22 @@ class Membership extends Model
     }
 
     /**
+     * Memberships of members whose home branch is any of the branches,
+     * archived members included; every one when the branches are null (every
+     * branch). See ADR 0025.
+     *
+     * @param  Builder<self>  $query
+     * @param  list<int>|null  $branchIds
+     */
+    #[Scope]
+    protected function ofMembersAtAnyOf(Builder $query, ?array $branchIds): void
+    {
+        if ($branchIds !== null) {
+            $query->whereIn('member_id', Member::query()->withTrashed()->homeAtAnyOf($branchIds)->select('id'));
+        }
+    }
+
+    /**
      * Memberships with at least one day from the first day through the last.
      *
      * @param  Builder<self>  $query

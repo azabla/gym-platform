@@ -13,6 +13,7 @@ use App\Domains\Shared\Money\Money;
 use App\Domains\Shared\PhoneNumber\Exceptions\InvalidPhoneNumber;
 use App\Domains\Shared\PhoneNumber\PhoneNumber;
 use App\Filament\Staff\Actions\CheckInAction;
+use App\Filament\Staff\Resources\Concerns\LimitsToTheStaffMembersBranches;
 use App\Filament\Staff\Resources\Concerns\ShowsGymTime;
 use App\Filament\Staff\Resources\Members\Pages\CreateMember;
 use App\Filament\Staff\Resources\Members\Pages\EditMember;
@@ -27,6 +28,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Resources\Pages\ListRecords;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -44,6 +46,7 @@ use Illuminate\Support\Arr;
  */
 class MemberResource extends Resource
 {
+    use LimitsToTheStaffMembersBranches;
     use ShowsGymTime;
 
     protected static ?string $model = Member::class;
@@ -128,7 +131,7 @@ class MemberResource extends Resource
             ->recordTitleAttribute('full_name')
             ->defaultSort('full_name')
             ->defaultPaginationPageOption(25)
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('homeBranch'))
+            ->modifyQueryUsing(self::listedMembers(...))
             ->splitSearchTerms(false)
             ->columns([
                 TextColumn::make('full_name')
@@ -142,7 +145,7 @@ class MemberResource extends Resource
             ->filters([
                 SelectFilter::make('home_branch_id')
                     ->label('Home branch')
-                    ->relationship('homeBranch', 'name'),
+                    ->relationship('homeBranch', 'name', self::onlyTheirBranches(...)),
             ])
             ->recordActions([
                 CheckInAction::make(),
@@ -219,6 +222,21 @@ class MemberResource extends Resource
     private static function searchMembers(Builder $query, string $search): Builder
     {
         return $query->search($search);
+    }
+
+    /**
+     * Staff limited to some branches list the members whose home branch is
+     * one of theirs; a search finds any member of the gym, so the desk can
+     * serve a member from another branch (ADR 0025).
+     *
+     * @param  Builder<Member>  $query
+     * @return Builder<Member>
+     */
+    private static function listedMembers(Builder $query, ListRecords $livewire): Builder
+    {
+        $query->with('homeBranch');
+
+        return blank($livewire->getTableSearch()) ? $query->homeAtAnyOf(self::staffBranchIds()) : $query;
     }
 
     /**

@@ -10,6 +10,7 @@ use App\Domains\Memberships\Enums\MembershipStatus;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Memberships\Models\MembershipFreeze;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
+use App\Filament\Staff\Resources\Concerns\LimitsToTheStaffMembersBranches;
 use App\Filament\Staff\Resources\Concerns\ShowsGymTime;
 use App\Filament\Staff\Resources\Memberships\Pages\ListMemberships;
 use App\Filament\Staff\Resources\Memberships\Pages\ViewMembership;
@@ -17,6 +18,7 @@ use BackedEnum;
 use Carbon\CarbonImmutable;
 use Filament\Actions\ViewAction;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Resources\Pages\ListRecords;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -33,6 +35,7 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class MembershipResource extends Resource
 {
+    use LimitsToTheStaffMembersBranches;
     use ShowsGymTime;
 
     protected static ?string $model = Membership::class;
@@ -80,7 +83,7 @@ class MembershipResource extends Resource
         return $table
             ->defaultSort('starts_on', 'desc')
             ->defaultPaginationPageOption(25)
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['member', 'plan', 'freezes']))
+            ->modifyQueryUsing(self::listedMemberships(...))
             ->columns([
                 TextColumn::make('member.full_name')->label('Member')->searchable(),
                 TextColumn::make('plan.name')->label('Plan'),
@@ -157,6 +160,24 @@ class MembershipResource extends Resource
             MembershipStatus::Frozen => $current($query)->whereHas('freezes', $frozenToday),
             MembershipStatus::Active => $current($query)->whereDoesntHave('freezes', $frozenToday),
         };
+    }
+
+    /**
+     * Staff limited to some branches list the memberships of members whose
+     * home branch is one of theirs, unless the list is filtered to one member
+     * from the member's page: a member from another branch is served at any
+     * desk (ADR 0025).
+     *
+     * @param  Builder<Membership>  $query
+     * @return Builder<Membership>
+     */
+    private static function listedMemberships(Builder $query, ListRecords $livewire): Builder
+    {
+        $query->with(['member', 'plan', 'freezes']);
+
+        return filled($livewire->getTableFilterState('member')['value'] ?? null)
+            ? $query
+            : $query->ofMembersAtAnyOf(self::staffBranchIds());
     }
 
     private static function today(): CarbonImmutable

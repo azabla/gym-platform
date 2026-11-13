@@ -360,7 +360,7 @@ it('owes nothing more once a membership is cancelled, but still shows what was p
 });
 
 it('lets an accountant void a payment recorded by mistake, which frees its transaction number', function () {
-    $payment = Payment::factory()->for($this->membership)->byTelebirr('CJ12ABC34D')->create(['amount' => Money::of('1,000')]);
+    $payment = Payment::factory()->for($this->membership)->byTelebirr('CJ12ABC34D')->create(['amount' => Money::of('1,000'), 'branch_id' => $this->mainBranch->id]);
     $accountant = actingAsStaff($this->gym, StaffRole::Accountant, $this->mainBranch);
 
     $this->postJson(route('api.v1.organizations.payments.void', ['organization' => 'demo-gym', 'payment' => $payment]), [

@@ -8,6 +8,7 @@ use App\Domains\Billing\Enums\PaymentMethod;
 use App\Domains\Billing\Enums\PaymentType;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Shared\Money\Money;
+use App\Filament\Staff\Resources\Concerns\LimitsToTheStaffMembersBranches;
 use App\Filament\Staff\Resources\Concerns\ShowsGymTime;
 use App\Filament\Staff\Resources\Payments\Pages\ListPayments;
 use App\Filament\Staff\Resources\Payments\Pages\ViewPayment;
@@ -34,6 +35,7 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class PaymentResource extends Resource
 {
+    use LimitsToTheStaffMembersBranches;
     use ShowsGymTime;
 
     protected static ?string $model = Payment::class;
@@ -91,7 +93,7 @@ class PaymentResource extends Resource
                     ->query(fn (Builder $query, array $data): Builder => $query
                         ->when($data['from'] ?? null, fn (Builder $query, string $from): Builder => $query->where('paid_on', '>=', $from))
                         ->when($data['to'] ?? null, fn (Builder $query, string $to): Builder => $query->where('paid_on', '<=', $to))),
-                SelectFilter::make('branch')->relationship('branch', 'name'),
+                SelectFilter::make('branch')->relationship('branch', 'name', self::onlyTheirBranches(...)),
                 SelectFilter::make('method')->options(collect(PaymentMethod::cases())->mapWithKeys(
                     fn (PaymentMethod $method): array => [$method->value => $method->label()],
                 )->all()),
@@ -102,6 +104,18 @@ class PaymentResource extends Resource
             ->recordActions([
                 ViewAction::make(),
             ]);
+    }
+
+    /**
+     * Only the payments taken at the staff member's branches: another
+     * branch's payment isn't listed, counted or opened (ADR 0025). Payment
+     * queries are already limited to the current gym (ADR 0003).
+     *
+     * @return Builder<Payment>
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        return Payment::query()->takenAtAnyOf(self::staffBranchIds());
     }
 
     public static function getPages(): array

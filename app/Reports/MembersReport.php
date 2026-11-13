@@ -91,7 +91,7 @@ final class MembersReport extends Report
         $search = trim((string) $this->search);
 
         return Member::query()
-            ->when($branchIds !== null, fn (Builder $query) => $query->whereIn('home_branch_id', $branchIds ?? []))
+            ->homeAtAnyOf($branchIds)
             ->when($search !== '', fn (Builder $query) => $query->search($search))
             ->with('homeBranch')
             ->orderBy('full_name')

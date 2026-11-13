@@ -81,7 +81,7 @@ final class PaymentsReport extends Report
         return Payment::query()
             ->where('paid_on', '>=', $this->period->from->toDateString())
             ->where('paid_on', '<=', $this->period->to->toDateString())
-            ->when($branchIds !== null, fn (Builder $query) => $query->whereIn('branch_id', $branchIds ?? []))
+            ->takenAtAnyOf($branchIds)
             ->when($this->method !== null, fn (Builder $query) => $query->where('method', $this->method))
             ->when($this->memberId !== null, fn (Builder $query) => $query->whereRelation('membership', 'member_id', $this->memberId))
             ->with(['member', 'membership.plan', 'branch', 'receivedBy.user'])

@@ -7,6 +7,7 @@ use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
+use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Domains\Shared\Money\Money;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Members\StoreMemberRequest;
@@ -24,10 +25,13 @@ class MemberController extends Controller
     public function __construct(private CurrentOrganization $currentOrganization) {}
 
     /**
-     * The gym's members in alphabetical order, 25 per page. The optional
-     * ?search= matches part of a name or the digits of a phone number.
+     * The gym's members in alphabetical order, 25 per page. Staff limited to
+     * some branches see the members whose home branch is one of theirs. The
+     * optional ?search= matches part of a name or the digits of a phone
+     * number, among every member of the gym, so the desk can find a member
+     * from another branch who comes in (ADR 0025).
      */
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(Request $request, CurrentStaff $currentStaff): AnonymousResourceCollection
     {
         Gate::authorize('viewAny', Member::class);
 
@@ -37,6 +41,8 @@ class MemberController extends Controller
 
         if ($search !== '') {
             $members->search($search);
+        } else {
+            $members->homeAtAnyOf($currentStaff->get()->limitedToBranchIds());
         }
 
         $page = $members->paginate(25)->withQueryString();

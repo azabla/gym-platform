@@ -11,6 +11,7 @@ use App\Domains\Attendance\Models\CheckIn;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Filament\Staff\Resources\CheckIns\Pages\ListCheckIns;
+use App\Filament\Staff\Resources\Concerns\LimitsToTheStaffMembersBranches;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Filament\Forms\Components\DatePicker;
@@ -29,6 +30,8 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class CheckInResource extends Resource
 {
+    use LimitsToTheStaffMembersBranches;
+
     protected static ?string $model = CheckIn::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowRightEndOnRectangle;
@@ -63,7 +66,7 @@ class CheckInResource extends Resource
                         $data['on'] ?? null,
                         fn (Builder $query, string $day): Builder => self::onDay($query, CarbonImmutable::parse($day)),
                     )),
-                SelectFilter::make('branch')->relationship('branch', 'name'),
+                SelectFilter::make('branch')->relationship('branch', 'name', self::onlyTheirBranches(...)),
                 SelectFilter::make('result')->options([
                     CheckInResult::Allowed->value => 'Allowed',
                     CheckInResult::Denied->value => 'Denied',
@@ -72,6 +75,17 @@ class CheckInResource extends Resource
                     ->relationship('member', 'full_name')
                     ->searchable(),
             ]);
+    }
+
+    /**
+     * Only the check-ins made at the staff member's branches (ADR 0025).
+     * Check-in queries are already limited to the current gym (ADR 0003).
+     *
+     * @return Builder<CheckIn>
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        return CheckIn::query()->madeAtAnyOf(self::staffBranchIds());
     }
 
     public static function getPages(): array

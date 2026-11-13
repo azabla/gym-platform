@@ -26,13 +26,31 @@ it('lists the members of the gym in alphabetical order', function () {
         ->assertJsonPath('data.*.full_name', ['Abebe Kebede', 'Tigist Haile']);
 });
 
-it('shows members of every branch to staff limited to one branch', function () {
-    Member::factory()->for($this->mainBranch, 'homeBranch')->create(['full_name' => 'Tigist Haile']);
+it('lists to staff limited to a branch its members, and finds a member of any branch by search', function () {
+    $tigist = Member::factory()->for($this->mainBranch, 'homeBranch')->create(['full_name' => 'Tigist Haile']);
+    Member::factory()->for($this->boleBranch, 'homeBranch')->create(['full_name' => 'Abebe Bekele']);
     actingAsStaff($this->gym, StaffRole::Receptionist, $this->boleBranch);
 
     $this->getJson(route('api.v1.organizations.members.index', ['organization' => 'demo-gym']))
         ->assertOk()
+        ->assertJsonPath('data.*.full_name', ['Abebe Bekele']);
+
+    // Tigist, of Main Branch, comes in at Bole: the desk finds her, and her memberships.
+    $this->getJson(route('api.v1.organizations.members.index', ['organization' => 'demo-gym', 'search' => 'tigist']))
+        ->assertOk()
         ->assertJsonPath('data.*.full_name', ['Tigist Haile']);
+
+    $this->getJson(route('api.v1.organizations.members.show', ['organization' => 'demo-gym', 'member' => $tigist]))->assertOk();
+    $this->getJson(route('api.v1.organizations.members.memberships.index', ['organization' => 'demo-gym', 'member' => $tigist]))->assertOk();
+});
+
+it('lists every member to staff at all branches', function () {
+    Member::factory()->for($this->mainBranch, 'homeBranch')->create(['full_name' => 'Tigist Haile']);
+    Member::factory()->for($this->boleBranch, 'homeBranch')->create(['full_name' => 'Abebe Bekele']);
+    actingAsStaff($this->gym, StaffRole::Owner);
+
+    $this->getJson(route('api.v1.organizations.members.index', ['organization' => 'demo-gym']))
+        ->assertJsonPath('data.*.full_name', ['Abebe Bekele', 'Tigist Haile']);
 });
 
 it('lists 25 members per page', function () {
