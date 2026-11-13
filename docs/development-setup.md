@@ -304,6 +304,14 @@ curl -s http://localhost:8080/api/v1/organizations/demo-gym/memberships/1/refund
 curl -s http://localhost:8080/api/v1/organizations/demo-gym/dashboard \
   -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
 
+# The dashboard's "trends" give the period day by day: takings, check-ins, and busy hours.
+# Reports download as CSV files, for the same period and branch rules (ADR 0024):
+# payments and memberships for owners, managers and accountants, check-ins for everyone,
+# members for owners and managers. Payments take ?method= and ?member_id=, check-ins ?result=,
+# members ?search=.
+curl -s 'http://localhost:8080/api/v1/organizations/demo-gym/reports/payments?from=2026-10-01&to=2026-10-31' \
+  -H "Authorization: Bearer $TOKEN" -o payments.csv
+
 # Main Branch's opening hours (seeded Monday to Saturday, 06:00 to 21:00); outside them
 # a check-in is turned away with OUTSIDE_HOURS. PUT {"hours":[]} makes it always open.
 curl -s http://localhost:8080/api/v1/organizations/demo-gym/branches/1/opening-hours \
@@ -541,6 +549,8 @@ To work the front desk, as the receptionist:
 Then sign in as the owner. On that membership's page, **Cancel membership**, then **Refund** the cash. On the refund's page, **Void** it if it was a mistake. Each action asks only for what the API would, and refuses what the API would refuse, in the same words.
 
 Payment links stay in the app.
+
+To download a report, choose **Download CSV** on the Payments, Memberships, Check-ins or Members list, then a period and a branch. The dashboard also charts the period: takings each day (owners, managers and accountants only), check-ins each day and the busy hours. See ADR 0024.
 
 To set up the gym, as the owner:
 
