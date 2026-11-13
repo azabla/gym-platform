@@ -40,6 +40,18 @@ class Plan extends Model
     /** @use HasFactory<PlanFactory> */
     use BelongsToOrganization, HasFactory, SoftDeletes;
 
+    /** The longest plan counted in months. */
+    public const MOST_MONTHS = 36;
+
+    /** The longest plan counted in days. */
+    public const MOST_DAYS = 366;
+
+    /** The most freeze days a plan can allow. */
+    public const MOST_FREEZE_DAYS = 366;
+
+    /** The most visits a visit pack can allow. */
+    public const MOST_VISITS = 1000;
+
     /**
      * The same defaults as the database columns, so a new plan knows them before it is saved.
      *
@@ -72,6 +84,37 @@ class Plan extends Model
         $query->where(fn ($query) => $query
             ->where('available_at_all_branches', true)
             ->orWhereHas('branches', fn ($branches) => $branches->whereKey($branchId)));
+    }
+
+    /**
+     * The gym's plan that already has the name, ignoring capitals, if any.
+     * Plan names are unique within a gym; archived plans free theirs.
+     */
+    public static function nameTakenBy(string $name, ?self $ignoring = null): ?self
+    {
+        return static::query()
+            ->whereRaw('lower(name) = lower(?)', [$name])
+            ->when($ignoring !== null, fn (Builder $query) => $query->whereKeyNot($ignoring?->getKey()))
+            ->first();
+    }
+
+    /**
+     * The longest duration the unit allows.
+     */
+    public static function longestDurationIn(DurationUnit $unit): int
+    {
+        return $unit === DurationUnit::Month ? self::MOST_MONTHS : self::MOST_DAYS;
+    }
+
+    /**
+     * The ids of the branches the plan is limited to, or null when it is
+     * valid at every branch.
+     *
+     * @return list<int>|null
+     */
+    public function limitedToBranchIds(): ?array
+    {
+        return $this->available_at_all_branches ? null : array_map('intval', $this->branches()->pluck('branches.id')->all());
     }
 
     public function makeAvailableAtAllBranches(): void

@@ -174,6 +174,21 @@ class Staff extends Model
     }
 
     /**
+     * Whether the staff member works at every one of the branches; null
+     * means every branch of the gym, which only staff at all branches cover.
+     *
+     * @param  list<int>|null  $branchIds
+     */
+    public function worksAtEach(?array $branchIds): bool
+    {
+        if ($this->works_at_all_branches) {
+            return true;
+        }
+
+        return $branchIds !== null && array_diff($branchIds, $this->limitedToBranchIds() ?? []) === [];
+    }
+
+    /**
      * Whether every branch the other staff member works at is one this staff
      * member works at too, so they may manage them (ADR 0019).
      */
