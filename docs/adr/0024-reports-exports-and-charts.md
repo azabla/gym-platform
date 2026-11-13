@@ -63,7 +63,7 @@ Owners and accountants keep the gym's books outside the platform, but nothing co
 - Comparing a period with the one before it (ADR 0014).
 - Excel files, PDFs, and reports sent by email on a schedule.
 - Searching or filtering in the panel's download beyond the period and branch. The API's report filters (method, member, result, search) aren't in the panel yet.
-- Limiting the lists themselves to a staff member's branches. The reports and the dashboard are limited; the lists still show the whole gym (ADR 0017).
+- Limiting the lists themselves to a staff member's branches. ADR 0025 added it, with the same scopes the reports now use.
 
 ## Consequences
 

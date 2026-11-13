@@ -536,7 +536,7 @@ Each part has an ADR:
 `make composer c=install` also publishes the panel's assets. After `make fresh`, open http://localhost:8080/staff and sign in with one of the demo phones above (password `password`). You land on Demo Gym's dashboard: today's figures and the members to call. Change the period or the branch at the top.
 
 - As the owner (`0911 00 00 01`), you see the money too, and every list: members, memberships, payments, check-ins and staff.
-- As the receptionist (`0911 00 00 02`), the dashboard covers Main Branch only, and the money is hidden. The lists still show the whole gym, as in the API.
+- As the receptionist (`0911 00 00 02`), everything covers Main Branch only, and the money is hidden on the dashboard. Members lists Abebe and Tigist, of Main; search for Hana, of Bole, and her page and membership still open, so the desk can check her in. Payments and check-ins show only those made at Main, and a payment taken at Bole is a 404. The API answers the same (ADR 0025).
 - As the accountant (`0911 00 00 03`), you see the money and the payments.
 
 To work the front desk, as the receptionist:
