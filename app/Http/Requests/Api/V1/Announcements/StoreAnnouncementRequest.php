@@ -9,6 +9,7 @@ use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class StoreAnnouncementRequest extends FormRequest
 {
@@ -47,6 +48,29 @@ class StoreAnnouncementRequest extends FormRequest
     {
         return [
             'send_at.after' => 'Choose a time in the future, or leave it out to send it now.',
+        ];
+    }
+
+    /**
+     * The gym's rules for an announcement (Announcement::refusalToPost()),
+     * once its fields read well.
+     *
+     * @return array<int, Closure(Validator): void>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                if ($validator->errors()->isNotEmpty()) {
+                    return;
+                }
+
+                $refusal = Announcement::refusalToPost($this->staff(), $this->chosenBranch(), $this->sendAt());
+
+                if ($refusal !== null) {
+                    $validator->errors()->add($refusal->field, $refusal->getMessage());
+                }
+            },
         ];
     }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Announcements\Models;
 
 use App\Domains\Announcements\Enums\AnnouncementStatus;
+use App\Domains\Announcements\Exceptions\AnnouncementRefused;
 use App\Domains\Announcements\Policies\AnnouncementPolicy;
 use App\Domains\Members\Models\Member;
 use App\Domains\Organizations\Models\Branch;
@@ -48,6 +49,23 @@ class Announcement extends Model
     protected $attributes = [
         'include_recently_expired' => false,
     ];
+
+    /**
+     * Why the staff member can't send an announcement to the branch (every
+     * branch when none) at that time (now when none), or null when they can.
+     * Staff limited to some branches speak only to one of their branches,
+     * never to the whole gym, and a set time must be in the future.
+     */
+    public static function refusalToPost(Staff $postedBy, ?Branch $branch, ?CarbonImmutable $sendAt): ?AnnouncementRefused
+    {
+        if ($sendAt !== null && ! $sendAt->isFuture()) {
+            return AnnouncementRefused::notInTheFuture();
+        }
+
+        $toTheirBranch = $branch === null ? $postedBy->works_at_all_branches : $postedBy->worksAt($branch);
+
+        return $toTheirBranch ? null : AnnouncementRefused::notToABranchTheStaffMemberWorksAt();
+    }
 
     /**
      * Post an announcement at the staff member's gym, to go out at the given

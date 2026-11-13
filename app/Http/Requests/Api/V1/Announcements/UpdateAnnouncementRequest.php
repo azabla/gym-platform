@@ -57,6 +57,22 @@ class UpdateAnnouncementRequest extends StoreAnnouncementRequest
             function (Validator $validator): void {
                 if (! $this->announcement()->isScheduled()) {
                     $validator->errors()->add('announcement', 'Only an announcement that hasn\'t gone out can be changed.');
+
+                    return;
+                }
+
+                if ($validator->errors()->isNotEmpty()) {
+                    return;
+                }
+
+                $refusal = Announcement::refusalToPost(
+                    $this->staff(),
+                    $this->has('branch_id') ? $this->chosenBranch() : $this->announcement()->branch,
+                    $this->has('send_at') ? $this->sendAt() : null,
+                );
+
+                if ($refusal !== null) {
+                    $validator->errors()->add($refusal->field, $refusal->getMessage());
                 }
             },
         ];
