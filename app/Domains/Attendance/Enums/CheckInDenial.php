@@ -38,4 +38,13 @@ enum CheckInDenial: string
 
     /** Let in less than 5 minutes ago, so the code isn't passed back out the door. */
     case AlreadyCheckedIn = 'ALREADY_CHECKED_IN';
+
+    /**
+     * Why the member was turned away, in words, as the staff panel and
+     * reports show it: MEMBERSHIP_EXPIRED reads "Membership expired".
+     */
+    public function label(): string
+    {
+        return ucfirst(strtolower(str_replace('_', ' ', $this->value)));
+    }
 }

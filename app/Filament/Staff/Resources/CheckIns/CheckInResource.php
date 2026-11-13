@@ -21,7 +21,6 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Str;
 
 /**
  * Who came in, and who was turned away and why, newest first, with times
@@ -46,14 +45,14 @@ class CheckInResource extends Resource
                 TextColumn::make('checked_in_at')->label('When')->dateTime()->timezone(self::gym()->timezone)->sortable(),
                 TextColumn::make('member.full_name')->label('Member')->placeholder('Unknown'),
                 TextColumn::make('branch.name')->label('Branch'),
-                TextColumn::make('method')->formatStateUsing(fn (CheckInMethod $state): string => $state === CheckInMethod::Qr ? 'QR code' : 'At the desk'),
+                TextColumn::make('method')->formatStateUsing(fn (CheckInMethod $state): string => $state->label()),
                 TextColumn::make('result')
                     ->badge()
                     ->color(fn (CheckInResult $state): string => $state === CheckInResult::Allowed ? 'success' : 'danger')
                     ->formatStateUsing(fn (CheckInResult $state): string => ucfirst($state->value)),
                 TextColumn::make('reason_code')
                     ->label('Reason')
-                    ->formatStateUsing(fn (CheckInDenial $state): string => self::reasonLabel($state)),
+                    ->formatStateUsing(fn (CheckInDenial $state): string => $state->label()),
             ])
             ->filters([
                 Filter::make('on')
@@ -80,15 +79,6 @@ class CheckInResource extends Resource
         return [
             'index' => ListCheckIns::route('/'),
         ];
-    }
-
-    /**
-     * Why a member was turned away, in words: MEMBERSHIP_EXPIRED reads
-     * "Membership expired".
-     */
-    public static function reasonLabel(CheckInDenial $reason): string
-    {
-        return Str::of($reason->value)->lower()->replace('_', ' ')->ucfirst()->toString();
     }
 
     /**

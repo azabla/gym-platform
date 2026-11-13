@@ -29,6 +29,15 @@ final class MemberPolicy
         return $this->staffFor($user) !== null;
     }
 
+    /**
+     * Download the members report, with every member's phone number and
+     * balance: owners and managers only (ADR 0024).
+     */
+    public function export(User $user): bool
+    {
+        return in_array($this->staffFor($user)?->role, [StaffRole::Owner, StaffRole::Manager], true);
+    }
+
     public function view(User $user, Member $member): bool
     {
         return $this->staffFor($user, $member) !== null;
