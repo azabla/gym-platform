@@ -38,6 +38,15 @@ class MembershipFreeze extends Model
     }
 
     /**
+     * Whether the member froze the membership themselves, in the app, rather
+     * than staff at the gym (ADR 0026).
+     */
+    public function isFromTheApp(): bool
+    {
+        return $this->frozen_by_staff_id === null;
+    }
+
+    /**
      * How many days the freeze lasts, both ends included.
      */
     public function days(): int

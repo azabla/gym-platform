@@ -115,6 +115,17 @@ it('tells the member their membership was frozen, and its new end date', functio
         ->and($this->pushes->sent[0][1]->body)->toBe('Your Monthly membership at Demo Gym is frozen from 2026-10-26 to 2026-11-01. It now ends on 2026-11-30.');
 });
 
+it('tells a member nothing about a freeze they made themselves, in the app', function () {
+    actingAsOrganization($this->gym);
+
+    $freeze = $this->membership->freeze(CarbonImmutable::parse('2026-10-26'), CarbonImmutable::parse('2026-11-01'), 'Travelling.', null);
+
+    expect($freeze->isFromTheApp())->toBeTrue()
+        ->and($freeze->frozen_by_staff_id)->toBeNull()
+        ->and($this->tigist->notifications()->count())->toBe(0)
+        ->and($this->pushes->sent)->toBe([]);
+});
+
 it('tells a member they were turned away at the door, and why', function () {
     $this->membership->forceFill(['starts_on' => '2026-09-01', 'ends_on' => '2026-10-23'])->save();
     $credential = AccessCredential::factory()->for($this->tigist)->create();
