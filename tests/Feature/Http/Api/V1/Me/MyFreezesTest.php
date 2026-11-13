@@ -35,7 +35,8 @@ it('lets a member freeze their membership from today, moving its end date later'
         ->assertCreated()
         ->assertJsonPath('data.ends_on', '2026-12-05')
         ->assertJsonPath('data.freeze_days_left', 2)
-        ->assertJsonPath('data.freezes.0.starts_on', '2026-11-13');
+        ->assertJsonPath('data.freezes.0.starts_on', '2026-11-13')
+        ->assertJsonPath('data.freezes.0.frozen_in_app', true);
 
     $freeze = MembershipFreeze::query()->acrossOrganizations()->sole();
 
