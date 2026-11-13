@@ -5,9 +5,7 @@ namespace App\Http\Requests\Api\V1\Concerns;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
-use App\Domains\Organizations\Tenancy\CurrentStaff;
 use Carbon\CarbonImmutable;
-use Closure;
 use Illuminate\Validation\Validator;
 
 /**
@@ -18,6 +16,8 @@ use Illuminate\Validation\Validator;
  */
 trait CoversAPeriodAtBranches
 {
+    use AtTheStaffMembersBranches;
+
     /**
      * @return array<string, array<mixed>>
      */
@@ -26,7 +26,7 @@ trait CoversAPeriodAtBranches
         return [
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d'],
-            'branch_id' => ['nullable', 'bail', 'integer', $this->branchTheStaffMemberWorksAt()],
+            'branch_id' => $this->branchRules(),
         ];
     }
 
@@ -65,36 +65,5 @@ trait CoversAPeriodAtBranches
     public function today(): CarbonImmutable
     {
         return app(CurrentOrganization::class)->get()->today();
-    }
-
-    /**
-     * The branches covered: the one asked for, or else the ones the staff
-     * member works at. Null means every branch.
-     *
-     * @return list<int>|null
-     */
-    public function branchIds(): ?array
-    {
-        if ($this->filled('branch_id')) {
-            return [$this->integer('branch_id')];
-        }
-
-        return $this->staff()->limitedToBranchIds();
-    }
-
-    protected function staff(): Staff
-    {
-        return app(CurrentStaff::class)->get();
-    }
-
-    private function branchTheStaffMemberWorksAt(): Closure
-    {
-        return function (string $attribute, mixed $value, Closure $fail): void {
-            $branch = is_numeric($value) ? Branch::query()->find((int) $value) : null;
-
-            if ($branch === null || ! $this->staff()->worksAt($branch)) {
-                $fail('Choose a branch of this gym that you work at.');
-            }
-        };
     }
 }

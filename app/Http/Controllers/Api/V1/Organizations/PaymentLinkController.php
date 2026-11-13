@@ -22,9 +22,10 @@ class PaymentLinkController extends Controller
      * The gym's payment links, newest first, 25 per page. The optional filters
      * are ?status= and ?member_id=.
      */
-    public function index(ListPaymentLinksRequest $request): AnonymousResourceCollection
+    public function index(ListPaymentLinksRequest $request, CurrentStaff $currentStaff): AnonymousResourceCollection
     {
         $paymentLinks = PaymentLink::query()
+            ->forAnyOf($currentStaff->get()->limitedToBranchIds())
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')->toString()))
             ->when($request->filled('member_id'), fn ($query) => $query->where('member_id', $request->integer('member_id')))
             ->orderByDesc('created_at')

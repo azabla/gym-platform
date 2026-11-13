@@ -33,7 +33,7 @@ class CheckInController extends Controller
 
                 return $query->where('checked_in_at', '>=', $day->utc())->where('checked_in_at', '<', $day->addDay()->utc());
             })
-            ->when($request->filled('branch_id'), fn ($query) => $query->where('branch_id', $request->integer('branch_id')))
+            ->madeAtAnyOf($request->branchIds())
             ->when($request->filled('result'), fn ($query) => $query->where('result', $request->string('result')->toString()))
             ->when($request->filled('member_id'), fn ($query) => $query->where('member_id', $request->integer('member_id')))
             ->orderByDesc('checked_in_at')

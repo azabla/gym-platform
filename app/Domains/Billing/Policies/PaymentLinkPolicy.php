@@ -9,6 +9,7 @@ use App\Domains\Identity\Models\User;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
+use Illuminate\Auth\Access\Response;
 
 /**
  * The staff who take payments (owners, managers, accountants and
@@ -31,9 +32,9 @@ final class PaymentLinkPolicy
         return $this->takesPayments($this->staffFor($user));
     }
 
-    public function view(User $user, PaymentLink $paymentLink): bool
+    public function view(User $user, PaymentLink $paymentLink): Response
     {
-        return $this->takesPayments($this->staffFor($user, $paymentLink));
+        return $this->atTheirBranch($this->staffFor($user, $paymentLink), $paymentLink);
     }
 
     public function create(User $user): bool
@@ -41,17 +42,30 @@ final class PaymentLinkPolicy
         return $this->takesPayments($this->staffFor($user));
     }
 
-    public function cancel(User $user, PaymentLink $paymentLink): bool
+    public function cancel(User $user, PaymentLink $paymentLink): Response
     {
-        return $this->takesPayments($this->staffFor($user, $paymentLink));
+        return $this->atTheirBranch($this->staffFor($user, $paymentLink), $paymentLink);
     }
 
     /**
      * Ask Chapa now whether the member has paid the link.
      */
-    public function check(User $user, PaymentLink $paymentLink): bool
+    public function check(User $user, PaymentLink $paymentLink): Response
     {
-        return $this->takesPayments($this->staffFor($user, $paymentLink));
+        return $this->atTheirBranch($this->staffFor($user, $paymentLink), $paymentLink);
+    }
+
+    /**
+     * Staff limited to some branches don't see links of other branches: for
+     * them such a link isn't there, a 404 (ADR 0025).
+     */
+    private function atTheirBranch(?Staff $staff, PaymentLink $paymentLink): Response
+    {
+        if (! $this->takesPayments($staff)) {
+            return Response::deny();
+        }
+
+        return $staff?->worksAt($paymentLink->branch) === true ? Response::allow() : Response::denyAsNotFound();
     }
 
     /**

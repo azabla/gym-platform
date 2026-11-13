@@ -5,18 +5,20 @@ namespace App\Http\Requests\Api\V1\Payments;
 use App\Domains\Billing\Models\ChapaAccount;
 use App\Domains\Billing\Models\PaymentLink;
 use Closure;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Validator;
 
 class CheckPaymentLinkRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * A link of a branch the staff member doesn't work at is a 404 (ADR 0025).
      */
-    public function authorize(): bool
+    public function authorize(): Response
     {
-        return $this->user()->can('check', $this->paymentLink());
+        return Gate::inspect('check', $this->paymentLink());
     }
 
     /**

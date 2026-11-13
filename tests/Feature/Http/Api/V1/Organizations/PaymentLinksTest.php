@@ -214,7 +214,7 @@ it('shows a payment link of the gym, but not one of another gym', function () {
 });
 
 it('lets staff cancel an open link and then create a new one', function () {
-    $paymentLink = PaymentLink::factory()->for($this->membership)->create();
+    $paymentLink = PaymentLink::factory()->for($this->membership)->create(['branch_id' => $this->mainBranch->id]);
     $receptionist = actingAsStaff($this->gym, StaffRole::Receptionist, $this->mainBranch);
 
     $this->postJson(route('api.v1.organizations.payment-links.cancel', ['organization' => 'demo-gym', 'payment_link' => $paymentLink]))
@@ -266,7 +266,7 @@ it('lets staff ask Chapa about a link, and records the payment once the member h
 });
 
 it('needs the gym\'s Chapa account to check a link', function () {
-    $paymentLink = PaymentLink::factory()->for($this->membership)->create();
+    $paymentLink = PaymentLink::factory()->for($this->membership)->create(['branch_id' => $this->mainBranch->id]);
     $this->chapaAccount->delete();
     Http::fake();
     actingAsStaff($this->gym, StaffRole::Receptionist, $this->mainBranch);
@@ -279,7 +279,7 @@ it('needs the gym\'s Chapa account to check a link', function () {
 });
 
 it('keeps the link open, and says so, when Chapa does not answer', function () {
-    $paymentLink = PaymentLink::factory()->for($this->membership)->create();
+    $paymentLink = PaymentLink::factory()->for($this->membership)->create(['branch_id' => $this->mainBranch->id]);
     Http::fake(['api.chapa.co/v1/transaction/verify/*' => Http::response(null, 503)]);
     actingAsStaff($this->gym, StaffRole::Receptionist, $this->mainBranch);
 

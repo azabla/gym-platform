@@ -9,6 +9,7 @@ use App\Domains\Identity\Models\User;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
+use Illuminate\Auth\Access\Response;
 
 /**
  * Owners, managers, accountants and receptionists take payments and may see
@@ -48,9 +49,11 @@ final class PaymentPolicy
         return $this->staffFor($user)?->role->seesMoney() === true;
     }
 
-    public function view(User $user, Payment $payment): bool
+    public function view(User $user, Payment $payment): Response
     {
-        return $this->hasRole($this->staffFor($user, $payment), self::ROLES_THAT_TAKE_PAYMENTS);
+        $staff = $this->staffFor($user, $payment);
+
+        return $this->atTheirBranch($staff, $payment, $this->hasRole($staff, self::ROLES_THAT_TAKE_PAYMENTS));
     }
 
     public function create(User $user): bool
@@ -69,9 +72,24 @@ final class PaymentPolicy
     /**
      * Void a payment or refund that was recorded by mistake.
      */
-    public function void(User $user, Payment $payment): bool
+    public function void(User $user, Payment $payment): Response
     {
-        return $this->hasRole($this->staffFor($user, $payment), self::OWNERS_MANAGERS_AND_ACCOUNTANTS);
+        $staff = $this->staffFor($user, $payment);
+
+        return $this->atTheirBranch($staff, $payment, $this->hasRole($staff, self::OWNERS_MANAGERS_AND_ACCOUNTANTS));
+    }
+
+    /**
+     * Staff limited to some branches don't see payments taken at others: for
+     * them such a payment isn't there, a 404 (ADR 0025).
+     */
+    private function atTheirBranch(?Staff $staff, Payment $payment, bool $roleAllows): Response
+    {
+        if ($staff === null || ! $roleAllows) {
+            return Response::deny();
+        }
+
+        return $staff->worksAt($payment->branch) ? Response::allow() : Response::denyAsNotFound();
     }
 
     /**
