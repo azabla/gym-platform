@@ -7,6 +7,7 @@ namespace App\Dashboards;
 use App\Domains\Attendance\Access\Visits;
 use App\Domains\Attendance\Enums\CheckInResult;
 use App\Domains\Attendance\Models\CheckIn;
+use App\Domains\Billing\Enums\PaymentType;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Billing\Models\PaymentLink;
 use App\Domains\Members\Models\Member;
@@ -47,7 +48,33 @@ final class StaffDashboard
             'check_ins' => $this->checkIns($gym, $from, $to, $branchIds),
             'members' => $this->members($gym, $from, $to, $branchIds),
             'expiring' => $this->expiring($gym, $branchIds, $seesMoney),
+            'trends' => $this->trends($gym, $from, $to, $branchIds, $seesMoney),
         ], fn (mixed $section): bool => $section !== null);
+    }
+
+    /**
+     * The period day by day, for charts: what was taken each day (for staff
+     * who see money), check-ins each day where the gym is, and at which hours
+     * of the day members came in. Every day appears, with zeros on quiet
+     * ones. See ADR 0024.
+     *
+     * @param  list<int>|null  $branchIds
+     * @return array{takings_by_day?: list<array{date: string, net: Money}>, check_ins_by_day: list<array{date: string, allowed: int, denied: int}>, check_ins_by_hour: list<array{hour: int, allowed: int}>}
+     */
+    public function trends(Organization $gym, CarbonImmutable $from, CarbonImmutable $to, ?array $branchIds, bool $seesMoney): array
+    {
+        $days = [];
+
+        for ($day = $from; $day->lessThanOrEqualTo($to); $day = $day->addDay()) {
+            $days[] = $day->toDateString();
+        }
+
+        $trends = [
+            'check_ins_by_day' => $this->checkInsByDay($gym, $from, $to, $branchIds, $days),
+            'check_ins_by_hour' => $this->checkInsByHour($gym, $from, $to, $branchIds),
+        ];
+
+        return $seesMoney ? ['takings_by_day' => $this->takingsByDay($from, $to, $branchIds, $days), ...$trends] : $trends;
     }
 
     /**
@@ -221,6 +248,92 @@ final class StaffDashboard
     /**
      * The moment the day begins where the gym is, in UTC.
      */
+    /**
+     * What was taken each day, payments less refunds; voided ones don't count.
+     *
+     * @param  list<int>|null  $branchIds
+     * @param  list<string>  $days
+     * @return list<array{date: string, net: Money}>
+     */
+    private function takingsByDay(CarbonImmutable $from, CarbonImmutable $to, ?array $branchIds, array $days): array
+    {
+        $sums = Payment::query()
+            ->counted()
+            ->where('paid_on', '>=', $from->toDateString())
+            ->where('paid_on', '<=', $to->toDateString())
+            ->when($branchIds !== null, fn ($query) => $query->whereIn('branch_id', $branchIds ?? []))
+            ->groupBy('paid_on', 'type')
+            ->selectRaw('paid_on, type, SUM(amount_minor) AS total_minor')
+            ->toBase()
+            ->get();
+
+        $netMinor = array_fill_keys($days, 0);
+
+        foreach ($sums as $sum) {
+            $day = substr((string) $sum->paid_on, 0, 10);
+            $netMinor[$day] = ($netMinor[$day] ?? 0) + ($sum->type === PaymentType::Refund->value ? -1 : 1) * (int) $sum->total_minor;
+        }
+
+        return array_map(fn (string $day): array => ['date' => $day, 'net' => Money::ofMinor($netMinor[$day])], $days);
+    }
+
+    /**
+     * Check-ins each day where the gym is, let in and turned away.
+     *
+     * @param  list<int>|null  $branchIds
+     * @param  list<string>  $days
+     * @return list<array{date: string, allowed: int, denied: int}>
+     */
+    private function checkInsByDay(Organization $gym, CarbonImmutable $from, CarbonImmutable $to, ?array $branchIds, array $days): array
+    {
+        $counts = $this->checkInsIn($gym, $from, $to, $branchIds)
+            ->selectRaw('(checked_in_at AT TIME ZONE ?)::date AS day, result, COUNT(*) AS total', [$gym->timezone])
+            ->groupByRaw('1, 2')
+            ->toBase()
+            ->get();
+
+        $byDay = array_fill_keys($days, ['allowed' => 0, 'denied' => 0]);
+
+        foreach ($counts as $count) {
+            $key = $count->result === CheckInResult::Allowed->value ? 'allowed' : 'denied';
+            $byDay[(string) $count->day][$key] = (int) $count->total;
+        }
+
+        return array_map(fn (string $day): array => ['date' => $day, ...$byDay[$day]], $days);
+    }
+
+    /**
+     * At which hours of the day, where the gym is, members were let in.
+     *
+     * @param  list<int>|null  $branchIds
+     * @return list<array{hour: int, allowed: int}>
+     */
+    private function checkInsByHour(Organization $gym, CarbonImmutable $from, CarbonImmutable $to, ?array $branchIds): array
+    {
+        $counts = $this->checkInsIn($gym, $from, $to, $branchIds)
+            ->where('result', CheckInResult::Allowed)
+            ->selectRaw('EXTRACT(HOUR FROM checked_in_at AT TIME ZONE ?)::int AS hour, COUNT(*) AS total', [$gym->timezone])
+            ->groupByRaw('1')
+            ->toBase()
+            ->pluck('total', 'hour');
+
+        return array_map(fn (int $hour): array => ['hour' => $hour, 'allowed' => (int) ($counts[$hour] ?? 0)], range(0, 23));
+    }
+
+    /**
+     * The check-ins in the period, where the gym is, at the branches.
+     *
+     * @param  list<int>|null  $branchIds
+     * @return Builder<CheckIn>
+     */
+    private function checkInsIn(Organization $gym, CarbonImmutable $from, CarbonImmutable $to, ?array $branchIds): Builder
+    {
+        return CheckIn::query()
+            ->where('checked_in_at', '>=', $this->startOf($gym, $from))
+            ->where('checked_in_at', '<', $this->startOf($gym, $to->addDay()))
+            ->when($branchIds !== null, fn ($query) => $query->whereIn('branch_id', $branchIds ?? []));
+    }
+
     private function startOf(Organization $gym, CarbonImmutable $day): CarbonImmutable
     {
         return CarbonImmutable::parse($day->toDateString(), $gym->timezone)->utc();
