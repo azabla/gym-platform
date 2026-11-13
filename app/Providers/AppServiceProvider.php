@@ -12,6 +12,10 @@ use App\Domains\Notifications\Sms\LogSmsSender;
 use App\Domains\Notifications\Sms\SmsSender;
 use App\Domains\Shared\PhoneNumber\Exceptions\InvalidPhoneNumber;
 use App\Domains\Shared\PhoneNumber\PhoneNumber;
+use App\Http\ApiDocs\DocumentTheGymInThePath;
+use Dedoc\Scramble\Scramble;
+use Dedoc\Scramble\Support\Generator\OpenApi;
+use Dedoc\Scramble\Support\Generator\SecurityScheme;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
@@ -39,6 +43,21 @@ class AppServiceProvider extends ServiceProvider
         $this->storeAliasesInPolymorphicColumns();
         $this->limitSignInAttempts();
         $this->limitSmsSignIn();
+        $this->describeApiCallsAsTakingBearerTokens();
+    }
+
+    /**
+     * The API docs (/docs/api) say every call takes a Sanctum token as a bearer
+     * token, so their "Authorize" box sends it, and name the gym in the path as
+     * its slug. See ADR 0021.
+     */
+    private function describeApiCallsAsTakingBearerTokens(): void
+    {
+        Scramble::configure()
+            ->withOperationTransformers(DocumentTheGymInThePath::class)
+            ->withDocumentTransformers(function (OpenApi $openApi): void {
+                $openApi->secure(SecurityScheme::http('bearer'));
+            });
     }
 
     /**

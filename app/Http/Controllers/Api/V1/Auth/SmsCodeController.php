@@ -25,6 +25,8 @@ class SmsCodeController extends Controller
      * any gym. Every number gets the same answer, in the same time, so nobody
      * can use this to find out who is a member, and unregistered numbers
      * can't run up the SMS bill. See ADR 0010.
+     *
+     * @unauthenticated
      */
     public function store(RequestSmsCodeRequest $request, Timebox $timebox): JsonResponse
     {

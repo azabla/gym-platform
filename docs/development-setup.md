@@ -192,6 +192,8 @@ Use the Docker/Make commands above for this setup. The scaffold's `composer run 
 
 ## Trying the API
 
+Every endpoint, with its fields and answers, is in the API docs at http://localhost:8080/docs/api, generated from the code (ADR 0021). Sign in to the staff panel first (below); the docs then open. To try a call there, get a token from **Sign in** (`POST /api/v1/auth/tokens`), choose **Authorize** and paste it. `/docs/api.json` is the OpenAPI document, for Postman or an app's client. `make artisan c=scramble:analyze` lists what Scramble couldn't work out from the code.
+
 After pulling changes that add packages or migrations, install and rebuild the database with the demo data:
 
 ```bash
@@ -552,6 +554,61 @@ php artisan gyms:create --name="Bole Fitness" --slug=bole-fitness --owner-name="
 ```
 
 It asks for anything left out. `--timezone` (default `Africa/Addis_Ababa`) and `--branch` (default `Main Branch`) are optional. The owner gets an SMS with a link, valid for 7 days, to set their password. See ADR 0019.
+
+## Deploying staging to Render
+
+Staging runs on Render's free plan from the `deployment` branch: one web service that also runs the queue worker and the scheduler. Its database is on Neon's free plan, and holds the sessions, cache and queue too (no Redis on staging). Everything is declared in `render.yaml`, and the image is `docker/render/Dockerfile`. See ADR 0020.
+
+### Once: the database on Neon
+
+1. At [neon.tech](https://neon.tech), create a project in **AWS Europe Central 1 (Frankfurt)**, the region of the Render service, with Postgres 17 and a database named `gym`.
+2. Under **Connect**, turn **Connection pooling** off and copy the connection string. It ends in `?sslmode=require`. The pooled one goes through PgBouncer, which doesn't keep Laravel's prepared statements between queries.
+
+### Once: file storage on Cloudflare R2
+
+1. In Cloudflare, open **R2**, create a bucket (for example `gym-staging`), and under its **Settings** allow public access through the `r2.dev` address. Keep that address.
+2. In **R2 > Manage API tokens**, create a token with **Object Read & Write** on that bucket. Keep the access key ID, the secret access key, and the S3 endpoint `https://<account id>.r2.cloudflarestorage.com`.
+
+### Once: the Blueprint
+
+1. In Render, choose **New > Blueprint**, connect the GitHub repository, and choose the `deployment` branch. Render reads `render.yaml` and lists `gym-platform`.
+2. It asks for the values that are never committed:
+
+   | Variable | Value |
+   |---|---|
+   | `APP_KEY` | The output of `make artisan c="key:generate --show"` |
+   | `APP_URL` | Leave empty: the service's `onrender.com` address is used |
+   | `DB_URL` | Neon's direct connection string |
+   | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | The R2 token's keys |
+   | `AWS_BUCKET` | The bucket's name |
+   | `AWS_ENDPOINT` | `https://<account id>.r2.cloudflarestorage.com` |
+   | `AWS_URL` | The bucket's public `r2.dev` address |
+
+3. Choose **Apply**. The first build takes several minutes. Each start runs the migrations, then the app answers at `https://gym-platform.onrender.com/up` (or the address Render shows). The panel is at `/staff`.
+
+After that, every push to `deployment` deploys again. If a build or a migration fails, Render keeps the previous version running; the reason is under the service's **Logs**.
+
+### The first gym on staging
+
+Render's free plan has no shell, so create gyms from your machine against the staging database, with the same Neon connection string:
+
+```bash
+docker compose exec \
+  -e DB_URL="postgresql://...@ep-....eu-central-1.aws.neon.tech/gym?sslmode=require" \
+  -e APP_KEY="<the APP_KEY set on Render>" \
+  -e APP_URL="https://gym-platform.onrender.com" \
+  -e QUEUE_CONNECTION=sync -e SMS_DRIVER=log \
+  app php artisan gyms:create --name="Bole Fitness" --slug=bole-fitness --owner-name="Meron Assefa" --owner-phone="0911 22 33 44"
+```
+
+`APP_KEY` must be staging's own key: password links are stored as a hash keyed with it, so a link made with your local key never works on staging ("This link no longer works"). If that happened, choose **Forgot your password?** on staging's sign-in page; that link is made on Render and arrives in Render's **Logs**.
+
+`QUEUE_CONNECTION=sync` sends the owner's SMS right away instead of queueing it in your local Redis, and `SMS_DRIVER=log` writes it to your own `storage/logs/laravel.log`: `grep 'SMS to +251911223344' storage/logs/laravel.log | tail -1`. Open the link to set the password, then sign in at `/staff`. Staff the owner adds later get their SMS in Render's **Logs**, because staging uses the `log` drivers.
+
+### What to expect from the free plan
+
+- The service sleeps after 15 minutes without visits, and the first visit after that takes about a minute. While it sleeps, scheduled work waits until it wakes.
+- Neon's free plan doesn't expire, but holds 0.5 GB and suspends the database when idle; the first query after that waits a moment while it wakes.
 
 ## Troubleshooting
 

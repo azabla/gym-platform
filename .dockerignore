@@ -9,3 +9,11 @@ storage/framework/cache/*
 storage/framework/sessions/*
 storage/framework/views/*
 bootstrap/cache/*.php
+node_modules
+public/build
+public/hot
+public/css/filament
+public/fonts/filament
+public/js/filament
+public/storage
+storage/firebase
