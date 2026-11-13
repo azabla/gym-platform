@@ -91,3 +91,7 @@ arch('domains do not depend on the staff panel')
 arch('dashboards serve the API and the staff panel alike, depending on neither')
     ->expect('App\Dashboards')
     ->not->toUse(['App\Http', 'App\Filament']);
+
+arch('reports serve the API and the staff panel alike, depending on neither')
+    ->expect('App\Reports')
+    ->not->toUse(['App\Http', 'App\Filament']);

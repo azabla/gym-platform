@@ -33,6 +33,7 @@ use App\Http\Controllers\Api\V1\Organizations\PaymentController;
 use App\Http\Controllers\Api\V1\Organizations\PaymentLinkController;
 use App\Http\Controllers\Api\V1\Organizations\PlanController;
 use App\Http\Controllers\Api\V1\Organizations\RefundController;
+use App\Http\Controllers\Api\V1\Organizations\ReportController;
 use App\Http\Controllers\Api\V1\Organizations\StaffController;
 use Illuminate\Support\Facades\Route;
 
@@ -121,6 +122,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->name('organizations.')
             ->group(function (): void {
                 Route::get('dashboard', DashboardController::class)->name('dashboard');
+                Route::get('reports/payments', [ReportController::class, 'payments'])->name('reports.payments');
                 Route::apiResource('branches', BranchController::class)->only(['index', 'store', 'show', 'update']);
                 Route::get('branches/{branch}/opening-hours', [BranchOpeningHoursController::class, 'show'])
                     ->name('branches.opening-hours.show');

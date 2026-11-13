@@ -54,7 +54,7 @@ class PaymentResource extends Resource
                         TextEntry::make('membership.member.full_name')->label('Member'),
                         TextEntry::make('membership.plan.name')->label('Plan'),
                         TextEntry::make('amount')->state(fn (Payment $record): string => $record->amount->format()),
-                        TextEntry::make('method')->formatStateUsing(fn (PaymentMethod $state): string => self::methodLabel($state)),
+                        TextEntry::make('method')->formatStateUsing(fn (PaymentMethod $state): string => $state->label()),
                         TextEntry::make('reference')->placeholder('None'),
                         TextEntry::make('paid_on')->date(),
                         TextEntry::make('branch.name')->label('Branch'),
@@ -78,7 +78,7 @@ class PaymentResource extends Resource
                 TextColumn::make('membership.member.full_name')->label('Member'),
                 TextColumn::make('type')->formatStateUsing(fn (PaymentType $state): string => ucfirst($state->value)),
                 TextColumn::make('amount')->state(fn (Payment $record): string => $record->amount->format()),
-                TextColumn::make('method')->formatStateUsing(fn (PaymentMethod $state): string => self::methodLabel($state)),
+                TextColumn::make('method')->formatStateUsing(fn (PaymentMethod $state): string => $state->label()),
                 TextColumn::make('branch.name')->label('Branch'),
                 TextColumn::make('voided_at')->label('Voided')->date()->timezone(self::gymTimezone())->placeholder('No'),
             ])
@@ -93,7 +93,7 @@ class PaymentResource extends Resource
                         ->when($data['to'] ?? null, fn (Builder $query, string $to): Builder => $query->where('paid_on', '<=', $to))),
                 SelectFilter::make('branch')->relationship('branch', 'name'),
                 SelectFilter::make('method')->options(collect(PaymentMethod::cases())->mapWithKeys(
-                    fn (PaymentMethod $method): array => [$method->value => self::methodLabel($method)],
+                    fn (PaymentMethod $method): array => [$method->value => $method->label()],
                 )->all()),
                 SelectFilter::make('member')
                     ->relationship('member', 'full_name')
@@ -110,17 +110,6 @@ class PaymentResource extends Resource
             'index' => ListPayments::route('/'),
             'view' => ViewPayment::route('/{record}'),
         ];
-    }
-
-    public static function methodLabel(PaymentMethod $method): string
-    {
-        return match ($method) {
-            PaymentMethod::Cash => 'Cash',
-            PaymentMethod::Telebirr => 'telebirr',
-            PaymentMethod::CbeBirr => 'CBE Birr',
-            PaymentMethod::BankTransfer => 'Bank transfer',
-            PaymentMethod::Chapa => 'Chapa',
-        };
     }
 
     /**
