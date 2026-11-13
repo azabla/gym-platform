@@ -72,7 +72,9 @@ The membership has `visits_remaining` for a visit pack (ADR 0016). Volt's `grace
 | `GET /me/gyms/{gym}/payment-links/{id}` | The link as it stands |
 | `POST /me/gyms/{gym}/payment-links/{id}/check` | Asks Chapa now, after the member comes back from Chapa's page. Ten a minute. |
 
-Open `checkout_url` in a browser tab. A link's `status` is `pending`, `paid`, `cancelled` or `refund_needed`; once `paid`, `payment` has the receipt number.
+Open `checkout_url` in a browser tab or web view. A link's `status` is `pending`, `paid`, `cancelled` or `refund_needed`; once `paid`, `payment` has the receipt number.
+
+While a link is `pending` it also has `return_url`: Chapa sends the member there after paying, to a page that points back to the app. Close the checkout when it is reached, then `POST payment-links/{id}/check`; reaching it proves nothing about the payment (ADR 0022).
 
 ## Buying a membership
 
@@ -144,7 +146,7 @@ A push has a `title` and `body`, safe for a lock screen, and `data`, every value
 | `visits_running_low` | a visit pack has one visit left | `membership_id` | that membership |
 | `announcement` | the gym sends an announcement | `announcement_id` | that announcement |
 
-Every push also has `notification_id` (mark it read when tapped) and `organization_id`, to switch to the right gym first.
+Every push also has `notification_id` (mark it read when tapped), and `gym`, the gym's slug, to switch to the right gym first (ADR 0022). `organization_id`, the gym's number, is there too.
 
 ### Inbox
 

@@ -109,6 +109,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0020](adr/0020-staging-on-render.md) | Staging on Render |
 =======
 | [0021](adr/0021-api-documentation-with-scramble.md) | API documentation with Scramble |
+| [0022](adr/0022-back-from-chapa-and-the-gym-in-pushes.md) | Back from Chapa, and the gym in every push |
 >>>>>>> feature/api-docs
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
