@@ -542,6 +542,14 @@ Then sign in as the owner. On that membership's page, **Cancel membership**, the
 
 Payment links stay in the app.
 
+To set up the gym, as the owner:
+
+1. On **Branches**, choose **Add branch**: Piassa Branch, code `PIASSA`. Give it opening hours on its page, for example Monday 06:00 to 21:00; leave the week empty for always open. The API does the same with `POST /api/v1/organizations/demo-gym/branches` and `PATCH .../branches/{id}`.
+2. On **Plans**, choose **Add plan**: a name, a price, how long it lasts, freeze days, visits for a pack, and the branches it is sold at (empty for every branch).
+3. On **Announcements**, choose **New announcement**: send it now, or turn off **Send now** and choose a time in the gym's time zone. One that hasn't gone out can be changed or cancelled from the list.
+
+Sign in as the receptionist (Main Branch only): selling to a Main Branch member offers the plans on sale there, not Bole Monthly. A manager limited to one branch manages only the plans sold at their branches. See ADR 0023.
+
 To add staff, as the owner, open **Staff** and choose **Add staff member**: name, phone, role and branches. The SMS goes through the queue (run `make workers` first) to `storage/logs/laravel.log`: `grep 'SMS to +251944556677' storage/logs/laravel.log | tail -1`. Open the link, choose a password, and sign in with their phone. On their page you can change the role or branches, **Archive** them (they lose the gym on their next click), **Restore** them, or **Send invite again** while it's pending. **Forgot your password?** on the sign-in page sends a reset link the same way. See ADR 0017 to ADR 0019.
 
 ### Starting a real gym

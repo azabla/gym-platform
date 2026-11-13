@@ -180,7 +180,7 @@ This is how the project has been built so far; keep to it so any session, local 
 ### Where to look
 
 - `docs/README.md`: where things live, conventions and the glossary.
-- `docs/adr/`: why things are the way they are (0001 to 0022 so far; 0020 is on the `deployment` branch).
+- `docs/adr/`: why things are the way they are (0001 to 0023 so far).
 - `docs/api/members-app.md`: the contract with the members app.
 - `/docs/api`: the API docs Scramble generates from the code, for staff signed in to the panel (ADR 0021).
 - Not built yet, and candidates for the next piece: staff notifications, freezing a membership in the app, reports and exports.

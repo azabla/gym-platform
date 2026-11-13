@@ -121,7 +121,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->name('organizations.')
             ->group(function (): void {
                 Route::get('dashboard', DashboardController::class)->name('dashboard');
-                Route::apiResource('branches', BranchController::class)->only(['index', 'show']);
+                Route::apiResource('branches', BranchController::class)->only(['index', 'store', 'show', 'update']);
                 Route::get('branches/{branch}/opening-hours', [BranchOpeningHoursController::class, 'show'])
                     ->name('branches.opening-hours.show');
                 Route::put('branches/{branch}/opening-hours', [BranchOpeningHoursController::class, 'update'])

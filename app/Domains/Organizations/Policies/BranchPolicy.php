@@ -14,6 +14,14 @@ final class BranchPolicy
     public function __construct(private CurrentStaff $currentStaff) {}
 
     /**
+     * Every staff member sees the list of the branches they work at.
+     */
+    public function viewAny(User $user): bool
+    {
+        return $this->currentStaff->get()->user()->is($user);
+    }
+
+    /**
      * Staff may view only the branches they work at.
      */
     public function view(User $user, Branch $branch): bool
@@ -24,7 +32,18 @@ final class BranchPolicy
     }
 
     /**
-     * Owners and managers who work at the branch set its opening hours (ADR 0016).
+     * Owners add branches (ADR 0023).
+     */
+    public function create(User $user): bool
+    {
+        $staff = $this->currentStaff->get();
+
+        return $staff->user()->is($user) && $staff->role === StaffRole::Owner;
+    }
+
+    /**
+     * Owners and managers who work at the branch change its details and set
+     * its opening hours (ADR 0016 and ADR 0023).
      */
     public function update(User $user, Branch $branch): bool
     {

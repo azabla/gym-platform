@@ -32,10 +32,19 @@ class UpdatePlanRequest extends StorePlanRequest
             'price' => ['sometimes', new ValidMoneyAmount],
             'duration_count' => ['sometimes', 'integer', 'min:1', $this->longestDuration()],
             'duration_unit' => ['sometimes', Rule::enum(DurationUnit::class)],
-            'freeze_days_allowed' => ['sometimes', 'integer', 'min:0', 'max:366'],
-            'visit_limit' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:1000'],
+            'freeze_days_allowed' => ['sometimes', 'integer', 'min:0', 'max:'.Plan::MOST_FREEZE_DAYS],
+            'visit_limit' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:'.Plan::MOST_VISITS],
             ...$this->branchRules(),
         ];
+    }
+
+    /**
+     * The plan keeps its branches unless new ones are sent, and the policy
+     * has already checked the staff member works at them.
+     */
+    protected function meansAllBranches(): bool
+    {
+        return $this->has('branch_ids') && $this->input('branch_ids') === null;
     }
 
     /**

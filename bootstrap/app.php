@@ -1,5 +1,6 @@
 <?php
 
+use App\Domains\Announcements\Exceptions\AnnouncementRefused;
 use App\Domains\Billing\Chapa\Exceptions\ChapaRequestFailed;
 use App\Domains\Billing\Exceptions\PaymentRefused;
 use App\Domains\Memberships\Exceptions\MembershipRefused;
@@ -57,6 +58,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // A sale, freeze or cancellation the membership rules refuse.
         $exceptions->map(fn (MembershipRefused $exception) => ValidationException::withMessages([
+            $exception->field => $exception->getMessage(),
+        ]));
+
+        // An announcement the gym's rules don't allow (ADR 0023).
+        $exceptions->map(fn (AnnouncementRefused $exception) => ValidationException::withMessages([
             $exception->field => $exception->getMessage(),
         ]));
 
