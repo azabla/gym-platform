@@ -35,6 +35,17 @@ final class MessageText
     }
 
     /**
+     * A message to staff, from lang/{language}/staff_notifications.php
+     * (ADR 0027).
+     *
+     * @param  array<string, mixed>  $details
+     */
+    public static function forStaff(string $type, string $part, array $details, string $language = 'en'): string
+    {
+        return self::write("staff_notifications.{$type}.{$part}", $details, $language);
+    }
+
+    /**
      * @param  array<string, mixed>  $details
      */
     private static function write(string $key, array $details, string $language): string

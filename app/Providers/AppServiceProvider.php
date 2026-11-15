@@ -10,6 +10,7 @@ use App\Domains\Notifications\Push\PushSender;
 use App\Domains\Notifications\Sms\AfroMessageSmsSender;
 use App\Domains\Notifications\Sms\LogSmsSender;
 use App\Domains\Notifications\Sms\SmsSender;
+use App\Domains\Organizations\Models\Staff;
 use App\Domains\Shared\PhoneNumber\Exceptions\InvalidPhoneNumber;
 use App\Domains\Shared\PhoneNumber\PhoneNumber;
 use App\Http\ApiDocs\DocumentTheGymInThePath;
@@ -96,6 +97,7 @@ class AppServiceProvider extends ServiceProvider
         Relation::enforceMorphMap([
             'user' => User::class,
             'member' => Member::class,
+            'staff' => Staff::class,
         ]);
     }
 
