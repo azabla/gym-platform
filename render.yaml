@@ -69,13 +69,32 @@ services:
         sync: false
       - key: AWS_USE_PATH_STYLE_ENDPOINT
         value: "true"
+      # A second, private R2 bucket for the nightly database dumps; never the public one above (ADR 0028).
+      - key: BACKUP_AWS_BUCKET
+        sync: false
 
-      # Messages go to the log until the real accounts are connected.
+      # Messages go to the log until the real accounts are connected. To go live,
+      # fill in the account below and switch the driver (docs/development-setup.md).
       - key: MAIL_MAILER
         value: log
       - key: SMS_DRIVER
         value: log
+      - key: AFROMESSAGE_TOKEN
+        sync: false
+      - key: AFROMESSAGE_IDENTIFIER_ID
+        sync: false
+      - key: AFROMESSAGE_SENDER_NAME
+        sync: false
       - key: PUSH_DRIVER
         value: log
+      - key: FCM_PROJECT_ID
+        sync: false
+      # The service account's JSON key, base64-encoded: Render has no disk for the file.
+      - key: FCM_CREDENTIALS_JSON
+        sync: false
       - key: CHAPA_BASE_URL
         value: https://api.chapa.co/v1
+
+      # Unhandled errors go to Sentry once this is filled in; empty sends nothing.
+      - key: SENTRY_LARAVEL_DSN
+        sync: false
