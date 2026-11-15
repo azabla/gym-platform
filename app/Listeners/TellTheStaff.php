@@ -52,6 +52,9 @@ final class TellTheStaff
         ));
     }
 
+    /**
+     * @param  Closure(): void  $tell
+     */
     private function atTheGym(int $organizationId, Closure $tell): void
     {
         $this->currentOrganization->run(Organization::query()->findOrFail($organizationId), $tell);
