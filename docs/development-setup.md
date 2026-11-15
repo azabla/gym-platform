@@ -594,7 +594,8 @@ Staging runs on Render's free plan from the `deployment` branch: one web service
 ### Once: file storage on Cloudflare R2
 
 1. In Cloudflare, open **R2**, create a bucket (for example `gym-staging`), and under its **Settings** allow public access through the `r2.dev` address. Keep that address.
-2. In **R2 > Manage API tokens**, create a token with **Object Read & Write** on that bucket. Keep the access key ID, the secret access key, and the S3 endpoint `https://<account id>.r2.cloudflarestorage.com`.
+2. Create a second bucket for the nightly database dumps (for example `gym-staging-backups`), and leave its public access **off**. A dump holds every member's phone number (ADR 0028).
+3. In **R2 > Manage API tokens**, create a token with **Object Read & Write** on both buckets. Keep the access key ID, the secret access key, and the S3 endpoint `https://<account id>.r2.cloudflarestorage.com`.
 
 ### Once: the Blueprint
 
@@ -610,6 +611,8 @@ Staging runs on Render's free plan from the `deployment` branch: one web service
    | `AWS_BUCKET` | The bucket's name |
    | `AWS_ENDPOINT` | `https://<account id>.r2.cloudflarestorage.com` |
    | `AWS_URL` | The bucket's public `r2.dev` address |
+   | `BACKUP_AWS_BUCKET` | The private backups bucket's name |
+   | AfroMessage, Firebase and Sentry settings | Leave empty until going live (below) |
 
 3. Choose **Apply**. The first build takes several minutes. Each start runs the migrations, then the app answers at `https://gym-platform.onrender.com/up` (or the address Render shows). The panel is at `/staff`.
 
@@ -636,6 +639,45 @@ docker compose exec \
 
 - The service sleeps after 15 minutes without visits, and the first visit after that takes about a minute. While it sleeps, scheduled work waits until it wakes.
 - Neon's free plan doesn't expire, but holds 0.5 GB and suspends the database when idle; the first query after that waits a moment while it wakes.
+- The nightly backup runs at 02:00 in Addis Ababa only if the service is awake then; a sleeping scheduler skips it rather than catching up. An always-on instance backs up every night.
+
+## Going live
+
+Everything below is built and switched off; each part is turned on from the service's **Environment** in Render, without a code change, and Render deploys again on save. See ADR 0028.
+
+### Real text messages (AfroMessage)
+
+1. At [afromessage.com](https://afromessage.com), create the platform's account, an identifier, and an approved sender name.
+2. Set `AFROMESSAGE_TOKEN`, `AFROMESSAGE_IDENTIFIER_ID` and `AFROMESSAGE_SENDER_NAME`, then `SMS_DRIVER=afromessage`.
+3. Ask for a sign-in code in the members app with your own number: it should arrive by SMS, and no longer appear in the **Logs**.
+
+### Real pushes (Firebase)
+
+1. In the [Firebase console](https://console.firebase.google.com), create the platform's project with the members app's Android and iOS apps, and under **Project settings > Service accounts** generate a new private key.
+2. Base64-encode the downloaded key on one line: `base64 -w0 service-account.json` (on macOS, `base64 -i service-account.json`).
+3. Set `FCM_PROJECT_ID` to the project's ID, `FCM_CREDENTIALS_JSON` to that line, then `PUSH_DRIVER=fcm`.
+4. A key that isn't right fails each push with a message naming the variable, in the **Logs** and in Sentry.
+
+### Online payments (Chapa)
+
+Nothing changes on the platform: each gym connects its own Chapa account (ADR 0009). The owner replaces the test key with the live one through the API, `PUT /api/v1/organizations/{gym}/chapa-account` (see "Paying online with Chapa" above); the panel doesn't connect Chapa yet.
+
+### Error tracking (Sentry)
+
+1. At [sentry.io](https://sentry.io), create a Laravel project and copy its DSN.
+2. Set `SENTRY_LARAVEL_DSN`. Unhandled errors from the API, the panel, the queue and the scheduler then appear in Sentry, with only the user's id and the gym's slug; refusals, validation errors and 404s don't.
+
+### Backups and restoring
+
+`php artisan db:backup` dumps the database to the private bucket as `YYYY-MM-DD.dump`, every night on the deployed app, and keeps 30 days. A failed backup shows in the **Logs** and in Sentry. The development image's `pg_dump` is Debian's version 15, which refuses to dump Neon's Postgres 17, so backups run from the Render image, which has version 17.
+
+To restore, download the dump from the backups bucket in Cloudflare, then restore it into an empty database (for example a new database `gym_restored` in the Neon project), with `pg_restore` 17 on your machine:
+
+```bash
+pg_restore --no-owner --no-privileges --dbname="postgresql://...neon.tech/gym_restored?sslmode=require" 2026-11-15.dump
+```
+
+Add `--clean --if-exists` to restore over an existing database, or `--table=members` for one table. Point `DB_URL` at the restored database once you have checked it.
 
 ## Troubleshooting
 
