@@ -5,6 +5,7 @@ use App\Domains\Billing\Chapa\Exceptions\ChapaRequestFailed;
 use App\Domains\Billing\Exceptions\PaymentRefused;
 use App\Domains\Memberships\Exceptions\MembershipRefused;
 use App\Domains\Organizations\Exceptions\StaffRefused;
+use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Http\Middleware\ActAsMember;
 use App\Http\Middleware\ActAsOrganization;
 use Illuminate\Foundation\Application;
@@ -13,7 +14,11 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Validation\ValidationException;
+use Sentry\Laravel\Integration;
+use Sentry\State\Scope;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+
+use function Sentry\configureScope;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -77,4 +82,19 @@ return Application::configure(basePath: dirname(__DIR__))
                 return response()->json(['message' => $exception->getMessage()], 502);
             }
         });
+
+        // Unhandled errors go to Sentry when SENTRY_LARAVEL_DSN is set (ADR 0028), with
+        // only the user's id and the gym's slug: no names, phone numbers or request bodies.
+        // Validation errors, 404s and the refusals above are expected answers, so Laravel
+        // doesn't report them.
+        $exceptions->reportable(function (Throwable $exception): void {
+            $currentOrganization = app(CurrentOrganization::class);
+            $userId = auth()->id();
+
+            configureScope(function (Scope $scope) use ($currentOrganization, $userId): void {
+                $scope->setUser($userId === null ? [] : ['id' => (string) $userId]);
+                $scope->setTag('gym', $currentOrganization->has() ? $currentOrganization->get()->slug : 'none');
+            });
+        });
+        Integration::handles($exceptions);
     })->create();
