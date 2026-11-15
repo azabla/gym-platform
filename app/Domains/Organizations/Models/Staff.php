@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -30,6 +31,9 @@ use Illuminate\Support\Facades\DB;
  *
  * Staff who leave are archived (soft deleted), so what they recorded still
  * names them, and a gym always keeps at least one owner. See ADR 0019.
+ *
+ * Each staff record has its own inbox, so someone who works at two gyms reads
+ * each gym's messages there. See ADR 0027.
  */
 #[Table('staff')]
 #[Fillable(['role'])]
@@ -38,7 +42,7 @@ use Illuminate\Support\Facades\DB;
 class Staff extends Model
 {
     /** @use HasFactory<StaffFactory> */
-    use BelongsToOrganization, HasFactory, SoftDeletes;
+    use BelongsToOrganization, HasFactory, Notifiable, SoftDeletes;
 
     /**
      * Add the user to the current gym's staff with the role, at the given

@@ -557,6 +557,8 @@ Then sign in as the owner. On that membership's page, **Cancel membership**, the
 
 Payment links stay in the app.
 
+Staff messages arrive in the **Inbox** at the top of the menu, with the unread count (ADR 0027). Pay a link with Chapa's test card, or have Tigist freeze a membership in the app (above), and the owner's Inbox shows it; the accountant hears about money, the receptionist at Main about Main's members. Run `make artisan c=notifications:send-staff-morning-list` after 08:00 to send the morning list of members to call. The API answers the same at `GET /api/v1/organizations/demo-gym/notifications`.
+
 To download a report, choose **Download CSV** on the Payments, Memberships, Check-ins or Members list, then a period and a branch. The dashboard also charts the period: takings each day (owners, managers and accountants only), check-ins each day and the busy hours. See ADR 0024.
 
 To set up the gym, as the owner:
