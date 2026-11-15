@@ -65,6 +65,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Sign-in code | A 6-digit code sent by SMS that signs a member in to the members app. It works for 10 minutes and 5 tries. |
 | QR credential | What lets a member's phone show their QR code at one gym: a secret given to the phone once, from which it makes a code every 30 seconds (GQ1), even offline. One phone per member (ADR 0011). |
 | Notification | A message to a member at one gym: in the app's inbox, by push when they allow it, and by SMS for expiry. See ADR 0012. |
+| Staff notification | A message to a staff member at one gym, in the panel's Inbox and the API: money paid online, a refund to make, a freeze made or ended in the app, and the morning list of members to call, by role and branch. See ADR 0027. |
 | Announcement | A message from a gym to its members in its own words, to every branch or one, sent now or at a set time, in the inbox and by push (ADR 0015). |
 | Check-in | A member coming through the door, by scanning their QR code or at the desk. Every attempt is kept, allowed or denied, with the reason when denied. |
 | Member | A gym customer, registered at a home branch but welcome at every branch of the gym. May or may not have a User. |
@@ -115,6 +116,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0024](adr/0024-reports-exports-and-charts.md) | Reports, exports and charts over time |
 | [0025](adr/0025-lists-limited-to-a-staff-members-branches.md) | Lists limited to a staff member's branches |
 | [0026](adr/0026-freezing-in-the-members-app.md) | Freezing a membership in the members app |
+| [0027](adr/0027-staff-notifications.md) | Staff notifications |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 
