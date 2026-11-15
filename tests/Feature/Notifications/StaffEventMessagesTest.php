@@ -101,7 +101,7 @@ it('tells owners, managers and receptionists at the member\'s branch about a fre
     $this->postJson(route('api.v1.me.gyms.memberships.freezes.end', ['organization' => 'demo-gym', 'membership' => $this->membership->id, 'freeze' => $freezeId]))
         ->assertOk();
 
-    expect($this->receptionist->notifications()->latest()->first()?->type)->toBe('staff_member_ended_freeze');
+    expect($this->receptionist->notifications()->pluck('type')->sort()->values()->all())->toBe(['staff_member_ended_freeze', 'staff_member_froze']);
 });
 
 it('tells staff nothing about a freeze made at the desk', function () {
