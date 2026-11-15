@@ -10,6 +10,7 @@ use App\Domains\Billing\Chapa\ChapaTransaction;
 use App\Domains\Billing\Chapa\Exceptions\ChapaRequestFailed;
 use App\Domains\Billing\Enums\PaymentLinkStatus;
 use App\Domains\Billing\Enums\PaymentMethod;
+use App\Domains\Billing\Events\PaymentLinkNeedsRefund;
 use App\Domains\Billing\Exceptions\PaymentRefused;
 use App\Domains\Billing\Policies\PaymentLinkPolicy;
 use App\Domains\Members\Models\Member;
@@ -199,6 +200,7 @@ class PaymentLink extends Model
             if ($membership === null) {
                 $paymentLink->status = PaymentLinkStatus::RefundNeeded;
                 $paymentLink->save();
+                PaymentLinkNeedsRefund::dispatch($paymentLink);
 
                 return;
             }
@@ -216,6 +218,7 @@ class PaymentLink extends Model
             } catch (PaymentRefused) {
                 $paymentLink->status = PaymentLinkStatus::RefundNeeded;
                 $paymentLink->save();
+                PaymentLinkNeedsRefund::dispatch($paymentLink);
 
                 return;
             }
