@@ -8,6 +8,7 @@ use App\Casts\AsMoney;
 use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Discount\Discount;
 use App\Domains\Memberships\Enums\MembershipStatus;
+use App\Domains\Memberships\Events\MembershipFreezeEnded;
 use App\Domains\Memberships\Events\MembershipFrozen;
 use App\Domains\Memberships\Exceptions\MembershipRefused;
 use App\Domains\Memberships\Policies\MembershipPolicy;
@@ -281,11 +282,12 @@ class Membership extends Model
      * End the freeze early because the member is back today. It then ends
      * yesterday, or is removed if it hadn't started yet. The days that are no
      * longer frozen come off this membership's end date, and off every
-     * membership of the member queued after it.
+     * membership of the member queued after it. No staff member means the
+     * member ended it themselves, in the app (ADR 0026).
      */
-    public function endFreeze(MembershipFreeze $freeze, CarbonImmutable $today): void
+    public function endFreeze(MembershipFreeze $freeze, CarbonImmutable $today, ?Staff $endedBy): void
     {
-        DB::transaction(function () use ($freeze, $today): void {
+        DB::transaction(function () use ($freeze, $today, $endedBy): void {
             if ($freeze->starts_on->isBefore($today)) {
                 $daysNoLongerFrozen = (int) $today->diffInDays($freeze->ends_on) + 1;
                 $freeze->ends_on = $today->subDay();
@@ -300,6 +302,8 @@ class Membership extends Model
             $this->moveQueuedMemberships(-$daysNoLongerFrozen);
 
             $this->unsetRelation('freezes');
+
+            MembershipFreezeEnded::dispatch($this, $endedBy === null);
         });
     }
 

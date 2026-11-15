@@ -33,9 +33,9 @@ class MembershipFreezeController extends Controller
     /**
      * End the freeze early, because the member is back today.
      */
-    public function end(EndFreezeRequest $request, Membership $membership, MembershipFreeze $freeze, CurrentOrganization $currentOrganization): MembershipResource
+    public function end(EndFreezeRequest $request, Membership $membership, MembershipFreeze $freeze, CurrentOrganization $currentOrganization, CurrentStaff $currentStaff): MembershipResource
     {
-        $membership->endFreeze($freeze, $currentOrganization->get()->today());
+        $membership->endFreeze($freeze, $currentOrganization->get()->today(), $currentStaff->get());
         MembershipResource::loadDetails($membership);
 
         return new MembershipResource($membership);

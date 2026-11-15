@@ -150,7 +150,7 @@ it('moves a queued membership with a freeze, and back when the freeze ends early
         ->and($queued->refresh()->starts_on->toDateString())->toBe('2026-11-08')
         ->and($queued->ends_on->toDateString())->toBe('2026-12-07');
 
-    $membership->endFreeze($freeze, CarbonImmutable::parse('2026-10-13'));
+    $membership->endFreeze($freeze, CarbonImmutable::parse('2026-10-13'), null);
 
     expect($freeze->refresh()->ends_on->toDateString())->toBe('2026-10-12')
         ->and($membership->ends_on->toDateString())->toBe('2026-11-03')

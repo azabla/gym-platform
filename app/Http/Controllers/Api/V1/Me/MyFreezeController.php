@@ -37,7 +37,7 @@ class MyFreezeController extends Controller
     public function end(EndMyFreezeRequest $request): MyMembershipResource
     {
         $membership = $request->membership();
-        $membership->endFreeze($request->freeze(), $request->today());
+        $membership->endFreeze($request->freeze(), $request->today(), null);
 
         MyMembershipResource::loadDetails($membership->refresh());
 

@@ -78,3 +78,41 @@ it('tells staff nothing about money taken at the desk', function () {
     expect($this->owner->notifications()->count())->toBe(0)
         ->and($receptionist->notifications()->count())->toBe(0);
 });
+
+it('tells owners, managers and receptionists at the member\'s branch about a freeze made or ended in the app', function () {
+    $this->membership->forceFill(['starts_on' => '2026-11-01', 'ends_on' => '2026-11-30', 'freeze_days_allowed' => 7])->save();
+    actingAsMember($this->membership->member()->withoutGlobalScopes()->firstOrFail());
+
+    $this->postJson(route('api.v1.me.gyms.memberships.freezes.store', ['organization' => 'demo-gym', 'membership' => $this->membership->id]), [
+        'starts_on' => '2026-11-16',
+        'ends_on' => '2026-11-18',
+    ])->assertCreated();
+
+    $message = $this->receptionist->notifications()->sole();
+
+    expect($message->type)->toBe('staff_member_froze')
+        ->and($message->data['details'])->toMatchArray(['member' => 'Hana Girma', 'plan' => 'Monthly', 'starts_on' => '2026-11-16', 'ends_on' => '2026-11-18', 'membership_ends_on' => '2026-12-03'])
+        ->and($this->owner->notifications()->count())->toBe(1)
+        ->and($this->accountant->notifications()->count())->toBe(0)
+        ->and($this->boleManager->notifications()->count())->toBe(0);
+
+    $freezeId = $this->membership->freezes()->withoutGlobalScopes()->value('id');
+
+    $this->postJson(route('api.v1.me.gyms.memberships.freezes.end', ['organization' => 'demo-gym', 'membership' => $this->membership->id, 'freeze' => $freezeId]))
+        ->assertOk();
+
+    expect($this->receptionist->notifications()->latest()->first()?->type)->toBe('staff_member_ended_freeze');
+});
+
+it('tells staff nothing about a freeze made at the desk', function () {
+    $this->membership->forceFill(['starts_on' => '2026-11-01', 'ends_on' => '2026-11-30', 'freeze_days_allowed' => 7])->save();
+    actingAsStaff($this->gym, StaffRole::Manager);
+
+    $this->postJson(route('api.v1.organizations.memberships.freezes.store', ['organization' => 'demo-gym', 'membership' => $this->membership]), [
+        'ends_on' => '2026-11-18',
+        'reason' => 'Travelling.',
+    ])->assertCreated();
+
+    expect($this->receptionist->notifications()->count())->toBe(0)
+        ->and($this->owner->notifications()->count())->toBe(0);
+});

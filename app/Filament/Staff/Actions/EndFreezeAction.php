@@ -7,6 +7,7 @@ namespace App\Filament\Staff\Actions;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Memberships\Models\MembershipFreeze;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
+use App\Domains\Organizations\Tenancy\CurrentStaff;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
@@ -46,7 +47,7 @@ class EndFreezeAction extends Action
                     Refusals::halt($action, $refusal);
                 }
 
-                $record->endFreeze($freeze, $today);
+                $record->endFreeze($freeze, $today, app(CurrentStaff::class)->get());
 
                 Notification::make()->success()->title("Freeze ended. It now ends on {$record->refresh()->ends_on->format('j F Y')}.")->send();
             });
