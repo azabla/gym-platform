@@ -50,11 +50,13 @@ return [
         'driver' => env('PUSH_DRIVER', 'log'),
     ],
 
-    // The platform's Firebase project, used when PUSH_DRIVER=fcm. The credentials are the path to
-    // its service account's JSON key, kept out of git.
+    // The platform's Firebase project, used when PUSH_DRIVER=fcm. Its service account's JSON key
+    // comes from FCM_CREDENTIALS_JSON (the key, base64-encoded), on hosts without a disk such as
+    // Render, or else from FCM_CREDENTIALS (the path to the key's file), kept out of git (ADR 0028).
     'fcm' => [
         'project_id' => env('FCM_PROJECT_ID'),
         'credentials' => env('FCM_CREDENTIALS'),
+        'credentials_json' => env('FCM_CREDENTIALS_JSON'),
     ],
 
     // The platform's own AfroMessage account, used when SMS_DRIVER=afromessage.
