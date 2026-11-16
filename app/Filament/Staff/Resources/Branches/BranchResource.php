@@ -7,6 +7,7 @@ namespace App\Filament\Staff\Resources\Branches;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\BranchOpeningHour;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
+use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\Branches\Pages\CreateBranch;
 use App\Filament\Staff\Resources\Branches\Pages\EditBranch;
 use App\Filament\Staff\Resources\Branches\Pages\ListBranches;
@@ -26,6 +27,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use UnitEnum;
 
 /**
  * The gym's branches: owners add them, and owners and managers who work at
@@ -38,7 +40,9 @@ class BranchResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingStorefront;
 
-    protected static ?int $navigationSort = 6;
+    protected static string|UnitEnum|null $navigationGroup = NavigationGroup::GymSetup;
+
+    protected static ?int $navigationSort = 4;
 
     /** @var array<int, string> */
     private const WEEKDAYS = [1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday'];

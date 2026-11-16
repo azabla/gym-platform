@@ -9,6 +9,7 @@ use App\Domains\Memberships\Models\Plan;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Domains\Shared\Money\Money;
+use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\Plans\Pages\CreatePlan;
 use App\Filament\Staff\Resources\Plans\Pages\EditPlan;
 use App\Filament\Staff\Resources\Plans\Pages\ListPlans;
@@ -34,6 +35,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use UnitEnum;
 
 /**
  * The plans the gym sells, with the API's rules: a name no other plan has,
@@ -48,7 +50,9 @@ class PlanResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTag;
 
-    protected static ?int $navigationSort = 5;
+    protected static string|UnitEnum|null $navigationGroup = NavigationGroup::GymSetup;
+
+    protected static ?int $navigationSort = 1;
 
     public static function form(Schema $schema): Schema
     {

@@ -10,6 +10,7 @@ use App\Domains\Memberships\Models\Plan;
 use App\Domains\Memberships\Models\PromoCode;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
+use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\PromoCodes\Pages\CreatePromoCode;
 use App\Filament\Staff\Resources\PromoCodes\Pages\EditPromoCode;
 use App\Filament\Staff\Resources\PromoCodes\Pages\ListPromoCodes;
@@ -35,6 +36,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
+use UnitEnum;
 
 /**
  * The gym's promo codes, with the API's rules: a code no other has (archived
@@ -48,7 +50,9 @@ class PromoCodeResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTicket;
 
-    protected static ?int $navigationSort = 5;
+    protected static string|UnitEnum|null $navigationGroup = NavigationGroup::GymSetup;
+
+    protected static ?int $navigationSort = 2;
 
     public static function form(Schema $schema): Schema
     {

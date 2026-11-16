@@ -14,6 +14,7 @@ use App\Domains\Shared\Money\Money;
 use App\Domains\Shared\PhoneNumber\Exceptions\InvalidPhoneNumber;
 use App\Domains\Shared\PhoneNumber\PhoneNumber;
 use App\Filament\Staff\Actions\CheckInAction;
+use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\Concerns\LimitsToTheStaffMembersBranches;
 use App\Filament\Staff\Resources\Concerns\ShowsGymTime;
 use App\Filament\Staff\Resources\Members\Pages\CreateMember;
@@ -39,6 +40,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
+use UnitEnum;
 
 /**
  * The gym's members: registering, finding, editing and archiving them, with
@@ -53,6 +55,8 @@ class MemberResource extends Resource
     protected static ?string $model = Member::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
+
+    protected static string|UnitEnum|null $navigationGroup = NavigationGroup::FrontDesk;
 
     protected static ?int $navigationSort = 1;
 

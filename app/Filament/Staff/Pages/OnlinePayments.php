@@ -7,6 +7,7 @@ namespace App\Filament\Staff\Pages;
 use App\Domains\Billing\Chapa\Exceptions\ChapaRequestFailed;
 use App\Domains\Billing\Models\ChapaAccount;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
+use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\Concerns\ShowsGymTime;
 use App\Rules\ChapaSecretKey;
 use BackedEnum;
@@ -20,6 +21,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Gate;
+use UnitEnum;
 
 /**
  * The gym's own Chapa account, which members' online payments go to: whether
@@ -33,7 +35,9 @@ class OnlinePayments extends Page
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCreditCard;
 
-    protected static ?int $navigationSort = 8;
+    protected static string|UnitEnum|null $navigationGroup = NavigationGroup::Money;
+
+    protected static ?int $navigationSort = 3;
 
     protected static ?string $title = 'Online payments';
 

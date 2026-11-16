@@ -11,6 +11,7 @@ use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Filament\Staff\Actions\Refusals;
+use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\Staff\Pages\CreateStaff;
 use App\Filament\Staff\Resources\Staff\Pages\EditStaff;
 use App\Filament\Staff\Resources\Staff\Pages\ListStaff;
@@ -33,6 +34,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use UnitEnum;
 
 /**
  * The gym's staff, for owners and managers, with the API's rules: owners
@@ -44,9 +46,11 @@ class StaffResource extends Resource
 {
     protected static ?string $model = Staff::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBriefcase;
 
-    protected static ?int $navigationSort = 10;
+    protected static string|UnitEnum|null $navigationGroup = NavigationGroup::GymSetup;
+
+    protected static ?int $navigationSort = 5;
 
     protected static ?string $modelLabel = 'staff member';
 

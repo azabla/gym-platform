@@ -11,6 +11,7 @@ use App\Domains\Memberships\Enums\MembershipStatus;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Memberships\Models\MembershipFreeze;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
+use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\Concerns\LimitsToTheStaffMembersBranches;
 use App\Filament\Staff\Resources\Concerns\ShowsGymTime;
 use App\Filament\Staff\Resources\Memberships\Pages\ListMemberships;
@@ -29,6 +30,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use UnitEnum;
 
 /**
  * The gym's memberships, to look up: selling, freezing and cancelling stay in
@@ -43,6 +45,8 @@ class MembershipResource extends Resource
     protected static ?string $model = Membership::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedIdentification;
+
+    protected static string|UnitEnum|null $navigationGroup = NavigationGroup::FrontDesk;
 
     protected static ?int $navigationSort = 2;
 

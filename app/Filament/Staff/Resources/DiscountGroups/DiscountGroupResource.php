@@ -8,6 +8,7 @@ use App\Domains\Memberships\Discount\Discount;
 use App\Domains\Memberships\Discount\Exceptions\InvalidDiscount;
 use App\Domains\Memberships\Models\DiscountGroup;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
+use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\DiscountGroups\Pages\CreateDiscountGroup;
 use App\Filament\Staff\Resources\DiscountGroups\Pages\EditDiscountGroup;
 use App\Filament\Staff\Resources\DiscountGroups\Pages\ListDiscountGroups;
@@ -27,6 +28,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Gate;
+use UnitEnum;
 
 /**
  * The gym's discount groups, such as Student 10%, with the API's rules: a
@@ -37,9 +39,11 @@ class DiscountGroupResource extends Resource
 {
     protected static ?string $model = DiscountGroup::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedReceiptPercent;
 
-    protected static ?int $navigationSort = 5;
+    protected static string|UnitEnum|null $navigationGroup = NavigationGroup::GymSetup;
+
+    protected static ?int $navigationSort = 3;
 
     public static function form(Schema $schema): Schema
     {

@@ -8,6 +8,7 @@ use App\Domains\Billing\Enums\PaymentMethod;
 use App\Domains\Billing\Enums\PaymentType;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Shared\Money\Money;
+use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\Concerns\LimitsToTheStaffMembersBranches;
 use App\Filament\Staff\Resources\Concerns\ShowsGymTime;
 use App\Filament\Staff\Resources\Payments\Pages\ListPayments;
@@ -26,6 +27,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use UnitEnum;
 
 /**
  * Payments and refunds, as the API's payments list shows them, with what the
@@ -42,7 +44,9 @@ class PaymentResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
 
-    protected static ?int $navigationSort = 3;
+    protected static string|UnitEnum|null $navigationGroup = NavigationGroup::Money;
+
+    protected static ?int $navigationSort = 1;
 
     public static function infolist(Schema $schema): Schema
     {

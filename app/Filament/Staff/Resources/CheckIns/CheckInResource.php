@@ -10,6 +10,7 @@ use App\Domains\Attendance\Enums\CheckInResult;
 use App\Domains\Attendance\Models\CheckIn;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
+use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\CheckIns\Pages\ListCheckIns;
 use App\Filament\Staff\Resources\Concerns\LimitsToTheStaffMembersBranches;
 use BackedEnum;
@@ -22,6 +23,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use UnitEnum;
 
 /**
  * Who came in, and who was turned away and why, newest first, with times
@@ -36,7 +38,9 @@ class CheckInResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowRightEndOnRectangle;
 
-    protected static ?int $navigationSort = 4;
+    protected static string|UnitEnum|null $navigationGroup = NavigationGroup::FrontDesk;
+
+    protected static ?int $navigationSort = 3;
 
     public static function table(Table $table): Table
     {

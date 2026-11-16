@@ -10,6 +10,7 @@ use App\Domains\Announcements\Models\Announcement;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Filament\Staff\Actions\Refusals;
+use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\Announcements\Pages\CreateAnnouncement;
 use App\Filament\Staff\Resources\Announcements\Pages\EditAnnouncement;
 use App\Filament\Staff\Resources\Announcements\Pages\ListAnnouncements;
@@ -35,6 +36,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
+use UnitEnum;
 
 /**
  * Announcements from the gym to its members, to every branch or one, now
@@ -51,7 +53,9 @@ class AnnouncementResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMegaphone;
 
-    protected static ?int $navigationSort = 7;
+    protected static string|UnitEnum|null $navigationGroup = NavigationGroup::FrontDesk;
+
+    protected static ?int $navigationSort = 4;
 
     public static function form(Schema $schema): Schema
     {

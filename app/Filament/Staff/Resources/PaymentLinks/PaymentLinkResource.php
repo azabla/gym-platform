@@ -6,6 +6,7 @@ namespace App\Filament\Staff\Resources\PaymentLinks;
 
 use App\Domains\Billing\Enums\PaymentLinkStatus;
 use App\Domains\Billing\Models\PaymentLink;
+use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\Concerns\LimitsToTheStaffMembersBranches;
 use App\Filament\Staff\Resources\Concerns\ShowsGymTime;
 use App\Filament\Staff\Resources\PaymentLinks\Pages\ListPaymentLinks;
@@ -22,6 +23,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use UnitEnum;
 
 /**
  * Links to Chapa's payment page, made at the desk or by members in the app,
@@ -39,7 +41,9 @@ class PaymentLinkResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedLink;
 
-    protected static ?int $navigationSort = 3;
+    protected static string|UnitEnum|null $navigationGroup = NavigationGroup::Money;
+
+    protected static ?int $navigationSort = 2;
 
     public static function infolist(Schema $schema): Schema
     {
