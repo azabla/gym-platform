@@ -55,7 +55,7 @@ Two gaps showed up along the way:
 - Archiving or closing a branch.
 - Opening hours past midnight, and holiday closures (ADR 0016).
 - Restoring an archived plan.
-- Payment links from the panel (ADR 0018).
+- Payment links from the panel (ADR 0018). ADR 0029 added them.
 
 ## Consequences
 

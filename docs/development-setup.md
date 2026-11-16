@@ -555,7 +555,7 @@ To work the front desk, as the receptionist:
 
 Then sign in as the owner. On that membership's page, **Cancel membership**, then **Refund** the cash. On the refund's page, **Void** it if it was a mistake. Each action asks only for what the API would, and refuses what the API would refuse, in the same words.
 
-Payment links stay in the app.
+To take money online, as the owner, open **Online payments** and choose **Connect Chapa** with your Chapa test secret key (`CHASECK_TEST-…`). Managers and accountants see the page without the buttons. Then, as the receptionist, open Tigist's membership and choose **Create payment link**: it suggests what she still owes and opens the new link, with its address to copy and send. Pay it on Chapa's test page, then choose **Check now**: the link is paid, and the payment shows in Payments. **Payment links** lists them all, at your branches; filter by **Refund needed** for money Chapa took when nothing was due. See ADR 0029.
 
 Staff messages arrive in the **Inbox** at the top of the menu, with the unread count (ADR 0027). Pay a link with Chapa's test card, or have Tigist freeze a membership in the app (above), and the owner's Inbox shows it; the accountant hears about money, the receptionist at Main about Main's members. Run `make artisan c=notifications:send-staff-morning-list` after 08:00 to send the morning list of members to call. The API answers the same at `GET /api/v1/organizations/demo-gym/notifications`.
 
@@ -660,7 +660,7 @@ Everything below is built and switched off; each part is turned on from the serv
 
 ### Online payments (Chapa)
 
-Nothing changes on the platform: each gym connects its own Chapa account (ADR 0009). The owner replaces the test key with the live one through the API, `PUT /api/v1/organizations/{gym}/chapa-account` (see "Paying online with Chapa" above); the panel doesn't connect Chapa yet.
+Nothing changes on the platform: each gym connects its own Chapa account (ADR 0009). The owner replaces the test key with the live one under the panel's **Online payments**, **Replace key**, or with `PUT /api/v1/organizations/{gym}/chapa-account` (ADR 0029).
 
 ### Error tracking (Sentry)
 

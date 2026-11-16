@@ -6,7 +6,7 @@ use App\Domains\Billing\Models\PaymentLink;
 
 /**
  * Chapa took money that wasn't due any more: the gym refunds it from its
- * Chapa dashboard (ADR 0009 and ADR 0027). It opens the member.
+ * Chapa dashboard (ADR 0009 and ADR 0027). The panel opens the link (ADR 0029).
  */
 final class RefundNeeded extends StaffNotification
 {
