@@ -35,8 +35,12 @@ COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr
 RUN install-php-extensions \
         pdo_pgsql pgsql redis intl bcmath gd exif zip opcache pcntl
 
+# pg_dump for the nightly backup (ADR 0028). It must be at least the server's
+# version (17), newer than Debian's own, so it comes from PostgreSQL's apt repository.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends supervisor \
+    && apt-get install -y --no-install-recommends supervisor postgresql-common \
+    && /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y \
+    && apt-get install -y --no-install-recommends postgresql-client-17 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer

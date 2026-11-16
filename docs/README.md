@@ -117,6 +117,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0025](adr/0025-lists-limited-to-a-staff-members-branches.md) | Lists limited to a staff member's branches |
 | [0026](adr/0026-freezing-in-the-members-app.md) | Freezing a membership in the members app |
 | [0027](adr/0027-staff-notifications.md) | Staff notifications |
+| [0028](adr/0028-going-live.md) | Going live: real accounts, error tracking and backups |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 

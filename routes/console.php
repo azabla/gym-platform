@@ -24,3 +24,6 @@ Schedule::command('notifications:send-staff-morning-list')->hourly()->withoutOve
 
 // Scheduled announcements go out within a minute of their time (ADR 0015).
 Schedule::command('announcements:send-due')->everyMinute()->withoutOverlapping();
+
+// The database is dumped to the private backups bucket at 02:00 in Addis Ababa, on the deployed app only (ADR 0028).
+Schedule::command('db:backup')->dailyAt('23:00')->environments('production')->withoutOverlapping();
