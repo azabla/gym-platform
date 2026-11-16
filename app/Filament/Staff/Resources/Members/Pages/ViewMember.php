@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Staff\Resources\Members\Pages;
 
 use App\Filament\Staff\Actions\CheckInAction;
+use App\Filament\Staff\Actions\DiscountGroupAction;
 use App\Filament\Staff\Actions\SellMembershipAction;
 use App\Filament\Staff\Resources\CheckIns\CheckInResource;
 use App\Filament\Staff\Resources\Members\MemberResource;
@@ -31,6 +32,7 @@ class ViewMember extends ViewRecord
         return [
             CheckInAction::make(),
             SellMembershipAction::make(),
+            DiscountGroupAction::make(),
             Action::make('memberships')
                 ->url(MembershipResource::getUrl('index', $filteredToMember))
                 ->visible(MembershipResource::canViewAny()),

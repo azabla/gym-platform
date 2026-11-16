@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Organizations;
 
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Members\Models\Member;
+use App\Domains\Memberships\Models\MemberDiscount;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
@@ -107,6 +108,9 @@ class MemberController extends Controller
         $member->load('homeBranch');
         $this->attachMembershipsAtAGlance(new Collection([$member]));
         $this->attachBalancesDue(new Collection([$member]));
+
+        // Looked up in Memberships, which the Members domain doesn't depend on (ADR 0032).
+        $member->setRelation('memberDiscount', MemberDiscount::of($member));
 
         return new MemberResource($member);
     }

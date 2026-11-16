@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Api\V1\Organizations;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Reports\CheckInsReportRequest;
+use App\Http\Requests\Api\V1\Reports\DiscountsReportRequest;
 use App\Http\Requests\Api\V1\Reports\MembershipsReportRequest;
 use App\Http\Requests\Api\V1\Reports\MembersReportRequest;
 use App\Http\Requests\Api\V1\Reports\PaymentsReportRequest;
 use App\Reports\CheckInsReport;
 use App\Reports\Csv;
+use App\Reports\DiscountsReport;
 use App\Reports\MembershipsReport;
 use App\Reports\MembersReport;
 use App\Reports\PaymentsReport;
@@ -37,6 +39,16 @@ class ReportController extends Controller
     public function memberships(MembershipsReportRequest $request): StreamedResponse
     {
         return Csv::download(new MembershipsReport($request->period()));
+    }
+
+    /**
+     * Memberships sold below their list price in the period, with what each
+     * discount took off and where it came from (typed, promo code or
+     * discount group), as a CSV file (ADR 0032).
+     */
+    public function discounts(DiscountsReportRequest $request): StreamedResponse
+    {
+        return Csv::download(new DiscountsReport($request->period()));
     }
 
     /**

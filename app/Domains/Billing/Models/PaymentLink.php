@@ -15,9 +15,11 @@ use App\Domains\Billing\Events\PaymentLinkSentToMember;
 use App\Domains\Billing\Exceptions\PaymentRefused;
 use App\Domains\Billing\Policies\PaymentLinkPolicy;
 use App\Domains\Members\Models\Member;
+use App\Domains\Memberships\Models\DiscountGroup;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Memberships\Models\Plan;
 use App\Domains\Memberships\Models\PromoCode;
+use App\Domains\Memberships\Pricing\PriceChoice;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
@@ -101,22 +103,24 @@ class PaymentLink extends Model
      * Ask Chapa for a payment page for the member to buy the plan in their
      * app, at its price now, and keep the link to it. The membership is
      * created only once Chapa confirms the payment (see settle()), so an
-     * abandoned checkout leaves nothing behind. With a promo code, the link
-     * is for the price with the code, and keeps the plan's price as its list
-     * amount (ADR 0013 and ADR 0030).
+     * abandoned checkout leaves nothing behind. At a lower price, through a
+     * promo code or the member's discount group, the link is for that price,
+     * names what gave it, and keeps the plan's price as its list amount (ADR
+     * 0013, ADR 0030 and ADR 0032).
      */
-    public static function openForPlan(Member $member, Plan $plan, Branch $branch, ChapaAccount $chapaAccount, string $callbackUrl, ?PromoCode $promoCode = null): self
+    public static function openForPlan(Member $member, Plan $plan, Branch $branch, ChapaAccount $chapaAccount, string $callbackUrl, ?PriceChoice $priceChoice = null): self
     {
         $link = new self;
         $link->organization()->associate($member->organization_id);
         $link->member()->associate($member);
         $link->plan()->associate($plan);
         $link->branch()->associate($branch);
-        $link->amount = $promoCode?->priceFor($plan) ?? $plan->price;
+        $link->amount = $priceChoice === null ? $plan->price : $priceChoice->price;
 
-        if ($promoCode !== null) {
-            $link->promoCode()->associate($promoCode);
-            $link->list_amount = $plan->price;
+        if ($priceChoice?->isDiscounted() === true) {
+            $link->promoCode()->associate($priceChoice->promoCode);
+            $link->discountGroup()->associate($priceChoice->discountGroup);
+            $link->list_amount = $priceChoice->listPrice;
         }
 
         $link->tx_ref = 'GP-'.Str::ulid();
@@ -148,6 +152,7 @@ class PaymentLink extends Model
             $this->amount,
             $this->promoCode,
             $this->list_amount,
+            $this->discountGroup,
         );
         $this->membership()->associate($membership);
 
@@ -374,6 +379,18 @@ class PaymentLink extends Model
     public function promoCode(): BelongsTo
     {
         return $this->belongsTo(PromoCode::class)->withTrashed();
+    }
+
+    /**
+     * The discount group whose price a link to buy a plan asks, if any. A
+     * group archived since is still honoured: the member paid its price
+     * (ADR 0032).
+     *
+     * @return BelongsTo<DiscountGroup, $this>
+     */
+    public function discountGroup(): BelongsTo
+    {
+        return $this->belongsTo(DiscountGroup::class)->withTrashed();
     }
 
     /**

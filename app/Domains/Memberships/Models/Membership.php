@@ -12,6 +12,7 @@ use App\Domains\Memberships\Events\MembershipFreezeEnded;
 use App\Domains\Memberships\Events\MembershipFrozen;
 use App\Domains\Memberships\Exceptions\MembershipRefused;
 use App\Domains\Memberships\Policies\MembershipPolicy;
+use App\Domains\Memberships\Pricing\PriceChoice;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
@@ -63,34 +64,46 @@ class Membership extends Model
 
     /**
      * Sell the plan to the member, starting on the given day, at the plan's
-     * price less the discount, if any: one staff typed, or a promo code's
-     * (ADR 0030). The membership belongs to the member's gym, and its end
-     * date, list price and branches come from the plan.
+     * price less the discount, if any: one staff typed, a promo code's (ADR
+     * 0030) or a discount group's (ADR 0032). The membership belongs to the
+     * member's gym, and its end date, list price and branches come from the
+     * plan.
      */
-    public static function sell(Member $member, Plan $plan, CarbonImmutable $startsOn, Staff $soldBy, ?Discount $discount = null, ?PromoCode $promoCode = null): self
+    public static function sell(Member $member, Plan $plan, CarbonImmutable $startsOn, Staff $soldBy, ?Discount $discount = null, ?PromoCode $promoCode = null, ?DiscountGroup $discountGroup = null): self
     {
-        $discount = $promoCode?->discount() ?? $discount;
+        $discount = $promoCode?->discount() ?? $discountGroup?->discount() ?? $discount;
 
-        return self::record($member, $plan, $startsOn, $soldBy, $plan->price, $discount?->appliedTo($plan->price) ?? $plan->price, $discount?->reason, $promoCode);
+        return self::record($member, $plan, $startsOn, $soldBy, $plan->price, $discount?->appliedTo($plan->price) ?? $plan->price, $discount?->reason, $promoCode, $promoCode === null ? $discountGroup : null);
+    }
+
+    /**
+     * Sell at the price Pricing chose: the plan's, or its discount group's or
+     * promo code's (ADR 0032).
+     */
+    public static function sellAt(PriceChoice $priceChoice, Member $member, Plan $plan, CarbonImmutable $startsOn, Staff $soldBy): self
+    {
+        return self::sell($member, $plan, $startsOn, $soldBy, promoCode: $priceChoice->promoCode, discountGroup: $priceChoice->discountGroup);
     }
 
     /**
      * The member bought the plan in their app and paid the given price for it,
      * so no staff member sold it. The price is what the member paid, even if
-     * the plan's price changed since. With a promo code, the list price is
-     * the plan's price when they started buying (ADR 0013 and ADR 0030).
+     * the plan's price changed since. With a promo code or a discount group,
+     * the list price is the plan's price when they started buying (ADR 0013,
+     * ADR 0030 and ADR 0032).
      */
-    public static function buyInApp(Member $member, Plan $plan, CarbonImmutable $startsOn, Money $pricePaid, ?PromoCode $promoCode = null, ?Money $listPrice = null): self
+    public static function buyInApp(Member $member, Plan $plan, CarbonImmutable $startsOn, Money $pricePaid, ?PromoCode $promoCode = null, ?Money $listPrice = null, ?DiscountGroup $discountGroup = null): self
     {
-        $listPrice = $promoCode === null ? $pricePaid : ($listPrice ?? $pricePaid);
-        $discountReason = $listPrice->isGreaterThan($pricePaid) ? $promoCode?->discountReason() : null;
+        $discounted = $promoCode !== null || $discountGroup !== null;
+        $listPrice = $discounted ? ($listPrice ?? $pricePaid) : $pricePaid;
+        $discountReason = $listPrice->isGreaterThan($pricePaid) ? ($promoCode?->discountReason() ?? $discountGroup?->discountReason()) : null;
 
-        return self::record($member, $plan, $startsOn, null, $listPrice, $pricePaid, $discountReason, $promoCode);
+        return self::record($member, $plan, $startsOn, null, $listPrice, $pricePaid, $discountReason, $promoCode, $promoCode === null ? $discountGroup : null);
     }
 
-    private static function record(Member $member, Plan $plan, CarbonImmutable $startsOn, ?Staff $soldBy, Money $listPrice, Money $price, ?string $discountReason, ?PromoCode $promoCode = null): self
+    private static function record(Member $member, Plan $plan, CarbonImmutable $startsOn, ?Staff $soldBy, Money $listPrice, Money $price, ?string $discountReason, ?PromoCode $promoCode = null, ?DiscountGroup $discountGroup = null): self
     {
-        return DB::transaction(function () use ($member, $plan, $startsOn, $soldBy, $listPrice, $price, $discountReason, $promoCode): self {
+        return DB::transaction(function () use ($member, $plan, $startsOn, $soldBy, $listPrice, $price, $discountReason, $promoCode, $discountGroup): self {
             $membership = new self;
             $membership->organization()->associate($member->organization_id);
             $membership->member()->associate($member);
@@ -103,6 +116,7 @@ class Membership extends Model
             $membership->price = $price;
             $membership->discount_reason = $discountReason;
             $membership->promoCode()->associate($promoCode);
+            $membership->discountGroup()->associate($discountGroup);
             $membership->freeze_days_allowed = $plan->freeze_days_allowed;
             $membership->visit_limit = $plan->visit_limit;
             $membership->valid_at_all_branches = $plan->available_at_all_branches;
@@ -375,6 +389,16 @@ class Membership extends Model
     public function promoCode(): BelongsTo
     {
         return $this->belongsTo(PromoCode::class)->withTrashed();
+    }
+
+    /**
+     * The discount group whose price it was sold at, if any (ADR 0032).
+     *
+     * @return BelongsTo<DiscountGroup, $this>
+     */
+    public function discountGroup(): BelongsTo
+    {
+        return $this->belongsTo(DiscountGroup::class)->withTrashed();
     }
 
     /** @return BelongsTo<Staff, $this> */

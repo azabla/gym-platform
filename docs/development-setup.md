@@ -561,6 +561,18 @@ Each part has an ADR:
 
 `make composer c=install` also publishes the panel's assets. After `make fresh`, open http://localhost:8080/staff and sign in with one of the demo phones above (password `password`). You land on Demo Gym's dashboard: today's figures and the members to call. Change the period or the branch at the top.
 
+### Demo activity
+
+The base seed is small on purpose, so the examples in this guide keep their ids. To see the gym busy, run `make demo` after `make fresh` (it adds nothing a second time). It adds:
+- about 40 members at Main and Bole, in every membership state: active, ending this week, expired, frozen (one in the app), cancelled, upcoming and visit packs, a few sold with NEWYEAR or a typed discount;
+- payments over the last two months by every method, some only part paid, and a refund;
+- a month of check-ins at morning and evening peaks, a few turned away;
+- payment links waiting (one texted), paid, needing a refund and refunded;
+- an announcement sent and one scheduled for tomorrow;
+- messages in the owner's and receptionist's Inbox.
+
+It also adds two staff members: a manager at Bole Branch (`0911 00 00 04`) and a trainer (`0911 00 00 05`), password `password`. No member is texted or pushed while it runs.
+
 - As the owner (`0911 00 00 01`), you see the money too, and every list: members, memberships, payments, check-ins and staff.
 - As the receptionist (`0911 00 00 02`), everything covers Main Branch only, and the money is hidden on the dashboard. Members lists Abebe and Tigist, of Main; search for Hana, of Bole, and her page and membership still open, so the desk can check her in. Payments and check-ins show only those made at Main, and a payment taken at Bole is a 404. The API answers the same (ADR 0025).
 - As the accountant (`0911 00 00 03`), you see the money and the payments.
@@ -591,6 +603,8 @@ To set up the gym, as the owner:
 Sign in as the receptionist (Main Branch only): selling to a Main Branch member offers the plans on sale there, not Bole Monthly. A manager limited to one branch manages only the plans sold at their branches. See ADR 0023.
 
 **Promo codes** lists the gym's codes, with NEWYEAR already there, where each stands and how many times it was used. Add one with a discount (`20%` or `500`), optional first and last days, a total, once per member and some plans; archive it to stop it. As the receptionist, type NEWYEAR in **Sell membership**: it shows the price with the code and sells at it. See ADR 0030.
+
+**Discount groups** holds groups such as Student 10% (`make demo` adds Student and Staff family). As the owner, open a member and choose **Discount group** to put them in one, optionally until a day. Selling to them then charges the group's price without typing anything, or a promo code's when it is lower; their plans in the app show `your_price`. **Download discounts** on the memberships list gives every discount in a period, typed, by code or by group, with what it cost. The API: `/api/v1/organizations/demo-gym/discount-groups`, `PUT .../members/{id}/discount-group` and `.../reports/discounts`. See ADR 0032.
 
 To add staff, as the owner, open **Staff** and choose **Add staff member**: name, phone, role and branches. The SMS goes through the queue (run `make workers` first) to `storage/logs/laravel.log`: `grep 'SMS to +251944556677' storage/logs/laravel.log | tail -1`. Open the link, choose a password, and sign in with their phone. On their page you can change the role or branches, **Archive** them (they lose the gym on their next click), **Restore** them, or **Send invite again** while it's pending. **Forgot your password?** on the sign-in page sends a reset link the same way. See ADR 0017 to ADR 0019.
 

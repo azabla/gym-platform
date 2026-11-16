@@ -51,8 +51,8 @@ Owners and managers can sell below a plan's price at the desk, typing an amount 
 
 ### Deferred
 
-- Codes for one member only, or per-member discounts (student, staff).
-- A report of the codes used and what they cost.
+- Codes for one member only, or per-member discounts (student, staff). ADR 0032 added discount groups.
+- A report of the codes used and what they cost. ADR 0032 added the discounts report.
 - Reserving a use while a member is paying, to keep exactly to a total.
 
 ## Consequences
