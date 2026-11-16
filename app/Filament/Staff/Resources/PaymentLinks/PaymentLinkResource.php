@@ -133,6 +133,7 @@ class PaymentLinkResource extends Resource
             PaymentLinkStatus::Paid => 'Paid',
             PaymentLinkStatus::Cancelled => 'Cancelled',
             PaymentLinkStatus::RefundNeeded => 'Refund needed',
+            PaymentLinkStatus::Refunded => 'Refunded',
         };
     }
 
@@ -143,6 +144,7 @@ class PaymentLinkResource extends Resource
             PaymentLinkStatus::Paid => 'success',
             PaymentLinkStatus::Cancelled => 'gray',
             PaymentLinkStatus::RefundNeeded => 'danger',
+            PaymentLinkStatus::Refunded => 'gray',
         };
     }
 

@@ -11,6 +11,7 @@ use App\Domains\Billing\Chapa\Exceptions\ChapaRequestFailed;
 use App\Domains\Billing\Enums\PaymentLinkStatus;
 use App\Domains\Billing\Enums\PaymentMethod;
 use App\Domains\Billing\Events\PaymentLinkNeedsRefund;
+use App\Domains\Billing\Events\PaymentLinkSentToMember;
 use App\Domains\Billing\Exceptions\PaymentRefused;
 use App\Domains\Billing\Policies\PaymentLinkPolicy;
 use App\Domains\Members\Models\Member;
@@ -48,6 +49,9 @@ class PaymentLink extends Model
 {
     /** @use HasFactory<PaymentLinkFactory> */
     use BelongsToOrganization, HasFactory;
+
+    /** A link isn't texted to the member again within this many minutes. */
+    public const MINUTES_BETWEEN_TEXTS = 10;
 
     /**
      * Ask Chapa, with the gym's own account, for a payment page for the amount
@@ -194,6 +198,78 @@ class PaymentLink extends Model
     }
 
     /**
+     * Why the link can't be marked refunded, or null when it can: only a link
+     * needing a refund can be (ADR 0031).
+     */
+    public function refusalToMarkRefunded(): ?PaymentRefused
+    {
+        return $this->status === PaymentLinkStatus::RefundNeeded ? null : PaymentRefused::noRefundNeeded();
+    }
+
+    /**
+     * The gym gave the member's money back from its Chapa dashboard. The link
+     * is locked meanwhile, so two desks marking it at once refund it once.
+     *
+     * @throws PaymentRefused when the link doesn't need a refund
+     */
+    public function markRefunded(Staff $refundedBy, ?string $note): void
+    {
+        DB::transaction(function () use ($refundedBy, $note): void {
+            $paymentLink = static::query()->whereKey($this->id)->lockForUpdate()->firstOrFail();
+            $refusal = $paymentLink->refusalToMarkRefunded();
+
+            if ($refusal !== null) {
+                throw $refusal;
+            }
+
+            $paymentLink->status = PaymentLinkStatus::Refunded;
+            $paymentLink->refunded_at = CarbonImmutable::now();
+            $paymentLink->refundedBy()->associate($refundedBy);
+            $paymentLink->refund_note = $note === null || trim($note) === '' ? null : trim($note);
+            $paymentLink->save();
+        });
+
+        $this->refresh();
+    }
+
+    /**
+     * Why the link can't be texted to the member now, or null when it can: it
+     * must be open, and not texted in the last few minutes (ADR 0031).
+     */
+    public function refusalToSendBySms(CarbonImmutable $now): ?PaymentRefused
+    {
+        if ($this->status !== PaymentLinkStatus::Pending) {
+            return PaymentRefused::linkNotOpen();
+        }
+
+        if ($this->sms_sent_at !== null && $this->sms_sent_at->greaterThan($now->subMinutes(self::MINUTES_BETWEEN_TEXTS))) {
+            return PaymentRefused::textedAMomentAgo();
+        }
+
+        return null;
+    }
+
+    /**
+     * Text the link to the member: the time is kept, and the member hears of
+     * it by SMS once the change is saved (PaymentLinkSentToMember).
+     *
+     * @throws PaymentRefused when the link can't be texted now
+     */
+    public function sendToMember(CarbonImmutable $now): void
+    {
+        $refusal = $this->refusalToSendBySms($now);
+
+        if ($refusal !== null) {
+            throw $refusal;
+        }
+
+        $this->sms_sent_at = $now;
+        $this->save();
+
+        PaymentLinkSentToMember::dispatch($this);
+    }
+
+    /**
      * Ask Chapa, with the gym's own key, whether the member has paid, and
      * record the payment if so. A link that is already settled isn't asked
      * about again.
@@ -332,6 +408,12 @@ class PaymentLink extends Model
         return $this->belongsTo(Staff::class, 'cancelled_by_staff_id')->withTrashed();
     }
 
+    /** @return BelongsTo<Staff, $this> */
+    public function refundedBy(): BelongsTo
+    {
+        return $this->belongsTo(Staff::class, 'refunded_by_staff_id')->withTrashed();
+    }
+
     /**
      * The payment the link became, once Chapa confirmed it.
      *
@@ -381,6 +463,8 @@ class PaymentLink extends Model
             'status' => PaymentLinkStatus::class,
             'settled_at' => 'immutable_datetime',
             'cancelled_at' => 'immutable_datetime',
+            'refunded_at' => 'immutable_datetime',
+            'sms_sent_at' => 'immutable_datetime',
         ];
     }
 }
