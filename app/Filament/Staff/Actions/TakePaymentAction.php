@@ -12,6 +12,7 @@ use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Shared\Money\Money;
 use Carbon\CarbonImmutable;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -29,6 +30,9 @@ class TakePaymentAction extends MoneyAction
         parent::setUp();
 
         $this->label('Take payment')
+            ->icon(Heroicon::OutlinedBanknotes)
+            ->modalIcon(Heroicon::OutlinedBanknotes)
+            ->color('success')
             ->visible(fn (Membership $record): bool => Gate::allows('create', Payment::class) && $record->cancelled_at === null);
     }
 

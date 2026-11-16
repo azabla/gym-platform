@@ -13,6 +13,7 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -33,6 +34,9 @@ class FreezeMembershipAction extends Action
         parent::setUp();
 
         $this->label('Freeze')
+            ->icon(Heroicon::OutlinedPauseCircle)
+            ->modalIcon(Heroicon::OutlinedPauseCircle)
+            ->color('info')
             ->visible(fn (Membership $record): bool => Gate::allows('freeze', $record))
             ->schema([
                 DatePicker::make('starts_on')

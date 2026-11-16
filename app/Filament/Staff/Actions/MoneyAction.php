@@ -22,7 +22,10 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Support\Enums\Width;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -56,35 +59,50 @@ abstract class MoneyAction extends Action
     {
         parent::setUp();
 
-        $this->schema(fn (Membership $record): array => [
-            TextInput::make('amount')
-                ->required()
-                ->default($this->suggestedAmount($record)->toDecimal())
-                ->rules(fn (): array => [new ValidMoneyAmount, self::moreThanZero()]),
-            Select::make('method')
-                ->required()
-                ->options(collect(PaymentMethod::cases())
-                    ->reject(fn (PaymentMethod $method): bool => $method->isOnline())
-                    ->mapWithKeys(fn (PaymentMethod $method): array => [$method->value => $method->label()])
-                    ->all())
-                ->live(),
-            TextInput::make('reference')
-                ->label('Transaction number')
-                ->visible(fn (Get $get): bool => PaymentMethod::tryFrom((string) $get('method'))?->hasReference() ?? false)
-                ->required()
-                ->maxLength(100)
-                ->rules(fn (Get $get): array => [self::notRecordedAlready(PaymentMethod::tryFrom((string) $get('method')))]),
-            Select::make('branch_id')
-                ->label('Branch')
-                ->required()
-                ->options(fn (): array => app(CurrentStaff::class)->get()->branchesWorkedAt()->pluck('name', 'id')->all())
-                ->default(MemberResource::onlyBranchWorkedAt()),
-            DatePicker::make('paid_on')
-                ->label('Paid on')
-                ->required()
-                ->default(self::today()->toDateString())
-                ->rules(fn (): array => [self::notInTheFuture(), self::notInThePastUnlessAllowed()]),
-        ])
+        $this->modalWidth(Width::Large)
+            ->modalDescription(fn (Membership $record): string => self::moneySummaryOf($record))
+            ->schema(fn (Membership $record): array => [
+                TextInput::make('amount')
+                    ->required()
+                    ->prefix('ETB')
+                    ->placeholder('2,500')
+                    ->default($this->suggestedAmount($record)->toDecimal())
+                    ->helperText('Write it as on a receipt, such as 2,500 or 1500.50.')
+                    ->rules(fn (): array => [new ValidMoneyAmount, self::moreThanZero()]),
+                Select::make('method')
+                    ->required()
+                    ->native(false)
+                    ->options(collect(PaymentMethod::cases())
+                        ->reject(fn (PaymentMethod $method): bool => $method->isOnline())
+                        ->mapWithKeys(fn (PaymentMethod $method): array => [$method->value => $method->label()])
+                        ->all())
+                    ->live(),
+                TextInput::make('reference')
+                    ->label('Transaction number')
+                    ->placeholder('From the SMS or the bank slip, such as CJ12ABC34D')
+                    ->prefixIcon(Heroicon::OutlinedHashtag)
+                    ->helperText('Each transaction number can be recorded once.')
+                    ->visible(fn (Get $get): bool => PaymentMethod::tryFrom((string) $get('method'))?->hasReference() ?? false)
+                    ->required()
+                    ->maxLength(100)
+                    ->rules(fn (Get $get): array => [self::notRecordedAlready(PaymentMethod::tryFrom((string) $get('method')))]),
+                Grid::make(2)->schema([
+                    Select::make('branch_id')
+                        ->label('Branch')
+                        ->required()
+                        ->native(false)
+                        ->options(fn (): array => app(CurrentStaff::class)->get()->branchesWorkedAt()->pluck('name', 'id')->all())
+                        ->default(MemberResource::onlyBranchWorkedAt()),
+                    DatePicker::make('paid_on')
+                        ->label('Paid on')
+                        ->required()
+                        ->native(false)
+                        ->displayFormat('j M Y')
+                        ->maxDate(self::today()->toDateString())
+                        ->default(self::today()->toDateString())
+                        ->rules(fn (): array => [self::notInTheFuture(), self::notInThePastUnlessAllowed()]),
+                ]),
+            ])
             ->action(function (array $data, Membership $record, Action $action): void {
                 $amount = Money::of((string) $data['amount'], $record->price->currency);
                 $refusal = $this->refusal($record, $amount);
@@ -111,6 +129,16 @@ abstract class MoneyAction extends Action
 
                 Notification::make()->success()->title($this->doneMessage($payment))->send();
             });
+    }
+
+    /**
+     * "Monthly for Hana Girma: price 2,500.00 ETB, paid 1,000.00 ETB, still owed 1,500.00 ETB."
+     */
+    private static function moneySummaryOf(Membership $membership): string
+    {
+        $balance = Payment::balanceOf($membership);
+
+        return "{$membership->plan?->name} for {$membership->member?->full_name}: price {$membership->price->format()}, paid {$balance->amountPaid->format()}, still owed {$balance->balanceDue->format()}.";
     }
 
     private static function today(): CarbonImmutable

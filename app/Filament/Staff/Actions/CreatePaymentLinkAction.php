@@ -19,6 +19,7 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -39,6 +40,9 @@ class CreatePaymentLinkAction extends Action
         parent::setUp();
 
         $this->label('Create payment link')
+            ->icon(Heroicon::OutlinedLink)
+            ->modalIcon(Heroicon::OutlinedLink)
+            ->color('gray')
             ->visible(fn (Membership $record): bool => Gate::allows('create', PaymentLink::class) && $record->cancelled_at === null)
             ->modalDescription('A link to Chapa\'s payment page, to send the member. The money goes to the gym\'s Chapa account.')
             ->schema(fn (Membership $record): array => [
