@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Me;
 
 use App\Domains\Billing\Models\PaymentLink;
+use App\Domains\Memberships\Pricing\PriceChoice;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Me\BuyPlanRequest;
 use App\Http\Resources\V1\Me\MyPaymentLinkResource;
@@ -38,7 +39,7 @@ class MyPlanPurchaseController extends Controller
                 branch: $request->member()->homeBranch,
                 chapaAccount: $request->chapaAccount(),
                 callbackUrl: route('api.v1.chapa.callback'),
-                promoCode: $promoCode,
+                priceChoice: $promoCode === null ? null : PriceChoice::withCode($request->plan()->price, $promoCode->priceFor($request->plan()), $promoCode),
             );
         } catch (UniqueConstraintViolationException) {
             // A second tap opened the link first; a member buys one plan at a time.
