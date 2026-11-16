@@ -8,6 +8,7 @@ use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Filament\Staff\Resources\Concerns\ShowsGymTime;
 use App\Filament\Staff\Resources\Members\MemberResource;
 use App\Filament\Staff\Resources\Memberships\MembershipResource;
+use App\Filament\Staff\Resources\PaymentLinks\PaymentLinkResource;
 use App\Filament\Staff\Resources\Payments\PaymentResource;
 use App\Notifications\MessageText;
 use BackedEnum;
@@ -108,8 +109,8 @@ class Inbox extends Page implements HasTable
     }
 
     /**
-     * What the message is about: a payment, a membership or a member, or
-     * else the dashboard and its members to call.
+     * What the message is about: a payment, a payment link, a membership or
+     * a member, or else the dashboard and its members to call.
      */
     private static function urlOf(DatabaseNotification $notification): string
     {
@@ -118,6 +119,7 @@ class Inbox extends Page implements HasTable
 
         return match (true) {
             isset($data['payment_id']) => PaymentResource::getUrl('view', ['record' => $data['payment_id']]),
+            isset($data['payment_link_id']) => PaymentLinkResource::getUrl('view', ['record' => $data['payment_link_id']]),
             isset($data['membership_id']) => MembershipResource::getUrl('view', ['record' => $data['membership_id']]),
             isset($data['member_id']) => MemberResource::getUrl('view', ['record' => $data['member_id']]),
             default => Dashboard::getUrl(),
