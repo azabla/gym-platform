@@ -6,6 +6,7 @@ use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Enums\DurationUnit;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Memberships\Models\Plan;
+use App\Domains\Memberships\Models\PromoCode;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Organization;
@@ -122,6 +123,37 @@ it('offers only the plans on sale at the member\'s home branch', function () {
     Livewire::test(ViewMember::class, ['record' => $this->hana->getRouteKey()])
         ->callAction(SellMembershipAction::class, ['plan_id' => $boleMonthly->id])
         ->assertHasFormErrors(['plan_id']);
+
+    expect(Membership::query()->count())->toBe(0);
+});
+
+it('lets a receptionist sell with a promo code', function () {
+    PromoCode::factory()->for($this->gym)->create(['code' => 'NEWYEAR', 'discount' => '20%']);
+    actingAsStaffInPanel($this->gym, StaffRole::Receptionist);
+
+    Livewire::test(ViewMember::class, ['record' => $this->hana->getRouteKey()])
+        ->mountAction(SellMembershipAction::class)
+        ->fillForm(['plan_id' => $this->monthly->id, 'promo_code' => 'newyear'])
+        ->callMountedAction()
+        ->assertHasNoFormErrors();
+
+    $membership = Membership::query()->sole();
+    expect($membership->price)->toEqual(Money::of('2,000'))
+        ->and($membership->discount_reason)->toBe('Promo code NEWYEAR');
+});
+
+it('refuses a promo code that can\'t be used, or one with a typed discount', function () {
+    PromoCode::factory()->for($this->gym)->create(['code' => 'NEWYEAR', 'ends_on' => '2026-10-01']);
+    PromoCode::factory()->for($this->gym)->create(['code' => 'STUDENT']);
+    actingAsStaffInPanel($this->gym, StaffRole::Owner);
+
+    Livewire::test(ViewMember::class, ['record' => $this->hana->getRouteKey()])
+        ->callAction(SellMembershipAction::class, ['plan_id' => $this->monthly->id, 'promo_code' => 'NEWYEAR'])
+        ->assertHasFormErrors(['promo_code' => 'This promo code ended on 1 October 2026.']);
+
+    Livewire::test(ViewMember::class, ['record' => $this->hana->getRouteKey()])
+        ->callAction(SellMembershipAction::class, ['plan_id' => $this->monthly->id, 'promo_code' => 'STUDENT', 'discount' => '10%', 'discount_reason' => 'Friend'])
+        ->assertHasFormErrors(['promo_code' => 'Use a promo code or a discount, not both.']);
 
     expect(Membership::query()->count())->toBe(0);
 });

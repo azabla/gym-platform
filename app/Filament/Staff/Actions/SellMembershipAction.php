@@ -7,8 +7,10 @@ namespace App\Filament\Staff\Actions;
 use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Discount\Discount;
 use App\Domains\Memberships\Discount\Exceptions\InvalidDiscount;
+use App\Domains\Memberships\Exceptions\PromoCodeRefused;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Memberships\Models\Plan;
+use App\Domains\Memberships\Models\PromoCode;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Filament\Staff\Resources\Memberships\MembershipResource;
@@ -26,8 +28,8 @@ use Illuminate\Support\Facades\Gate;
 /**
  * Sell a plan to the member, with the API's rules: it starts on the first
  * free day unless another is chosen, only owners and managers backdate or give
- * a discount, and it must fit around the member's other memberships. See
- * ADR 0006, ADR 0007 and ADR 0018.
+ * a discount, anyone who sells may use a promo code, and it must fit around
+ * the member's other memberships. See ADR 0006, ADR 0007, ADR 0018 and ADR 0030.
  */
 class SellMembershipAction extends Action
 {
@@ -61,21 +63,30 @@ class SellMembershipAction extends Action
                     ->visible(fn (): bool => Gate::allows('discount', Membership::class))
                     ->requiredWith('discount')
                     ->maxLength(500),
+                TextInput::make('promo_code')
+                    ->label('Promo code')
+                    ->maxLength(30)
+                    ->live(onBlur: true)
+                    ->helperText(fn (Get $get): string => self::priceWithCode($record, $get('plan_id'), (string) $get('promo_code')))
+                    ->rules(fn (Get $get): array => [self::usableCode($record, $get('plan_id'), filled($get('discount')))]),
             ])
             ->action(function (array $data, Member $record, Action $action): void {
                 $plan = Plan::query()->findOrFail((int) $data['plan_id']);
                 $startsOn = CarbonImmutable::parse((string) $data['starts_on']);
-                $refusal = Membership::refusalToSell($record, $plan, $startsOn, self::today());
+                $promoCode = filled($data['promo_code'] ?? null) ? PromoCode::findByCode((string) $data['promo_code']) : null;
+                $refusal = ($promoCode === null && filled($data['promo_code'] ?? null) ? PromoCodeRefused::unknown() : null)
+                    ?? $promoCode?->refusalToUse($record, $plan, self::today())
+                    ?? Membership::refusalToSell($record, $plan, $startsOn, self::today());
 
                 if ($refusal !== null) {
                     Refusals::halt($action, $refusal);
                 }
 
-                $discount = filled($data['discount'] ?? null)
+                $discount = $promoCode === null && filled($data['discount'] ?? null)
                     ? Discount::parse((string) $data['discount'], (string) $data['discount_reason'], $plan->price->currency)
                     : null;
 
-                $membership = Membership::sell($record, $plan, $startsOn, app(CurrentStaff::class)->get(), $discount);
+                $membership = Membership::sell($record, $plan, $startsOn, app(CurrentStaff::class)->get(), $discount, $promoCode);
 
                 Notification::make()->success()->title("{$plan->name} sold, from {$startsOn->format('j F Y')}.")->send();
 
@@ -93,6 +104,49 @@ class SellMembershipAction extends Action
         return function (string $attribute, mixed $value, Closure $fail): void {
             if (CarbonImmutable::parse((string) $value)->lessThan(self::today()) && Gate::denies('backdate', Membership::class)) {
                 $fail('Only owners and managers can start a membership on a past date.');
+            }
+        };
+    }
+
+    /**
+     * What the plan costs with the code typed, or how to use one.
+     */
+    private static function priceWithCode(Member $member, mixed $planId, string $typed): string
+    {
+        $plan = is_numeric($planId) ? Plan::query()->find((int) $planId) : null;
+        $promoCode = trim($typed) === '' ? null : PromoCode::findByCode($typed);
+
+        if ($plan === null || $promoCode === null || $promoCode->refusalToUse($member, $plan, self::today()) !== null) {
+            return 'A code the gym shares, such as NEWYEAR. Any staff member who sells can use one.';
+        }
+
+        return "With {$promoCode->code}: {$promoCode->priceFor($plan)->format()} instead of {$plan->price->format()}.";
+    }
+
+    /**
+     * A code the member can use for the plan today, never with a typed
+     * discount as well (ADR 0030).
+     */
+    private static function usableCode(Member $member, mixed $planId, bool $withADiscount): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail) use ($member, $planId, $withADiscount): void {
+            $plan = is_numeric($planId) ? Plan::query()->find((int) $planId) : null;
+
+            if ($plan === null || ! is_string($value) || trim($value) === '') {
+                return;
+            }
+
+            if ($withADiscount) {
+                $fail('Use a promo code or a discount, not both.');
+
+                return;
+            }
+
+            $promoCode = PromoCode::findByCode($value);
+            $refusal = $promoCode === null ? PromoCodeRefused::unknown() : $promoCode->refusalToUse($member, $plan, self::today());
+
+            if ($refusal !== null) {
+                $fail($refusal->getMessage());
             }
         };
     }

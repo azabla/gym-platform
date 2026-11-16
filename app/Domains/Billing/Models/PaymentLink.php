@@ -16,6 +16,7 @@ use App\Domains\Billing\Policies\PaymentLinkPolicy;
 use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Memberships\Models\Plan;
+use App\Domains\Memberships\Models\PromoCode;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
@@ -39,6 +40,7 @@ use Illuminate\Support\Str;
  * other. A membership has at most one pending link. See ADR 0009.
  *
  * @property Money $amount The amount asked for (amount_minor and currency).
+ * @property Money|null $list_amount The plan's price when a link to buy it with a promo code was opened.
  */
 #[UseFactory(PaymentLinkFactory::class)]
 #[UsePolicy(PaymentLinkPolicy::class)]
@@ -95,16 +97,24 @@ class PaymentLink extends Model
      * Ask Chapa for a payment page for the member to buy the plan in their
      * app, at its price now, and keep the link to it. The membership is
      * created only once Chapa confirms the payment (see settle()), so an
-     * abandoned checkout leaves nothing behind. See ADR 0013.
+     * abandoned checkout leaves nothing behind. With a promo code, the link
+     * is for the price with the code, and keeps the plan's price as its list
+     * amount (ADR 0013 and ADR 0030).
      */
-    public static function openForPlan(Member $member, Plan $plan, Branch $branch, ChapaAccount $chapaAccount, string $callbackUrl): self
+    public static function openForPlan(Member $member, Plan $plan, Branch $branch, ChapaAccount $chapaAccount, string $callbackUrl, ?PromoCode $promoCode = null): self
     {
         $link = new self;
         $link->organization()->associate($member->organization_id);
         $link->member()->associate($member);
         $link->plan()->associate($plan);
         $link->branch()->associate($branch);
-        $link->amount = $plan->price;
+        $link->amount = $promoCode?->priceFor($plan) ?? $plan->price;
+
+        if ($promoCode !== null) {
+            $link->promoCode()->associate($promoCode);
+            $link->list_amount = $plan->price;
+        }
+
         $link->tx_ref = 'GP-'.Str::ulid();
         $link->status = PaymentLinkStatus::Pending;
         $link->checkout_url = app(ChapaClient::class)->startCheckout($link, $chapaAccount->secret_key, $callbackUrl);
@@ -127,7 +137,14 @@ class PaymentLink extends Model
             return null;
         }
 
-        $membership = Membership::buyInApp($member, $plan, Membership::firstFreeDayFor($member, $this->organization->today()), $this->amount);
+        $membership = Membership::buyInApp(
+            $member,
+            $plan,
+            Membership::firstFreeDayFor($member, $this->organization->today()),
+            $this->amount,
+            $this->promoCode,
+            $this->list_amount,
+        );
         $this->membership()->associate($membership);
 
         return $membership;
@@ -273,6 +290,17 @@ class PaymentLink extends Model
     }
 
     /**
+     * The promo code a link to buy a plan was opened with, if any. A code
+     * archived since is still honoured: the member paid its price (ADR 0030).
+     *
+     * @return BelongsTo<PromoCode, $this>
+     */
+    public function promoCode(): BelongsTo
+    {
+        return $this->belongsTo(PromoCode::class)->withTrashed();
+    }
+
+    /**
      * The membership the link pays, or the one bought through it once paid.
      *
      * @return BelongsTo<Membership, $this>
@@ -349,6 +377,7 @@ class PaymentLink extends Model
     {
         return [
             'amount' => AsMoney::class.':amount_minor,currency',
+            'list_amount' => AsMoney::class.':list_amount_minor,currency',
             'status' => PaymentLinkStatus::class,
             'settled_at' => 'immutable_datetime',
             'cancelled_at' => 'immutable_datetime',

@@ -4,6 +4,7 @@ use App\Domains\Announcements\Exceptions\AnnouncementRefused;
 use App\Domains\Billing\Chapa\Exceptions\ChapaRequestFailed;
 use App\Domains\Billing\Exceptions\PaymentRefused;
 use App\Domains\Memberships\Exceptions\MembershipRefused;
+use App\Domains\Memberships\Exceptions\PromoCodeRefused;
 use App\Domains\Organizations\Exceptions\StaffRefused;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Http\Middleware\ActAsMember;
@@ -63,6 +64,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // A sale, freeze or cancellation the membership rules refuse.
         $exceptions->map(fn (MembershipRefused $exception) => ValidationException::withMessages([
+            $exception->field => $exception->getMessage(),
+        ]));
+
+        // A promo code that can't be used for this member and plan today (ADR 0030).
+        $exceptions->map(fn (PromoCodeRefused $exception) => ValidationException::withMessages([
             $exception->field => $exception->getMessage(),
         ]));
 

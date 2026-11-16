@@ -15,14 +15,17 @@ class MyPlanPurchaseController extends Controller
     /**
      * Start buying the plan: a Chapa payment link for its price, for the
      * member's home branch. The membership is created once Chapa confirms the
-     * payment. Asking again for the same plan gives the same open link;
-     * choosing another plan cancels the unpaid one. See ADR 0013.
+     * payment. With a promo code, the link is for the plan's price with the
+     * code. Asking again for the same plan and code gives the same open
+     * link; choosing another plan or code cancels the unpaid one. See
+     * ADR 0013 and ADR 0030.
      */
     public function store(BuyPlanRequest $request): JsonResponse
     {
         $openPurchase = $request->openPurchase();
+        $promoCode = $request->promoCode();
 
-        if ($openPurchase !== null && $openPurchase->plan_id === $request->plan()->id) {
+        if ($openPurchase !== null && $openPurchase->plan_id === $request->plan()->id && $openPurchase->promo_code_id === $promoCode?->id) {
             return $this->answer($openPurchase);
         }
 
@@ -35,6 +38,7 @@ class MyPlanPurchaseController extends Controller
                 branch: $request->member()->homeBranch,
                 chapaAccount: $request->chapaAccount(),
                 callbackUrl: route('api.v1.chapa.callback'),
+                promoCode: $promoCode,
             );
         } catch (UniqueConstraintViolationException) {
             // A second tap opened the link first; a member buys one plan at a time.
@@ -46,6 +50,6 @@ class MyPlanPurchaseController extends Controller
 
     private function answer(PaymentLink $paymentLink): JsonResponse
     {
-        return (new MyPaymentLinkResource($paymentLink->load(['payment', 'plan'])))->response();
+        return (new MyPaymentLinkResource($paymentLink->load(['payment', 'plan', 'promoCode'])))->response();
     }
 }

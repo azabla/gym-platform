@@ -4,7 +4,10 @@ namespace Database\Seeders;
 
 use App\Domains\Memberships\Enums\DurationUnit;
 use App\Domains\Memberships\Models\Plan;
+use App\Domains\Memberships\Models\PromoCode;
+use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Organization;
+use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Shared\Money\Money;
 use Illuminate\Database\Seeder;
@@ -17,7 +20,8 @@ class PlanSeeder extends Seeder
      *
      * Five plans valid at every branch, one of them a visit pack (10 Visits),
      * and Bole Monthly, valid only at Bole Branch. Each says how many days it
-     * can be frozen.
+     * can be frozen. The promo code NEWYEAR takes 20% off any plan, once per
+     * member (ADR 0030).
      */
     public function run(CurrentOrganization $currentOrganization): void
     {
@@ -52,6 +56,12 @@ class PlanSeeder extends Seeder
                         $plan->makeAvailableOnlyAt($onlyAtBranch);
                     }
                 }
+
+                $promoCode = PromoCode::query()->withTrashed()->firstOrNew(['code' => 'NEWYEAR']);
+                $promoCode->fill(['discount' => '20%', 'once_per_member' => true]);
+                $promoCode->organization()->associate($organization);
+                $promoCode->createdBy()->associate(Staff::query()->where('role', StaffRole::Owner)->firstOrFail());
+                $promoCode->save();
             });
         });
     }
