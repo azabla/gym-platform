@@ -6,6 +6,7 @@ use App\Domains\Attendance\Models\CheckIn;
 use App\Domains\Billing\Enums\PaymentLinkStatus;
 use App\Domains\Billing\Models\PaymentLink;
 use App\Domains\Members\Models\Member;
+use App\Domains\Memberships\Models\MemberDiscount;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Organization;
@@ -25,7 +26,8 @@ it('adds two months of activity to Demo Gym, without telling any member', functi
         ->and(CheckIn::query()->count())->toBeGreaterThan(50)
         ->and(PaymentLink::query()->pluck('status')->unique()->sort()->values()->all())
         ->toEqualCanonicalizing([PaymentLinkStatus::Pending, PaymentLinkStatus::Paid, PaymentLinkStatus::RefundNeeded, PaymentLinkStatus::Refunded])
-        ->and(Staff::query()->where('role', StaffRole::Trainer)->count())->toBe(1);
+        ->and(Staff::query()->where('role', StaffRole::Trainer)->count())->toBe(1)
+        ->and(MemberDiscount::query()->count())->toBe(4);
 
     Notification::assertNothingSentTo(Member::query()->where('phone', 'like', '+25194400%')->get());
 });

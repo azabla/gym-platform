@@ -13,6 +13,8 @@ use App\Domains\Identity\Models\User;
 use App\Domains\Members\Enums\Gender;
 use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Discount\Discount;
+use App\Domains\Memberships\Models\DiscountGroup;
+use App\Domains\Memberships\Models\MemberDiscount;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Memberships\Models\MembershipFreeze;
 use App\Domains\Memberships\Models\Plan;
@@ -145,6 +147,7 @@ class DemoActivitySeeder extends Seeder
                     $refundNeeded ??= $result['refund_needed'];
                 }
 
+                $this->discountGroups($organization);
                 $this->checkIns();
                 $this->announcements($organization);
                 $this->staffMessages($freezes, $paidOnline, $refundNeeded);
@@ -373,6 +376,28 @@ class DemoActivitySeeder extends Seeder
         ]);
 
         ($denial === null ? $factory : $factory->denied($denial))->create();
+    }
+
+    /**
+     * A Student group with three members, one until the end of the term, and
+     * a Staff family group with one (ADR 0032).
+     */
+    private function discountGroups(Organization $organization): void
+    {
+        $student = new DiscountGroup(['name' => 'Student', 'discount' => '10%']);
+        $student->organization()->associate($organization);
+        $student->createdBy()->associate($this->owner);
+        $student->save();
+
+        $staffFamily = new DiscountGroup(['name' => 'Staff family', 'discount' => '50%']);
+        $staffFamily->organization()->associate($organization);
+        $staffFamily->createdBy()->associate($this->owner);
+        $staffFamily->save();
+
+        foreach (['Kalkidan Assefa' => $this->today->addMonths(6), 'Bethlehem Haile' => null, 'Tsion Kassa' => null, 'Kidist Mekonnen' => null] as $name => $until) {
+            $member = Member::query()->where('full_name', $name)->firstOrFail();
+            MemberDiscount::assign($member, $name === 'Kidist Mekonnen' ? $staffFamily : $student, $until, $this->owner);
+        }
     }
 
     private function announcements(Organization $organization): void
