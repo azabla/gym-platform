@@ -26,7 +26,9 @@ use App\Http\Controllers\Api\V1\Organizations\BranchOpeningHoursController;
 use App\Http\Controllers\Api\V1\Organizations\ChapaAccountController;
 use App\Http\Controllers\Api\V1\Organizations\CheckInController;
 use App\Http\Controllers\Api\V1\Organizations\DashboardController;
+use App\Http\Controllers\Api\V1\Organizations\DiscountGroupController;
 use App\Http\Controllers\Api\V1\Organizations\MemberController;
+use App\Http\Controllers\Api\V1\Organizations\MemberDiscountGroupController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipCancellationController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipFreezeController;
@@ -147,6 +149,18 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     ->name('branches.opening-hours.update');
                 Route::apiResource('members', MemberController::class);
                 Route::apiResource('plans', PlanController::class);
+                Route::apiResource('discount-groups', DiscountGroupController::class)
+                    ->only(['index', 'store', 'show', 'update'])
+                    ->withTrashed(['show']);
+                Route::post('discount-groups/{discount_group}/archive', [DiscountGroupController::class, 'archive'])
+                    ->name('discount-groups.archive');
+                Route::post('discount-groups/{discount_group}/restore', [DiscountGroupController::class, 'restore'])
+                    ->withTrashed()
+                    ->name('discount-groups.restore');
+                Route::put('members/{member}/discount-group', [MemberDiscountGroupController::class, 'update'])
+                    ->name('members.discount-group.update');
+                Route::delete('members/{member}/discount-group', [MemberDiscountGroupController::class, 'destroy'])
+                    ->name('members.discount-group.destroy');
                 Route::apiResource('promo-codes', PromoCodeController::class)
                     ->only(['index', 'store', 'show', 'update'])
                     ->withTrashed(['show']);

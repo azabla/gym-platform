@@ -9,6 +9,8 @@ use App\Domains\Memberships\Exceptions\PromoCodeRefused;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Memberships\Models\Plan;
 use App\Domains\Memberships\Models\PromoCode;
+use App\Domains\Memberships\Pricing\PriceChoice;
+use App\Domains\Memberships\Pricing\Pricing;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use Carbon\CarbonImmutable;
 use Closure;
@@ -94,6 +96,15 @@ class StoreMembershipRequest extends FormRequest
     public function plan(): Plan
     {
         return Plan::query()->findOrFail($this->integer('plan_id'));
+    }
+
+    /**
+     * Without a typed discount, what the member pays: the plan's price, their
+     * discount group's, or the promo code's, whichever is lowest (ADR 0032).
+     */
+    public function priceChoice(): PriceChoice
+    {
+        return Pricing::bestFor($this->member(), $this->plan(), $this->today(), $this->promoCode());
     }
 
     /**
