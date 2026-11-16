@@ -76,6 +76,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Opening hours | When a branch is open, by weekday, in the gym's time zone. A branch without any is always open. Check-ins outside them are turned away. |
 | Freeze | A pause in a membership. The membership's end date moves later by the number of frozen days. Staff freeze at the desk; members freeze their own in the app, from today, within the freeze days left (ADR 0026). |
 | Discount | A reduction of a plan's price at sale, as an amount or a percentage, with a reason. Only owners and managers can type one; anyone who sells can use a promo code. |
+| Discount group | A group of members the gym prices lower, such as Student 10%, until a day if given. Its members pay its price in the app and at the desk, or a promo code's when lower, never both (ADR 0032). |
 | Promo code | A code the gym shares, such as NEWYEAR, worth a discount on a plan in the app or at the desk, with optional dates, a total, once per member and some plans only. A use is a membership sold with it (ADR 0030). |
 | Payment | Money a member paid towards a membership, by cash, Telebirr, CBE Birr or bank transfer, or online through Chapa. A membership can be paid in parts. |
 | Chapa account | A gym's own account with Chapa, the payment gateway. The owner connects it with its secret key, and members' online payments go straight to it (ADR 0009). |
@@ -122,6 +123,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0029](adr/0029-chapa-in-the-staff-panel.md) | Chapa and payment links in the staff panel |
 | [0030](adr/0030-promo-codes.md) | Promo codes, in the members app and at the desk |
 | [0031](adr/0031-refunds-made-and-links-by-sms.md) | Refunds made, open links on memberships, and links by SMS |
+| [0032](adr/0032-discount-groups-and-the-discounts-report.md) | Discount groups and the discounts report |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 

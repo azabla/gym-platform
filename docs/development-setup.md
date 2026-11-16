@@ -604,6 +604,8 @@ Sign in as the receptionist (Main Branch only): selling to a Main Branch member 
 
 **Promo codes** lists the gym's codes, with NEWYEAR already there, where each stands and how many times it was used. Add one with a discount (`20%` or `500`), optional first and last days, a total, once per member and some plans; archive it to stop it. As the receptionist, type NEWYEAR in **Sell membership**: it shows the price with the code and sells at it. See ADR 0030.
 
+**Discount groups** holds groups such as Student 10% (`make demo` adds Student and Staff family). As the owner, open a member and choose **Discount group** to put them in one, optionally until a day. Selling to them then charges the group's price without typing anything, or a promo code's when it is lower; their plans in the app show `your_price`. **Download discounts** on the memberships list gives every discount in a period, typed, by code or by group, with what it cost. The API: `/api/v1/organizations/demo-gym/discount-groups`, `PUT .../members/{id}/discount-group` and `.../reports/discounts`. See ADR 0032.
+
 To add staff, as the owner, open **Staff** and choose **Add staff member**: name, phone, role and branches. The SMS goes through the queue (run `make workers` first) to `storage/logs/laravel.log`: `grep 'SMS to +251944556677' storage/logs/laravel.log | tail -1`. Open the link, choose a password, and sign in with their phone. On their page you can change the role or branches, **Archive** them (they lose the gym on their next click), **Restore** them, or **Send invite again** while it's pending. **Forgot your password?** on the sign-in page sends a reset link the same way. See ADR 0017 to ADR 0019.
 
 ### Starting a real gym
