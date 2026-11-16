@@ -9,8 +9,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Payments\CancelPaymentLinkRequest;
 use App\Http\Requests\Api\V1\Payments\CheckPaymentLinkRequest;
 use App\Http\Requests\Api\V1\Payments\ListPaymentLinksRequest;
+use App\Http\Requests\Api\V1\Payments\MarkPaymentLinkRefundedRequest;
+use App\Http\Requests\Api\V1\Payments\SendPaymentLinkRequest;
 use App\Http\Requests\Api\V1\Payments\StorePaymentLinkRequest;
 use App\Http\Resources\V1\PaymentLinkResource;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
@@ -79,6 +82,30 @@ class PaymentLinkController extends Controller
         PaymentLinkResource::loadDetails($paymentLink);
 
         return new PaymentLinkResource($paymentLink);
+    }
+
+    /**
+     * Mark that the gym gave back money Chapa took when nothing was due, with
+     * an optional note such as Chapa's refund reference (ADR 0031).
+     */
+    public function refunded(MarkPaymentLinkRefundedRequest $request, PaymentLink $paymentLink, CurrentStaff $currentStaff): PaymentLinkResource
+    {
+        $paymentLink->markRefunded($currentStaff->get(), $request->filled('note') ? $request->string('note')->toString() : null);
+        PaymentLinkResource::loadDetails($paymentLink);
+
+        return new PaymentLinkResource($paymentLink);
+    }
+
+    /**
+     * Text the open link to the member's phone, for members without the app.
+     * The SMS goes out through the queue (ADR 0031).
+     */
+    public function sms(SendPaymentLinkRequest $request, PaymentLink $paymentLink): JsonResponse
+    {
+        $paymentLink->sendToMember(CarbonImmutable::now());
+        PaymentLinkResource::loadDetails($paymentLink);
+
+        return (new PaymentLinkResource($paymentLink))->response()->setStatusCode(Response::HTTP_ACCEPTED);
     }
 
     /**

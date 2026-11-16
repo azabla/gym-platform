@@ -7,6 +7,7 @@ namespace App\Dashboards;
 use App\Domains\Attendance\Access\Visits;
 use App\Domains\Attendance\Enums\CheckInResult;
 use App\Domains\Attendance\Models\CheckIn;
+use App\Domains\Billing\Enums\PaymentLinkStatus;
 use App\Domains\Billing\Enums\PaymentType;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Billing\Models\PaymentLink;
@@ -95,11 +96,19 @@ final class StaffDashboard
             ->pending()
             ->forAnyOf($branchIds);
 
+        $refundsNeeded = PaymentLink::query()
+            ->where('status', PaymentLinkStatus::RefundNeeded)
+            ->forAnyOf($branchIds);
+
         return [
             ...Payment::totalsOf($payments),
             'open_payment_links' => [
                 'count' => (clone $openLinks)->count(),
                 'amount' => Money::ofMinor((int) (clone $openLinks)->sum('amount_minor')),
+            ],
+            'refunds_needed' => [
+                'count' => (clone $refundsNeeded)->count(),
+                'amount' => Money::ofMinor((int) (clone $refundsNeeded)->sum('amount_minor')),
             ],
         ];
     }
