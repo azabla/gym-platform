@@ -37,7 +37,7 @@ class MembershipController extends Controller
      */
     public function store(StoreMembershipRequest $request, Member $member, CurrentStaff $currentStaff): MembershipResource
     {
-        $membership = Membership::sell($member, $request->plan(), $request->startsOn(), $currentStaff->get(), $request->discount());
+        $membership = Membership::sell($member, $request->plan(), $request->startsOn(), $currentStaff->get(), $request->discount(), $request->promoCode());
         MembershipResource::loadDetails($membership);
 
         return new MembershipResource($membership);

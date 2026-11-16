@@ -33,6 +33,7 @@ use App\Http\Controllers\Api\V1\Organizations\MembershipFreezeController;
 use App\Http\Controllers\Api\V1\Organizations\PaymentController;
 use App\Http\Controllers\Api\V1\Organizations\PaymentLinkController;
 use App\Http\Controllers\Api\V1\Organizations\PlanController;
+use App\Http\Controllers\Api\V1\Organizations\PromoCodeController;
 use App\Http\Controllers\Api\V1\Organizations\RefundController;
 use App\Http\Controllers\Api\V1\Organizations\ReportController;
 use App\Http\Controllers\Api\V1\Organizations\StaffController;
@@ -146,6 +147,14 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     ->name('branches.opening-hours.update');
                 Route::apiResource('members', MemberController::class);
                 Route::apiResource('plans', PlanController::class);
+                Route::apiResource('promo-codes', PromoCodeController::class)
+                    ->only(['index', 'store', 'show', 'update'])
+                    ->withTrashed(['show']);
+                Route::post('promo-codes/{promo_code}/archive', [PromoCodeController::class, 'archive'])
+                    ->name('promo-codes.archive');
+                Route::post('promo-codes/{promo_code}/restore', [PromoCodeController::class, 'restore'])
+                    ->withTrashed()
+                    ->name('promo-codes.restore');
                 Route::apiResource('members.memberships', MembershipController::class)
                     ->only(['index', 'store', 'show'])
                     ->shallow();
