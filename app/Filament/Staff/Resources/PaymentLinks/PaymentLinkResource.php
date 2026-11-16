@@ -70,6 +70,19 @@ class PaymentLinkResource extends Resource
                             ->url(fn (PaymentLink $record): ?string => $record->payment_id === null ? null : PaymentResource::getUrl('view', ['record' => $record->payment_id])),
                         TextEntry::make('chapa_reference')->label('Chapa reference')->placeholder('None'),
                         TextEntry::make('cancelled_at')->label('Cancelled')->dateTime()->timezone(self::gymTimezone())->placeholder('No'),
+                        TextEntry::make('sms_sent_at')->label('Texted to the member')->dateTime()->timezone(self::gymTimezone())->placeholder('Not yet'),
+                        TextEntry::make('refunded_at')
+                            ->label('Refunded')
+                            ->dateTime()
+                            ->timezone(self::gymTimezone())
+                            ->visible(fn (PaymentLink $record): bool => $record->refunded_at !== null),
+                        TextEntry::make('refundedBy.user.name')
+                            ->label('Refunded by')
+                            ->visible(fn (PaymentLink $record): bool => $record->refunded_at !== null),
+                        TextEntry::make('refund_note')
+                            ->label('Refund note')
+                            ->placeholder('None')
+                            ->visible(fn (PaymentLink $record): bool => $record->refunded_at !== null),
                     ]),
             ]);
     }
@@ -133,6 +146,7 @@ class PaymentLinkResource extends Resource
             PaymentLinkStatus::Paid => 'Paid',
             PaymentLinkStatus::Cancelled => 'Cancelled',
             PaymentLinkStatus::RefundNeeded => 'Refund needed',
+            PaymentLinkStatus::Refunded => 'Refunded',
         };
     }
 
@@ -143,6 +157,7 @@ class PaymentLinkResource extends Resource
             PaymentLinkStatus::Paid => 'success',
             PaymentLinkStatus::Cancelled => 'gray',
             PaymentLinkStatus::RefundNeeded => 'danger',
+            PaymentLinkStatus::Refunded => 'gray',
         };
     }
 

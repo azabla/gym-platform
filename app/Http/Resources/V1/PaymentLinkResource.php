@@ -26,7 +26,7 @@ class PaymentLinkResource extends JsonResource
      * The relations a payment link response shows. The membership's freezes
      * give its status without a query per link.
      */
-    private const RELATIONS = ['branch', 'member', 'plan', 'membership.plan', 'membership.freezes', 'createdBy.user', 'cancelledBy.user', 'payment'];
+    private const RELATIONS = ['branch', 'member', 'plan', 'membership.plan', 'membership.freezes', 'createdBy.user', 'cancelledBy.user', 'refundedBy.user', 'payment'];
 
     /**
      * Load everything a payment link response shows: the relations above and
@@ -78,6 +78,12 @@ class PaymentLinkResource extends JsonResource
                 'receipt_number' => $payment->receipt_number,
                 'paid_on' => $payment->paid_on->toDateString(),
             ]),
+            'refund' => $this->refunded_at === null ? null : [
+                'refunded_at' => $this->refunded_at->toIso8601String(),
+                'refunded_by' => $this->whenLoaded('refundedBy', fn (Staff $staff) => $this->staffMember($staff)),
+                'note' => $this->refund_note,
+            ],
+            'sms_sent_at' => $this->sms_sent_at?->toIso8601String(),
         ];
     }
 

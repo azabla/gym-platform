@@ -15,6 +15,11 @@ return [
         'sms' => ':gym: your :plan membership ends on :ends_on. Renew at the desk to keep training.',
     ],
 
+    // Texted at the desk's request only, so it has no inbox title or body (ADR 0031).
+    'payment_link_sent' => [
+        'sms' => ':gym: pay :amount for :plan here: :url',
+    ],
+
     'membership_expired' => [
         'title' => 'Membership ended',
         'body' => 'Your :plan membership at :gym ended on :ends_on. Renew it to keep training.',

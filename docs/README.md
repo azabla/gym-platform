@@ -79,7 +79,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Promo code | A code the gym shares, such as NEWYEAR, worth a discount on a plan in the app or at the desk, with optional dates, a total, once per member and some plans only. A use is a membership sold with it (ADR 0030). |
 | Payment | Money a member paid towards a membership, by cash, Telebirr, CBE Birr or bank transfer, or online through Chapa. A membership can be paid in parts. |
 | Chapa account | A gym's own account with Chapa, the payment gateway. The owner connects it with its secret key, and members' online payments go straight to it (ADR 0009). |
-| Payment link | A link to Chapa's payment page for an amount owed on a membership, or for a plan a member is buying in the app (ADR 0013). Staff send it to the member, and the payment is recorded once Chapa confirms it. Marked refund needed if paid when nothing was due any more. |
+| Payment link | A link to Chapa's payment page for an amount owed on a membership, or for a plan a member is buying in the app (ADR 0013). Staff copy it or text it to the member, and the payment is recorded once Chapa confirms it. Marked refund needed if paid when nothing was due any more, then refunded once the gym gives the money back (ADR 0031). |
 | Refund | Money given back on a cancelled membership, up to what was paid. Stored as a payment going the other way. |
 | Void | Marking a payment or refund as recorded by mistake. It stays on record but no longer counts. |
 | Receipt | The record of a payment or refund for the member, numbered 1, 2, 3 in each gym with no gaps. |
@@ -121,6 +121,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0028](adr/0028-going-live.md) | Going live: real accounts, error tracking and backups |
 | [0029](adr/0029-chapa-in-the-staff-panel.md) | Chapa and payment links in the staff panel |
 | [0030](adr/0030-promo-codes.md) | Promo codes, in the members app and at the desk |
+| [0031](adr/0031-refunds-made-and-links-by-sms.md) | Refunds made, open links on memberships, and links by SMS |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 

@@ -13,8 +13,9 @@ use Illuminate\Auth\Access\Response;
 
 /**
  * The staff who take payments (owners, managers, accountants and
- * receptionists) create, see, check and cancel payment links. Trainers don't
- * handle money. See ADR 0009.
+ * receptionists) create, see, check, cancel and text payment links. Only
+ * owners, managers and accountants mark a refund made. Trainers don't handle
+ * money. See ADR 0009 and ADR 0031.
  */
 final class PaymentLinkPolicy
 {
@@ -23,6 +24,12 @@ final class PaymentLinkPolicy
         StaffRole::Manager,
         StaffRole::Accountant,
         StaffRole::Receptionist,
+    ];
+
+    private const ROLES_THAT_SEE_MONEY = [
+        StaffRole::Owner,
+        StaffRole::Manager,
+        StaffRole::Accountant,
     ];
 
     public function __construct(private CurrentStaff $currentStaff) {}
@@ -56,16 +63,40 @@ final class PaymentLinkPolicy
     }
 
     /**
-     * Staff limited to some branches don't see links of other branches: for
-     * them such a link isn't there, a 404 (ADR 0025).
+     * Text the open link to the member (ADR 0031).
      */
-    private function atTheirBranch(?Staff $staff, PaymentLink $paymentLink): Response
+    public function send(User $user, PaymentLink $paymentLink): Response
     {
-        if (! $this->takesPayments($staff)) {
+        return $this->atTheirBranch($this->staffFor($user, $paymentLink), $paymentLink);
+    }
+
+    /**
+     * Mark that the gym gave the member's money back: owners, managers and
+     * accountants, who see the money (ADR 0031).
+     */
+    public function markRefunded(User $user, PaymentLink $paymentLink): Response
+    {
+        return $this->atTheirBranch($this->staffFor($user, $paymentLink), $paymentLink, self::ROLES_THAT_SEE_MONEY);
+    }
+
+    /**
+     * Staff limited to some branches don't see links of other branches: for
+     * them such a link isn't there, a 404 (ADR 0025). At their branches, the
+     * staff member's role must be one of the roles given.
+     *
+     * @param  list<StaffRole>  $roles
+     */
+    private function atTheirBranch(?Staff $staff, PaymentLink $paymentLink, array $roles = self::ROLES_THAT_TAKE_PAYMENTS): Response
+    {
+        if ($staff === null || ! $this->takesPayments($staff)) {
             return Response::deny();
         }
 
-        return $staff?->worksAt($paymentLink->branch) === true ? Response::allow() : Response::denyAsNotFound();
+        if (! $staff->worksAt($paymentLink->branch)) {
+            return Response::denyAsNotFound();
+        }
+
+        return in_array($staff->role, $roles, true) ? Response::allow() : Response::deny();
     }
 
     /**

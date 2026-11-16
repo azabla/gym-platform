@@ -6,11 +6,15 @@ namespace App\Filament\Staff\Resources\PaymentLinks\Pages;
 
 use App\Domains\Billing\Chapa\Exceptions\ChapaRequestFailed;
 use App\Domains\Billing\Enums\PaymentLinkStatus;
+use App\Domains\Billing\Exceptions\PaymentRefused;
 use App\Domains\Billing\Models\ChapaAccount;
 use App\Domains\Billing\Models\PaymentLink;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
+use App\Filament\Staff\Actions\Refusals;
+use App\Filament\Staff\Actions\SendPaymentLinkAction;
 use App\Filament\Staff\Resources\PaymentLinks\PaymentLinkResource;
 use Filament\Actions\Action;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Support\Facades\Gate;
@@ -54,6 +58,27 @@ class ViewPaymentLink extends ViewRecord
                     $record->cancel(app(CurrentStaff::class)->get());
 
                     Notification::make()->success()->title('The link is cancelled.')->send();
+                }),
+            SendPaymentLinkAction::make(),
+            Action::make('markRefunded')
+                ->label('Mark refunded')
+                ->color('warning')
+                ->visible(fn (PaymentLink $record): bool => $record->status === PaymentLinkStatus::RefundNeeded && Gate::allows('markRefunded', $record))
+                ->modalDescription('Once you have given the money back from your Chapa dashboard. The link then shows as refunded.')
+                ->schema([
+                    TextInput::make('note')
+                        ->label('Note')
+                        ->maxLength(255)
+                        ->helperText('Optional, such as Chapa\'s refund reference.'),
+                ])
+                ->action(function (array $data, PaymentLink $record, Action $action): void {
+                    try {
+                        $record->markRefunded(app(CurrentStaff::class)->get(), filled($data['note'] ?? null) ? (string) $data['note'] : null);
+                    } catch (PaymentRefused $refusal) {
+                        Refusals::halt($action, $refusal);
+                    }
+
+                    Notification::make()->success()->title('Marked refunded.')->send();
                 }),
         ];
     }

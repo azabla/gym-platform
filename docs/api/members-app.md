@@ -74,7 +74,7 @@ The membership has `visits_remaining` for a visit pack (ADR 0016). Volt's `grace
 | `GET /me/gyms/{gym}/payment-links/{id}` | The link as it stands |
 | `POST /me/gyms/{gym}/payment-links/{id}/check` | Asks Chapa now, after the member comes back from Chapa's page. Ten a minute. |
 
-Open `checkout_url` in a browser tab or web view. A link's `status` is `pending`, `paid`, `cancelled` or `refund_needed`; once `paid`, `payment` has the receipt number.
+Open `checkout_url` in a browser tab or web view. A link's `status` is `pending`, `paid`, `cancelled`, `refund_needed` (paid when nothing was due any more; the gym gives the money back) or `refunded` (the gym has given it back, ADR 0031); once `paid`, `payment` has the receipt number.
 
 While a link is `pending` it also has `return_url`: Chapa sends the member there after paying, to a page that points back to the app. Close the checkout when it is reached, then `POST payment-links/{id}/check`; reaching it proves nothing about the payment (ADR 0022).
 

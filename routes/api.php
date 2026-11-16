@@ -180,6 +180,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     ->name('payment-links.cancel');
                 Route::post('payment-links/{payment_link}/check', [PaymentLinkController::class, 'check'])
                     ->name('payment-links.check');
+                Route::post('payment-links/{payment_link}/refunded', [PaymentLinkController::class, 'refunded'])
+                    ->name('payment-links.refunded');
+                Route::post('payment-links/{payment_link}/sms', [PaymentLinkController::class, 'sms'])
+                    ->name('payment-links.sms');
                 Route::get('check-ins', [CheckInController::class, 'index'])
                     ->name('check-ins.index');
                 Route::post('check-ins/scan', [CheckInController::class, 'scan'])

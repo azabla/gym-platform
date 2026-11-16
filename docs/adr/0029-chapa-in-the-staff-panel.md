@@ -50,9 +50,9 @@ ADRs 0017, 0018 and 0023 deferred payment links until Chapa could be connected i
 
 ### Deferred
 
-- **Marking a refund done.** The gym refunds from Chapa's dashboard, and the link stays "refund needed".
-- **Texting the link to the member** from the panel.
-- **Showing a membership's open link on its page.** For now it is found through the list's member filter.
+- **Marking a refund done.** The gym refunds from Chapa's dashboard, and the link stays "refund needed". ADR 0031 added it.
+- **Texting the link to the member** from the panel. ADR 0031 added it.
+- **Showing a membership's open link on its page.** For now it is found through the list's member filter. ADR 0031 added it.
 
 ## Consequences
 

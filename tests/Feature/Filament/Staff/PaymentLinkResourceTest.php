@@ -12,13 +12,19 @@ use App\Domains\Memberships\Models\Plan;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Organization;
+use App\Domains\Organizations\Models\Staff;
 use App\Domains\Shared\Money\Money;
+use App\Filament\Staff\Actions\SendPaymentLinkAction;
 use App\Filament\Staff\Pages\Inbox;
+use App\Filament\Staff\Resources\Memberships\Pages\ViewMembership;
 use App\Filament\Staff\Resources\PaymentLinks\Pages\ListPaymentLinks;
 use App\Filament\Staff\Resources\PaymentLinks\Pages\ViewPaymentLink;
 use App\Filament\Staff\Resources\PaymentLinks\PaymentLinkResource;
+use App\Filament\Staff\Widgets\MoneyOverview;
+use App\Notifications\PaymentLinkSent;
 use App\Notifications\RefundNeeded;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -121,4 +127,51 @@ it('opens the link needing a refund from the inbox', function () {
     Livewire::test(Inbox::class)
         ->callTableAction('open', $staff->notifications()->sole())
         ->assertRedirect(PaymentLinkResource::getUrl('view', ['record' => $this->refundNeeded->id]));
+});
+
+it('lets an accountant mark a refund made, with a note, but not a receptionist', function () {
+    actingAsStaffInPanel($this->gym, StaffRole::Receptionist, $this->main);
+
+    Livewire::test(ViewPaymentLink::class, ['record' => $this->refundNeeded->getRouteKey()])
+        ->assertActionHidden('markRefunded');
+
+    $accountant = actingAsStaffInPanel($this->gym, StaffRole::Accountant);
+
+    Livewire::test(ViewPaymentLink::class, ['record' => $this->refundNeeded->getRouteKey()])
+        ->callAction('markRefunded', ['note' => 'Chapa refund RF-123'])
+        ->assertNotified('Marked refunded.')
+        ->assertActionHidden('markRefunded')
+        ->assertSee('Chapa refund RF-123');
+
+    $paymentLink = $this->refundNeeded->refresh();
+    expect($paymentLink->status)->toBe(PaymentLinkStatus::Refunded)
+        ->and($paymentLink->refunded_by_staff_id)->toBe($accountant->id);
+});
+
+it('texts a waiting link to the member, from its page or its membership\'s, once every 10 minutes', function () {
+    Notification::fake();
+    actingAsStaffInPanel($this->gym, StaffRole::Receptionist, $this->main);
+
+    Livewire::test(ViewPaymentLink::class, ['record' => $this->atMain->getRouteKey()])
+        ->callAction(SendPaymentLinkAction::class)
+        ->assertNotified('The link is on its way to the member by SMS.');
+
+    Livewire::test(ViewMembership::class, ['record' => $this->membership->getRouteKey()])
+        ->assertSee($this->atMain->checkout_url)
+        ->callAction(SendPaymentLinkAction::class)
+        ->assertNotified('The link was texted to the member a moment ago. Wait a few minutes before sending it again.');
+
+    Notification::assertSentToTimes($this->membership->member, PaymentLinkSent::class, 1);
+});
+
+it('shows the refunds still to make on the dashboard, opening them', function () {
+    actingAsStaffInPanel($this->gym, StaffRole::Owner);
+
+    Livewire::test(MoneyOverview::class)
+        ->assertSee('Refunds to make')
+        ->assertSee('1 payment link');
+
+    $this->refundNeeded->markRefunded(Staff::query()->firstOrFail(), null);
+
+    Livewire::test(MoneyOverview::class)->assertDontSee('Refunds to make');
 });
