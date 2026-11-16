@@ -8,9 +8,12 @@ use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Discount\Discount;
 use App\Domains\Memberships\Discount\Exceptions\InvalidDiscount;
 use App\Domains\Memberships\Exceptions\PromoCodeRefused;
+use App\Domains\Memberships\Models\DiscountGroup;
+use App\Domains\Memberships\Models\MemberDiscount;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Memberships\Models\Plan;
 use App\Domains\Memberships\Models\PromoCode;
+use App\Domains\Memberships\Pricing\Pricing;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Filament\Staff\Resources\Memberships\MembershipResource;
@@ -67,6 +70,11 @@ class SellMembershipAction extends Action
                     ->label('Promo code')
                     ->maxLength(30)
                     ->live(onBlur: true)
+                    ->hint(function () use ($record): ?string {
+                        $group = self::groupOf($record);
+
+                        return $group === null ? null : "In the {$group->name} group";
+                    })
                     ->helperText(fn (Get $get): string => self::priceWithCode($record, $get('plan_id'), (string) $get('promo_code')))
                     ->rules(fn (Get $get): array => [self::usableCode($record, $get('plan_id'), filled($get('discount')))]),
             ])
@@ -85,8 +93,13 @@ class SellMembershipAction extends Action
                 $discount = $promoCode === null && filled($data['discount'] ?? null)
                     ? Discount::parse((string) $data['discount'], (string) $data['discount_reason'], $plan->price->currency)
                     : null;
+                $staff = app(CurrentStaff::class)->get();
 
-                $membership = Membership::sell($record, $plan, $startsOn, app(CurrentStaff::class)->get(), $discount, $promoCode);
+                // A typed discount is used as it is; otherwise the member pays the lowest of the
+                // plan's price, their discount group's and the code's, as in the API (ADR 0032).
+                $membership = $discount !== null
+                    ? Membership::sell($record, $plan, $startsOn, $staff, $discount)
+                    : Membership::sellAt(Pricing::bestFor($record, $plan, self::today(), $promoCode), $record, $plan, $startsOn, $staff);
 
                 Notification::make()->success()->title("{$plan->name} sold, from {$startsOn->format('j F Y')}.")->send();
 
@@ -108,19 +121,34 @@ class SellMembershipAction extends Action
         };
     }
 
+    private static function groupOf(Member $member): ?DiscountGroup
+    {
+        return MemberDiscount::groupFor($member, self::today());
+    }
+
     /**
-     * What the plan costs with the code typed, or how to use one.
+     * What the member will pay without a typed discount, and why: their
+     * discount group's price or the code's, whichever is lower (ADR 0032), or
+     * how to use a code.
      */
     private static function priceWithCode(Member $member, mixed $planId, string $typed): string
     {
         $plan = is_numeric($planId) ? Plan::query()->find((int) $planId) : null;
         $promoCode = trim($typed) === '' ? null : PromoCode::findByCode($typed);
+        $hint = 'A code the gym shares, such as NEWYEAR. Any staff member who sells can use one.';
 
-        if ($plan === null || $promoCode === null || $promoCode->refusalToUse($member, $plan, self::today()) !== null) {
-            return 'A code the gym shares, such as NEWYEAR. Any staff member who sells can use one.';
+        if ($plan === null) {
+            return $hint;
         }
 
-        return "With {$promoCode->code}: {$promoCode->priceFor($plan)->format()} instead of {$plan->price->format()}.";
+        $usableCode = $promoCode !== null && $promoCode->refusalToUse($member, $plan, self::today()) === null ? $promoCode : null;
+        $choice = Pricing::bestFor($member, $plan, self::today(), $usableCode);
+
+        return match (true) {
+            $choice->promoCode !== null => "With {$choice->promoCode->code}: {$choice->price->format()} instead of {$plan->price->format()}.",
+            $choice->discountGroup !== null => "{$choice->discountGroup->name} group: {$choice->price->format()} instead of {$plan->price->format()}.",
+            default => $hint,
+        };
     }
 
     /**

@@ -7,6 +7,7 @@ namespace App\Filament\Staff\Resources\Members;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Members\Enums\Gender;
 use App\Domains\Members\Models\Member;
+use App\Domains\Memberships\Models\MemberDiscount;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Domains\Shared\Money\Money;
@@ -115,6 +116,10 @@ class MemberResource extends Resource
                         TextEntry::make('balance_due')
                             ->label('Balance due')
                             ->state(fn (Member $record): string => self::balanceDueOf($record)->format()),
+                        TextEntry::make('discount_group')
+                            ->label('Discount group')
+                            ->state(fn (Member $record): ?string => self::discountGroupOf($record))
+                            ->placeholder('None'),
                     ]),
                 Section::make('Emergency contact')
                     ->columns(2)
@@ -237,6 +242,22 @@ class MemberResource extends Resource
         $query->with('homeBranch');
 
         return blank($livewire->getTableSearch()) ? $query->homeAtAnyOf(self::staffBranchIds()) : $query;
+    }
+
+    /**
+     * The member's discount group and until when, looked up in Memberships,
+     * which the Members domain doesn't know about (ADR 0032).
+     */
+    private static function discountGroupOf(Member $member): ?string
+    {
+        $memberDiscount = MemberDiscount::of($member);
+        $group = $memberDiscount?->discountGroup;
+
+        if ($memberDiscount === null || $group === null) {
+            return null;
+        }
+
+        return "{$group->name}, {$group->discount} off".($memberDiscount->until === null ? '' : ', until '.$memberDiscount->until->format('j M Y'));
     }
 
     /**
