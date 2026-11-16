@@ -63,27 +63,34 @@ class Membership extends Model
 
     /**
      * Sell the plan to the member, starting on the given day, at the plan's
-     * price less the discount, if any. The membership belongs to the member's
-     * gym, and its end date, list price and branches come from the plan.
+     * price less the discount, if any: one staff typed, or a promo code's
+     * (ADR 0030). The membership belongs to the member's gym, and its end
+     * date, list price and branches come from the plan.
      */
-    public static function sell(Member $member, Plan $plan, CarbonImmutable $startsOn, Staff $soldBy, ?Discount $discount = null): self
+    public static function sell(Member $member, Plan $plan, CarbonImmutable $startsOn, Staff $soldBy, ?Discount $discount = null, ?PromoCode $promoCode = null): self
     {
-        return self::record($member, $plan, $startsOn, $soldBy, $plan->price, $discount?->appliedTo($plan->price) ?? $plan->price, $discount?->reason);
+        $discount = $promoCode?->discount() ?? $discount;
+
+        return self::record($member, $plan, $startsOn, $soldBy, $plan->price, $discount?->appliedTo($plan->price) ?? $plan->price, $discount?->reason, $promoCode);
     }
 
     /**
      * The member bought the plan in their app and paid the given price for it,
      * so no staff member sold it. The price is what the member paid, even if
-     * the plan's price changed since. See ADR 0013.
+     * the plan's price changed since. With a promo code, the list price is
+     * the plan's price when they started buying (ADR 0013 and ADR 0030).
      */
-    public static function buyInApp(Member $member, Plan $plan, CarbonImmutable $startsOn, Money $pricePaid): self
+    public static function buyInApp(Member $member, Plan $plan, CarbonImmutable $startsOn, Money $pricePaid, ?PromoCode $promoCode = null, ?Money $listPrice = null): self
     {
-        return self::record($member, $plan, $startsOn, null, $pricePaid, $pricePaid, null);
+        $listPrice = $promoCode === null ? $pricePaid : ($listPrice ?? $pricePaid);
+        $discountReason = $listPrice->isGreaterThan($pricePaid) ? $promoCode?->discountReason() : null;
+
+        return self::record($member, $plan, $startsOn, null, $listPrice, $pricePaid, $discountReason, $promoCode);
     }
 
-    private static function record(Member $member, Plan $plan, CarbonImmutable $startsOn, ?Staff $soldBy, Money $listPrice, Money $price, ?string $discountReason): self
+    private static function record(Member $member, Plan $plan, CarbonImmutable $startsOn, ?Staff $soldBy, Money $listPrice, Money $price, ?string $discountReason, ?PromoCode $promoCode = null): self
     {
-        return DB::transaction(function () use ($member, $plan, $startsOn, $soldBy, $listPrice, $price, $discountReason): self {
+        return DB::transaction(function () use ($member, $plan, $startsOn, $soldBy, $listPrice, $price, $discountReason, $promoCode): self {
             $membership = new self;
             $membership->organization()->associate($member->organization_id);
             $membership->member()->associate($member);
@@ -95,6 +102,7 @@ class Membership extends Model
             $membership->list_price = $listPrice;
             $membership->price = $price;
             $membership->discount_reason = $discountReason;
+            $membership->promoCode()->associate($promoCode);
             $membership->freeze_days_allowed = $plan->freeze_days_allowed;
             $membership->visit_limit = $plan->visit_limit;
             $membership->valid_at_all_branches = $plan->available_at_all_branches;
@@ -357,6 +365,16 @@ class Membership extends Model
     public function soldBy(): BelongsTo
     {
         return $this->belongsTo(Staff::class, 'sold_by_staff_id')->withTrashed();
+    }
+
+    /**
+     * The promo code it was sold with, if any (ADR 0030).
+     *
+     * @return BelongsTo<PromoCode, $this>
+     */
+    public function promoCode(): BelongsTo
+    {
+        return $this->belongsTo(PromoCode::class)->withTrashed();
     }
 
     /** @return BelongsTo<Staff, $this> */
