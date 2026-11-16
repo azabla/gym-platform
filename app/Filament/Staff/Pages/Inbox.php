@@ -22,7 +22,9 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Notifications\DatabaseNotification;
 
 /**
@@ -61,6 +63,13 @@ class Inbox extends Page implements HasTable
         return $table
             ->query(fn () => app(CurrentStaff::class)->get()->notifications()->getQuery())
             ->defaultPaginationPageOption(25)
+            ->paginated([10, 25, 50])
+            ->filters([
+                Filter::make('unread')
+                    ->label('Unread only')
+                    ->toggle()
+                    ->query(fn (Builder $query): Builder => $query->whereNull('read_at')),
+            ])
             ->columns([
                 IconColumn::make('read_at')
                     ->label('')
