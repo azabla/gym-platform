@@ -72,6 +72,26 @@ class PaymentLink extends Model
     }
 
     /**
+     * Why staff can't open a link for the amount on the membership, or null
+     * when they can: the gym must have connected Chapa, the membership must
+     * not have an open link already, and it must still be owed the amount.
+     * The API and the staff panel both ask (ADR 0029).
+     */
+    public static function refusalToOpen(Membership $membership, Money $amount): ?PaymentRefused
+    {
+        if (! ChapaAccount::query()->exists()) {
+            return PaymentRefused::noChapaAccount();
+        }
+
+        if (static::query()->whereBelongsTo($membership)->pending()->exists()) {
+            return PaymentRefused::linkAlreadyOpen();
+        }
+
+        return Payment::refusalToReceive($membership, $amount)
+            ?? ($amount->isPositive() ? null : PaymentRefused::nothingDue());
+    }
+
+    /**
      * Ask Chapa for a payment page for the member to buy the plan in their
      * app, at its price now, and keep the link to it. The membership is
      * created only once Chapa confirms the payment (see settle()), so an
