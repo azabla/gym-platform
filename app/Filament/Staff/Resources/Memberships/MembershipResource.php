@@ -6,6 +6,7 @@ namespace App\Filament\Staff\Resources\Memberships;
 
 use App\Domains\Billing\Balances\MembershipBalance;
 use App\Domains\Billing\Models\Payment;
+use App\Domains\Billing\Models\PaymentLink;
 use App\Domains\Memberships\Enums\MembershipStatus;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Memberships\Models\MembershipFreeze;
@@ -14,6 +15,7 @@ use App\Filament\Staff\Resources\Concerns\LimitsToTheStaffMembersBranches;
 use App\Filament\Staff\Resources\Concerns\ShowsGymTime;
 use App\Filament\Staff\Resources\Memberships\Pages\ListMemberships;
 use App\Filament\Staff\Resources\Memberships\Pages\ViewMembership;
+use App\Filament\Staff\Resources\PaymentLinks\PaymentLinkResource;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Filament\Actions\ViewAction;
@@ -76,7 +78,38 @@ class MembershipResource extends Resource
                             ->state(fn (Membership $record): string => self::balanceOf($record)->balanceDue->format()),
                         TextEntry::make('cancelled_at')->dateTime()->timezone(self::gymTimezone())->placeholder('Not cancelled'),
                     ]),
+                Section::make('Open payment link')
+                    ->description('Waiting for the member to pay on Chapa. Copy it, or send it by SMS from the top of the page.')
+                    ->columns(2)
+                    ->visible(fn (Membership $record): bool => self::openPaymentLinkOf($record) !== null)
+                    ->schema([
+                        TextEntry::make('open_payment_link_amount')
+                            ->label('Amount')
+                            ->state(fn (Membership $record): ?string => self::openPaymentLinkOf($record)?->amount->format())
+                            ->url(fn (Membership $record): ?string => ($paymentLink = self::openPaymentLinkOf($record)) === null
+                                ? null
+                                : PaymentLinkResource::getUrl('view', ['record' => $paymentLink])),
+                        TextEntry::make('open_payment_link_url')
+                            ->label('Link to send the member')
+                            ->state(fn (Membership $record): ?string => self::openPaymentLinkOf($record)?->checkout_url)
+                            ->copyable()
+                            ->copyMessage('Copied'),
+                    ]),
             ]);
+    }
+
+    /**
+     * The membership's open payment link, at the staff member's branches
+     * (ADR 0025 and ADR 0031). Looked up here because Memberships doesn't
+     * depend on Billing.
+     */
+    public static function openPaymentLinkOf(Membership $membership): ?PaymentLink
+    {
+        return PaymentLink::query()
+            ->pending()
+            ->forAnyOf(self::staffBranchIds())
+            ->where('membership_id', $membership->id)
+            ->first();
     }
 
     public static function table(Table $table): Table

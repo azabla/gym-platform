@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Filament\Staff\Widgets;
 
 use App\Dashboards\StaffDashboard;
+use App\Domains\Billing\Enums\PaymentLinkStatus;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Domains\Shared\Money\Money;
+use App\Filament\Staff\Resources\PaymentLinks\PaymentLinkResource;
 use App\Filament\Staff\Widgets\Concerns\ReadsDashboardFilters;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -42,8 +44,10 @@ class MoneyOverview extends StatsOverviewWidget
         $net = $money['net'];
         /** @var array{count: int, amount: Money} $openLinks */
         $openLinks = $money['open_payment_links'];
+        /** @var array{count: int, amount: Money} $refundsNeeded */
+        $refundsNeeded = $money['refunds_needed'];
 
-        return [
+        $stats = [
             Stat::make('Taken', $net->format())
                 ->description("Received {$received->format()}, refunded {$refunded->format()}"),
             Stat::make('Owed', $owed['total']->format())
@@ -51,5 +55,15 @@ class MoneyOverview extends StatsOverviewWidget
             Stat::make('Open payment links', $openLinks['amount']->format())
                 ->description(trans_choice('{0} None waiting|{1} 1 waiting to be paid|[2,*] :count waiting to be paid', $openLinks['count'])),
         ];
+
+        // Money Chapa took when nothing was due, still to give back (ADR 0031).
+        if ($refundsNeeded['count'] > 0) {
+            $stats[] = Stat::make('Refunds to make', $refundsNeeded['amount']->format())
+                ->description(trans_choice('{1} 1 payment link|[2,*] :count payment links', $refundsNeeded['count']))
+                ->color('danger')
+                ->url(PaymentLinkResource::getUrl('index', ['filters' => ['status' => ['value' => PaymentLinkStatus::RefundNeeded->value]]]));
+        }
+
+        return $stats;
     }
 }
