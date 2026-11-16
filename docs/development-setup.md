@@ -250,6 +250,10 @@ curl -s http://localhost:8080/api/v1/organizations/demo-gym/members/3/membership
   -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
   -d '{"plan_id":2,"discount":"10%","discount_reason":"Student"}'
 
+# Or with the demo promo code NEWYEAR, which any staff member who sells may use (send it instead of a discount)
+#   -d '{"plan_id":2,"promo_code":"NEWYEAR"}'
+# Owners and managers manage codes at /api/v1/organizations/demo-gym/promo-codes (ADR 0030)
+
 # Freeze Abebe's membership (membership 1 after make fresh) from today for a week;
 # its end date moves a week later. Monthly memberships can be frozen for 7 days.
 END=$(date -d '+6 days' +%F 2>/dev/null || date -v+6d +%F)
@@ -492,6 +496,21 @@ curl -s -X POST http://localhost:8080/api/v1/me/gyms/demo-gym/payment-links/LINK
 
 Once it's paid, the answer has the new `membership_id`, and her memberships list shows it, starting today because her last one has expired, with `sold_in_app: true`.
 
+To use the demo promo code NEWYEAR (20% off any plan, once per member; ADR 0030):
+
+```bash
+# Each plan's price with the code, in price_with_code
+curl -s 'http://localhost:8080/api/v1/me/gyms/demo-gym/plans?promo_code=newyear' \
+  -H 'Accept: application/json' -H "Authorization: Bearer $MEMBER_TOKEN"
+
+# Buy Monthly with it: the link asks 2,000 ETB, with list_amount 2,500 ETB
+curl -s -X POST http://localhost:8080/api/v1/me/gyms/demo-gym/plans/2/purchase \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $MEMBER_TOKEN" \
+  -d '{"promo_code":"NEWYEAR"}'
+```
+
+Once paid, the membership shows the list price, the price paid and the reason "Promo code NEWYEAR", and asking with NEWYEAR again says she has used it.
+
 ### Notifications
 
 In development `PUSH_DRIVER=log` and `SMS_DRIVER=log`, so pushes and SMS land in `storage/logs/laravel.log`. Messages go through the queue, so run `make workers` first.
@@ -568,6 +587,8 @@ To set up the gym, as the owner:
 3. On **Announcements**, choose **New announcement**: send it now, or turn off **Send now** and choose a time in the gym's time zone. One that hasn't gone out can be changed or cancelled from the list.
 
 Sign in as the receptionist (Main Branch only): selling to a Main Branch member offers the plans on sale there, not Bole Monthly. A manager limited to one branch manages only the plans sold at their branches. See ADR 0023.
+
+**Promo codes** lists the gym's codes, with NEWYEAR already there, where each stands and how many times it was used. Add one with a discount (`20%` or `500`), optional first and last days, a total, once per member and some plans; archive it to stop it. As the receptionist, type NEWYEAR in **Sell membership**: it shows the price with the code and sells at it. See ADR 0030.
 
 To add staff, as the owner, open **Staff** and choose **Add staff member**: name, phone, role and branches. The SMS goes through the queue (run `make workers` first) to `storage/logs/laravel.log`: `grep 'SMS to +251944556677' storage/logs/laravel.log | tail -1`. Open the link, choose a password, and sign in with their phone. On their page you can change the role or branches, **Archive** them (they lose the gym on their next click), **Restore** them, or **Send invite again** while it's pending. **Forgot your password?** on the sign-in page sends a reset link the same way. See ADR 0017 to ADR 0019.
 
