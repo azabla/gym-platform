@@ -561,6 +561,18 @@ Each part has an ADR:
 
 `make composer c=install` also publishes the panel's assets. After `make fresh`, open http://localhost:8080/staff and sign in with one of the demo phones above (password `password`). You land on Demo Gym's dashboard: today's figures and the members to call. Change the period or the branch at the top.
 
+### Demo activity
+
+The base seed is small on purpose, so the examples in this guide keep their ids. To see the gym busy, run `make demo` after `make fresh` (it adds nothing a second time). It adds:
+- about 40 members at Main and Bole, in every membership state: active, ending this week, expired, frozen (one in the app), cancelled, upcoming and visit packs, a few sold with NEWYEAR or a typed discount;
+- payments over the last two months by every method, some only part paid, and a refund;
+- a month of check-ins at morning and evening peaks, a few turned away;
+- payment links waiting (one texted), paid, needing a refund and refunded;
+- an announcement sent and one scheduled for tomorrow;
+- messages in the owner's and receptionist's Inbox.
+
+It also adds two staff members: a manager at Bole Branch (`0911 00 00 04`) and a trainer (`0911 00 00 05`), password `password`. No member is texted or pushed while it runs.
+
 - As the owner (`0911 00 00 01`), you see the money too, and every list: members, memberships, payments, check-ins and staff.
 - As the receptionist (`0911 00 00 02`), everything covers Main Branch only, and the money is hidden on the dashboard. Members lists Abebe and Tigist, of Main; search for Hana, of Bole, and her page and membership still open, so the desk can check her in. Payments and check-ins show only those made at Main, and a payment taken at Bole is a 404. The API answers the same (ADR 0025).
 - As the accountant (`0911 00 00 03`), you see the money and the payments.
