@@ -7,6 +7,7 @@ use App\Domains\Memberships\Exceptions\PromoCodeRefused;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Memberships\Models\Plan;
 use App\Domains\Memberships\Models\PromoCode;
+use App\Domains\Memberships\Pricing\Pricing;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\Me\MyPlanResource;
 use Illuminate\Http\JsonResponse;
@@ -19,7 +20,9 @@ class MyPlanController extends Controller
      * their home branch, cheapest first, each with the dates it would run.
      * With ?promo_code=, each plan also has its price with the code, or null
      * where the code doesn't apply; a code the member can't use is a 422
-     * on promo_code (ADR 0030).
+     * on promo_code (ADR 0030). Each plan also has what the member would
+     * pay: their discount group's price or the code's, whichever is lower
+     * (ADR 0032).
      */
     public function index(Request $request, CurrentMember $currentMember): JsonResponse
     {
@@ -44,7 +47,12 @@ class MyPlanController extends Controller
             ->get();
 
         return response()->json([
-            'data' => $plans->map(fn (Plan $plan): array => (new MyPlanResource($plan, $startsOn, $promoCode))->resolve($request))->all(),
+            'data' => $plans->map(fn (Plan $plan): array => (new MyPlanResource(
+                $plan,
+                $startsOn,
+                $promoCode,
+                Pricing::bestFor($member, $plan, $today, $promoCode),
+            ))->resolve($request))->all(),
         ]);
     }
 }
