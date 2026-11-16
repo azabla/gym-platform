@@ -36,8 +36,8 @@ class CheckInsChart extends ChartWidget
 
         return [
             'datasets' => [
-                ['label' => 'Let in', 'data' => array_column($days, 'allowed'), 'backgroundColor' => '#16a34a'],
-                ['label' => 'Turned away', 'data' => array_column($days, 'denied'), 'backgroundColor' => '#dc2626'],
+                ['label' => 'Let in', 'data' => array_column($days, 'allowed'), 'backgroundColor' => '#10b981'],
+                ['label' => 'Turned away', 'data' => array_column($days, 'denied'), 'backgroundColor' => '#f43f5e'],
             ],
             'labels' => array_column($days, 'date'),
         ];

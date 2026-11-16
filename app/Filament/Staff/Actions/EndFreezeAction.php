@@ -11,6 +11,7 @@ use App\Domains\Organizations\Tenancy\CurrentStaff;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -30,6 +31,9 @@ class EndFreezeAction extends Action
         parent::setUp();
 
         $this->label('End freeze')
+            ->icon(Heroicon::OutlinedPlayCircle)
+            ->modalIcon(Heroicon::OutlinedPlayCircle)
+            ->color('info')
             ->visible(fn (Membership $record): bool => Gate::allows('freeze', $record) && self::freezesNotOver($record) !== [])
             ->schema(fn (Membership $record): array => [
                 Select::make('freeze_id')

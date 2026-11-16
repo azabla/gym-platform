@@ -6,6 +6,7 @@ namespace App\Filament\Staff\Widgets;
 
 use App\Dashboards\StaffDashboard;
 use App\Filament\Staff\Widgets\Concerns\ReadsDashboardFilters;
+use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -30,11 +31,35 @@ class GymOverview extends StatsOverviewWidget
 
         return [
             Stat::make('Check-ins', (string) $checkIns['allowed'])
-                ->description("{$checkIns['denied']} turned away"),
-            Stat::make('Members with a valid membership today', (string) $members['active']),
-            Stat::make('New members', (string) $members['new']),
+                ->description("{$checkIns['denied']} turned away")
+                ->descriptionIcon(Heroicon::OutlinedArrowRightEndOnRectangle)
+                ->color($checkIns['denied'] > 0 ? 'warning' : 'success')
+                ->chart($this->checkInsOfTheLastWeek()),
+            Stat::make('Members with a valid membership today', (string) $members['active'])
+                ->description('Active or frozen')
+                ->descriptionIcon(Heroicon::OutlinedUsers)
+                ->color('primary'),
+            Stat::make('New members', (string) $members['new'])
+                ->description('Registered in the period')
+                ->descriptionIcon(Heroicon::OutlinedUserPlus)
+                ->color('info'),
             Stat::make('Memberships sold', (string) ($sold['at_the_desk'] + $sold['in_the_app']))
-                ->description("{$sold['at_the_desk']} at the desk, {$sold['in_the_app']} in the app"),
+                ->description("{$sold['at_the_desk']} at the desk, {$sold['in_the_app']} in the app")
+                ->descriptionIcon(Heroicon::OutlinedShoppingCart)
+                ->color('success'),
         ];
+    }
+
+    /**
+     * Visits let in on each of the seven days up to the period's end, for
+     * the check-ins stat's sparkline.
+     *
+     * @return list<float>
+     */
+    private function checkInsOfTheLastWeek(): array
+    {
+        $trends = app(StaffDashboard::class)->trends($this->gym(), $this->to()->subDays(6), $this->to(), $this->branchIds(), seesMoney: false);
+
+        return array_map(fn (array $day): float => (float) $day['allowed'], $trends['check_ins_by_day']);
     }
 }

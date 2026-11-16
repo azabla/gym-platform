@@ -12,6 +12,7 @@ use App\Filament\Staff\Resources\Members\MemberResource;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -31,6 +32,9 @@ class CheckInAction extends Action
         parent::setUp();
 
         $this->label('Check in')
+            ->icon(Heroicon::OutlinedArrowRightEndOnRectangle)
+            ->modalIcon(Heroicon::OutlinedArrowRightEndOnRectangle)
+            ->color('success')
             ->visible(fn (): bool => Gate::allows('create', CheckIn::class))
             ->schema([
                 Select::make('branch_id')

@@ -5,7 +5,9 @@ namespace App\Providers\Filament;
 use App\Domains\Organizations\Models\Organization;
 use App\Filament\Staff\Auth\Login;
 use App\Filament\Staff\Middleware\ActAsTenant;
+use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Pages\Dashboard;
+use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -38,7 +40,7 @@ class StaffPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
                 fn (): HtmlString => new HtmlString(sprintf(
-                    '<p style="text-align: center; margin-top: 1rem;"><a href="%s" style="text-decoration: underline;">Forgot your password?</a></p>',
+                    '<p class="fi-ta-text text-center text-sm mt-4"><a href="%s" class="fi-link fi-color-primary font-semibold underline">Forgot your password?</a></p>',
                     e(route('staff.password.forgot')),
                 )),
             )
@@ -47,9 +49,22 @@ class StaffPanelProvider extends PanelProvider
             ->tenantMiddleware([
                 ActAsTenant::class,
             ], isPersistent: true)
+            // The look of the panel (ADR 0033): the gym's name as the brand, an energetic
+            // orange on slate, Inter, light or dark as the device is, and grouped navigation.
+            ->brandName(fn (): string => Filament::getTenant() instanceof Organization ? Filament::getTenant()->name : 'Gym Platform')
+            ->favicon(asset('favicon.ico'))
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Orange,
+                'gray' => Color::Slate,
+                'success' => Color::Emerald,
+                'warning' => Color::Amber,
+                'danger' => Color::Rose,
+                'info' => Color::Sky,
             ])
+            ->font('Inter')
+            ->darkMode()
+            ->sidebarCollapsibleOnDesktop()
+            ->navigationGroups(NavigationGroup::class)
             ->discoverResources(in: app_path('Filament/Staff/Resources'), for: 'App\Filament\Staff\Resources')
             ->discoverPages(in: app_path('Filament/Staff/Pages'), for: 'App\Filament\Staff\Pages')
             ->pages([

@@ -7,7 +7,9 @@ namespace App\Filament\Staff\Pages;
 use App\Domains\Billing\Chapa\Exceptions\ChapaRequestFailed;
 use App\Domains\Billing\Models\ChapaAccount;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
+use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\Concerns\ShowsGymTime;
+use App\Filament\Staff\Support\Badges;
 use App\Rules\ChapaSecretKey;
 use BackedEnum;
 use Closure;
@@ -20,6 +22,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Gate;
+use UnitEnum;
 
 /**
  * The gym's own Chapa account, which members' online payments go to: whether
@@ -33,7 +36,9 @@ class OnlinePayments extends Page
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCreditCard;
 
-    protected static ?int $navigationSort = 8;
+    protected static string|UnitEnum|null $navigationGroup = NavigationGroup::Money;
+
+    protected static ?int $navigationSort = 3;
 
     protected static ?string $title = 'Online payments';
 
@@ -48,21 +53,26 @@ class OnlinePayments extends Page
 
         return $schema->components([
             Section::make('Chapa')
-                ->description('Members\' online payments go straight to the gym\'s own Chapa account.')
-                ->columns(2)
+                ->description('Members\' online payments go straight to the gym\'s own Chapa account. The platform never holds the money.')
+                ->icon(Heroicon::OutlinedCreditCard)
+                ->iconColor($account === null ? 'gray' : Badges::color($account->mode))
+                ->columns(['default' => 1, 'md' => 4])
                 ->schema($account === null ? [
                     TextEntry::make('connected')
                         ->hiddenLabel()
+                        ->columnSpanFull()
+                        ->icon(Heroicon::OutlinedExclamationTriangle)
+                        ->iconColor('warning')
                         ->state('Not connected. Connect the gym\'s Chapa account to send payment links and let members pay in the app.'),
                 ] : [
                     TextEntry::make('mode')
                         ->label('Key')
-                        ->state(ucfirst($account->mode->value))
+                        ->state(Badges::label($account->mode).($account->mode->value === 'live' ? ': real payments' : ': test payments only'))
                         ->badge()
-                        ->color($account->mode->value === 'live' ? 'success' : 'warning'),
-                    TextEntry::make('key_hint')->label('Ends in')->state('…'.$account->key_hint),
+                        ->color(Badges::color($account->mode)),
+                    TextEntry::make('key_hint')->label('Ends in')->state('…'.$account->key_hint)->fontFamily('mono'),
                     TextEntry::make('connected_by')->label('Connected by')->state($account->connectedBy?->user->name),
-                    TextEntry::make('connected_at')->label('Connected')->state($account->updated_at)->dateTime()->timezone(self::gymTimezone()),
+                    TextEntry::make('connected_at')->label('Connected')->state($account->updated_at)->dateTime('j M Y, H:i')->timezone(self::gymTimezone()),
                 ]),
         ]);
     }

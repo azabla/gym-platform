@@ -62,3 +62,17 @@ it('opens the morning list on the dashboard, and marks everything read', functio
 
     expect($staff->unreadNotifications()->count())->toBe(0);
 });
+
+it('shows only unread messages when asked', function () {
+    $staff = actingAsStaffInPanel($this->gym, StaffRole::Manager);
+    $staff->notify(MembersToCall::count(4));
+    $staff->notify(MembersToCall::count(2));
+    $read = $staff->notifications()->oldest()->firstOrFail();
+    $read->markAsRead();
+    $unread = $staff->unreadNotifications()->sole();
+
+    Livewire::test(Inbox::class)
+        ->filterTable('unread')
+        ->assertCanSeeTableRecords([$unread])
+        ->assertCanNotSeeTableRecords([$read]);
+});

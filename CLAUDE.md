@@ -170,6 +170,12 @@ This is how the project has been built so far; keep to it so any session, local 
 - Store times in UTC (convert before saving an offset time). "Today" is the gym's date, `Organization::today()`, never the server's.
 - Money is a `Money` value object, stored as minor units; phone numbers are `PhoneNumber`, stored as E.164.
 
+### The staff panel standard (ADR 0033)
+
+- Lists start from `App\Filament\Staff\Support\Tables::standard()`: badges from `Badges`, money via `Tables::money()`, date ranges via `Tables::dateRange()`, toggleable extra columns, an empty state, and a filter for every status, branch (only theirs), date and owner. Keep existing filter keys; links use them.
+- Forms come in sections with a description and icon, placeholders, helper text, prefixes or suffixes, and live previews where they help. Action modals get an icon and a summary line.
+- Look things up once per page for list columns (`Tables::pageRecords()`), never once per row.
+
 ### Larastan lessons
 
 - No nullsafe call on the left of `??`; write it out with a null check.
@@ -180,7 +186,7 @@ This is how the project has been built so far; keep to it so any session, local 
 ### Where to look
 
 - `docs/README.md`: where things live, conventions and the glossary.
-- `docs/adr/`: why things are the way they are (0001 to 0032 so far).
+- `docs/adr/`: why things are the way they are (0001 to 0033 so far).
 - `docs/api/members-app.md`: the contract with the members app.
 - `/docs/api`: the API docs Scramble generates from the code, for staff signed in to the panel (ADR 0021).
 - Not built yet, and candidates for the next piece: Amharic messages, push and SMS to staff, the real server (always on, separate worker and scheduler, Redis, a domain; ADR 0028 has the accounts, Sentry and backups ready to switch on).

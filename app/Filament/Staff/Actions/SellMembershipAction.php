@@ -26,6 +26,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -46,6 +47,9 @@ class SellMembershipAction extends Action
         parent::setUp();
 
         $this->label('Sell membership')
+            ->icon(Heroicon::OutlinedShoppingCart)
+            ->modalIcon(Heroicon::OutlinedShoppingCart)
+            ->color('primary')
             ->visible(fn (): bool => Gate::allows('create', Membership::class))
             ->schema(fn (Member $record): array => [
                 Select::make('plan_id')

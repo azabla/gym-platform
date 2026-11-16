@@ -98,3 +98,16 @@ it('opens on today, at all the staff member\'s branches', function () {
         ->assertSet('filters.from', '2026-10-24')
         ->assertSet('filters.branch_id', null);
 });
+
+it('draws the last week of takings and check-ins as sparklines', function () {
+    actingAsStaffInPanel($this->gym, StaffRole::Owner);
+
+    $money = Livewire::test(MoneyOverview::class)->instance();
+    $gym = Livewire::test(GymOverview::class)->instance();
+
+    $taken = (fn () => $this->getStats())->call($money)[0]->getChart();
+    $checkIns = (fn () => $this->getStats())->call($gym)[0]->getChart();
+
+    expect($taken)->toHaveCount(7)
+        ->and($checkIns)->toHaveCount(7);
+});

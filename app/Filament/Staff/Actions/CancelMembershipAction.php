@@ -10,6 +10,7 @@ use App\Domains\Organizations\Tenancy\CurrentStaff;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -29,6 +30,8 @@ class CancelMembershipAction extends Action
         parent::setUp();
 
         $this->label('Cancel membership')
+            ->icon(Heroicon::OutlinedXCircle)
+            ->modalIcon(Heroicon::OutlinedXCircle)
             ->color('danger')
             ->requiresConfirmation()
             ->visible(fn (Membership $record): bool => Gate::allows('cancel', $record))

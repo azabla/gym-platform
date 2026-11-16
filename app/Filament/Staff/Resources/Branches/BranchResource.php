@@ -7,9 +7,11 @@ namespace App\Filament\Staff\Resources\Branches;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\BranchOpeningHour;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
+use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\Branches\Pages\CreateBranch;
 use App\Filament\Staff\Resources\Branches\Pages\EditBranch;
 use App\Filament\Staff\Resources\Branches\Pages\ListBranches;
+use App\Filament\Staff\Support\Tables;
 use BackedEnum;
 use Closure;
 use Filament\Actions\EditAction;
@@ -20,12 +22,14 @@ use Filament\Forms\Components\TimePicker;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use UnitEnum;
 
 /**
  * The gym's branches: owners add them, and owners and managers who work at
@@ -38,7 +42,9 @@ class BranchResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingStorefront;
 
-    protected static ?int $navigationSort = 6;
+    protected static string|UnitEnum|null $navigationGroup = NavigationGroup::GymSetup;
+
+    protected static ?int $navigationSort = 4;
 
     /** @var array<int, string> */
     private const WEEKDAYS = [1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday'];
@@ -48,17 +54,25 @@ class BranchResource extends Resource
         return $schema
             ->components([
                 Section::make('Branch')
+                    ->description('Members belong to a home branch, and payments and check-ins are recorded where they happen.')
+                    ->icon(Heroicon::OutlinedBuildingStorefront)
                     ->columns(3)
                     ->schema([
-                        TextInput::make('name')->required()->maxLength(255),
+                        TextInput::make('name')->placeholder('Bole Branch')->required()->maxLength(255),
                         TextInput::make('code')
+                            ->placeholder('BOLE')
                             ->required()
+                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
                             ->helperText('A short code, such as BOLE.')
                             ->rules(fn (?Branch $record): array => [self::validCodeNoOtherBranchHas($record)]),
-                        TextInput::make('address')->maxLength(255),
+                        TextInput::make('address')
+                            ->placeholder('Bole Road, near Edna Mall')
+                            ->prefixIcon(Heroicon::OutlinedMapPin)
+                            ->maxLength(255),
                     ]),
                 Section::make('Opening hours')
-                    ->description('In the gym\'s time zone. With no hours the branch is always open; once it has some, a day without hours is closed.')
+                    ->description('In the gym\'s time zone. With no hours the branch is always open; once it has some, a day without hours is closed, and check-ins outside them are turned away.')
+                    ->icon(Heroicon::OutlinedClock)
                     ->schema([
                         Repeater::make('hours')
                             ->hiddenLabel()
@@ -66,17 +80,22 @@ class BranchResource extends Resource
                             ->maxItems(7)
                             ->columns(3)
                             ->defaultItems(0)
+                            ->reorderable(false)
+                            ->itemLabel(fn (array $state): ?string => self::WEEKDAYS[(int) ($state['weekday'] ?? 0)] ?? null)
                             ->schema([
                                 Select::make('weekday')
+                                    ->native(false)
                                     ->options(self::WEEKDAYS)
                                     ->required()
                                     ->distinct()
+                                    ->live()
                                     ->validationMessages(['distinct' => 'Give each weekday once.']),
-                                TimePicker::make('opens_at')->label('Opens')->seconds(false)->required(),
+                                TimePicker::make('opens_at')->label('Opens')->seconds(false)->required()->prefixIcon(Heroicon::OutlinedSun),
                                 TimePicker::make('closes_at')
                                     ->label('Closes')
                                     ->seconds(false)
                                     ->required()
+                                    ->prefixIcon(Heroicon::OutlinedMoon)
                                     ->after('opens_at')
                                     ->validationMessages(['after' => 'Closing must be after opening, on the same day.']),
                             ]),
@@ -86,17 +105,20 @@ class BranchResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
+        return Tables::standard($table, Heroicon::OutlinedBuildingStorefront, 'No branches', 'Add the gym\'s branches, each with its opening hours.')
             ->defaultSort('name')
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('openingHours'))
             ->columns([
-                TextColumn::make('name')->sortable(),
-                TextColumn::make('code'),
-                TextColumn::make('address')->placeholder('None'),
+                TextColumn::make('name')
+                    ->weight(FontWeight::SemiBold)
+                    ->description(fn (Branch $record): ?string => $record->address)
+                    ->sortable(),
+                TextColumn::make('code')->badge()->color('gray')->fontFamily('mono'),
                 TextColumn::make('hours')
                     ->label('Opening hours')
                     ->state(fn (Branch $record): array => self::hoursOf($record))
-                    ->listWithLineBreaks(),
+                    ->listWithLineBreaks()
+                    ->color('gray'),
             ])
             ->recordActions([
                 EditAction::make(),
