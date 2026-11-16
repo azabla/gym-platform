@@ -94,6 +94,31 @@ class PromoCode extends Model
      */
     public function refusalToUse(Member $member, Plan $plan, CarbonImmutable $today): ?PromoCodeRefused
     {
+        $refusal = $this->refusalFor($member, $today);
+
+        if ($refusal !== null) {
+            return $refusal;
+        }
+
+        if (! $this->isForPlan($plan)) {
+            return PromoCodeRefused::notForThePlan($plan);
+        }
+
+        try {
+            $this->priceFor($plan);
+        } catch (InvalidDiscount) {
+            return PromoCodeRefused::takesTooMuchOff($plan);
+        }
+
+        return null;
+    }
+
+    /**
+     * Why the member can't use the code today, whatever the plan, or null
+     * when they can: its dates, its total and once per member.
+     */
+    public function refusalFor(Member $member, CarbonImmutable $today): ?PromoCodeRefused
+    {
         if ($this->starts_on !== null && $today->lessThan($this->starts_on)) {
             return PromoCodeRefused::notStarted($this->starts_on);
         }
@@ -110,17 +135,24 @@ class PromoCode extends Model
             return PromoCodeRefused::alreadyUsedByTheMember();
         }
 
+        return null;
+    }
+
+    /**
+     * The plan's price with the code, or null when the code isn't for the
+     * plan or takes more off than it costs.
+     */
+    public function priceIfFor(Plan $plan): ?Money
+    {
         if (! $this->isForPlan($plan)) {
-            return PromoCodeRefused::notForThePlan($plan);
+            return null;
         }
 
         try {
-            $this->priceFor($plan);
+            return $this->priceFor($plan);
         } catch (InvalidDiscount) {
-            return PromoCodeRefused::takesTooMuchOff($plan);
+            return null;
         }
-
-        return null;
     }
 
     public function isForPlan(Plan $plan): bool
