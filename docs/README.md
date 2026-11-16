@@ -48,6 +48,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 10. Anything that depends on "today" uses the gym's date, `Organization::today()`, never the server's (UTC) date. See ADR 0006.
 11. The staff panel shows and does only what the API allows: it goes through the same policies, its figures come from the same code (`App\Dashboards`), and the rules for a change live in the domain (`refusalTo…` methods, and checks such as `Plan::nameTakenBy()`) that both call. Domains never depend on it. See ADR 0017, ADR 0018 and ADR 0023.
 12. Staff limited to some branches see records where they happened (payments, links and check-ins by branch) and members where they belong (by home branch), through the models' branch scopes such as `Payment::takenAtAnyOf()`; a search still finds any member of the gym. Every list, total, report and dashboard uses the same scopes. See ADR 0025.
+13. Every staff panel list starts from `Tables::standard()` and shows statuses through `Badges`, money aligned right, and a filter for each status, branch, date and owner; every form comes in sections with placeholders and help. See ADR 0033.
 
 ## Glossary
 
@@ -124,6 +125,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0030](adr/0030-promo-codes.md) | Promo codes, in the members app and at the desk |
 | [0031](adr/0031-refunds-made-and-links-by-sms.md) | Refunds made, open links on memberships, and links by SMS |
 | [0032](adr/0032-discount-groups-and-the-discounts-report.md) | Discount groups and the discounts report |
+| [0033](adr/0033-staff-panel-look-and-conventions.md) | The staff panel's look and conventions |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 

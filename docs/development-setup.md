@@ -559,7 +559,9 @@ Each part has an ADR:
 
 ## Trying the staff panel
 
-`make composer c=install` also publishes the panel's assets. After `make fresh`, open http://localhost:8080/staff and sign in with one of the demo phones above (password `password`). You land on Demo Gym's dashboard: today's figures and the members to call. Change the period or the branch at the top.
+`make composer c=install` also publishes the panel's assets. After `make fresh`, open http://localhost:8080/staff and sign in with one of the demo phones above (password `password`). You land on Demo Gym's dashboard: today's figures, with the last week as sparklines, and the members to call. Change the period or the branch at the top.
+
+The menu is grouped into **Front desk** (members, memberships, check-ins, announcements), **Money** (payments, payment links, online payments), **Gym setup** (plans, promo codes, discount groups, branches, staff) and **Reports**, a page with every CSV report. Each list has its filters above it (open them with the funnel), columns you can show or hide, and badges for statuses. The panel follows the device's light or dark setting; switch it in the user menu. See ADR 0033.
 
 ### Demo activity
 
