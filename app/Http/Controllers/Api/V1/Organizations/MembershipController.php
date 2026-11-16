@@ -33,11 +33,18 @@ class MembershipController extends Controller
 
     /**
      * Sell a plan to the member, starting on the given day or the first free day,
-     * at a discount if one is given.
+     * at a typed discount if one is given, or else at the member's discount
+     * group's or the promo code's price, whichever is lower.
      */
     public function store(StoreMembershipRequest $request, Member $member, CurrentStaff $currentStaff): MembershipResource
     {
-        $membership = Membership::sell($member, $request->plan(), $request->startsOn(), $currentStaff->get(), $request->discount());
+        $discount = $request->discount();
+
+        // A typed discount (owners and managers) is used as it is; otherwise the member
+        // pays the lowest of the plan's price, their discount group's and the code's (ADR 0032).
+        $membership = $discount !== null
+            ? Membership::sell($member, $request->plan(), $request->startsOn(), $currentStaff->get(), $discount)
+            : Membership::sellAt($request->priceChoice(), $member, $request->plan(), $request->startsOn(), $currentStaff->get());
         MembershipResource::loadDetails($membership);
 
         return new MembershipResource($membership);

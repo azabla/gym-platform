@@ -43,8 +43,9 @@ final class ChapaClient
 
     /**
      * Start a checkout for the payment link on Chapa's payment page, and give
-     * its address. The page shows the gym's name and the plan, and Chapa calls
-     * the callback URL once the member has paid.
+     * its address. The page shows the gym's name and the plan, Chapa calls
+     * the callback URL once the member has paid, and sends the member to the
+     * return page, which only points back to the app (ADR 0022).
      *
      * @throws ChapaRequestFailed
      */
@@ -62,6 +63,7 @@ final class ChapaClient
             'phone_number' => PhoneNumber::of($member->phone)->ethiopianNational(),
             'email' => $member->email,
             'callback_url' => $callbackUrl,
+            'return_url' => route('payments.returned'),
             'customization' => [
                 'title' => $this->textChapaAccepts($link->organization->name, self::TITLE_LENGTH, 'Gym'),
                 'description' => $this->textChapaAccepts("{$link->planName()} membership", self::DESCRIPTION_LENGTH, 'Membership'),

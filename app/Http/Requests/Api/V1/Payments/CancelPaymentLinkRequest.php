@@ -5,18 +5,20 @@ namespace App\Http\Requests\Api\V1\Payments;
 use App\Domains\Billing\Enums\PaymentLinkStatus;
 use App\Domains\Billing\Models\PaymentLink;
 use Closure;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Validator;
 
 class CancelPaymentLinkRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * A link of a branch the staff member doesn't work at is a 404 (ADR 0025).
      */
-    public function authorize(): bool
+    public function authorize(): Response
     {
-        return $this->user()->can('cancel', $this->paymentLink());
+        return Gate::inspect('cancel', $this->paymentLink());
     }
 
     /**

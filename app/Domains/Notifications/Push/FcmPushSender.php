@@ -118,16 +118,28 @@ final class FcmPushSender implements PushSender
     }
 
     /**
+     * The service account's key: from FCM_CREDENTIALS_JSON, base64-encoded,
+     * when it is set (on hosts without a disk), or else from the file at
+     * FCM_CREDENTIALS (ADR 0028).
+     *
      * @return array{client_email: string, private_key: string, token_uri: string}
      */
     private function credentials(): array
     {
-        $path = (string) config('services.fcm.credentials');
-        $path = str_starts_with($path, '/') ? $path : base_path($path);
-        $credentials = is_file($path) ? json_decode((string) file_get_contents($path), true) : null;
+        $encoded = (string) config('services.fcm.credentials_json');
+
+        if ($encoded !== '') {
+            $credentials = json_decode((string) base64_decode($encoded, true), true);
+        } else {
+            $path = (string) config('services.fcm.credentials');
+            $path = str_starts_with($path, '/') ? $path : base_path($path);
+            $credentials = is_file($path) ? json_decode((string) file_get_contents($path), true) : null;
+        }
 
         if (! is_array($credentials) || ! is_string($credentials['client_email'] ?? null) || ! is_string($credentials['private_key'] ?? null)) {
-            throw PushNotSent::misconfigured('FCM_CREDENTIALS must be the path to the service account\'s JSON key.');
+            throw PushNotSent::misconfigured($encoded !== ''
+                ? 'FCM_CREDENTIALS_JSON must be the service account\'s JSON key, base64-encoded.'
+                : 'FCM_CREDENTIALS must be the path to the service account\'s JSON key, or FCM_CREDENTIALS_JSON the key itself, base64-encoded.');
         }
 
         return [

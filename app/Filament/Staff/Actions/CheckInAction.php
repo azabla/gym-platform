@@ -8,11 +8,11 @@ use App\Domains\Attendance\Models\CheckIn;
 use App\Domains\Members\Models\Member;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
-use App\Filament\Staff\Resources\CheckIns\CheckInResource;
 use App\Filament\Staff\Resources\Members\MemberResource;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -32,6 +32,9 @@ class CheckInAction extends Action
         parent::setUp();
 
         $this->label('Check in')
+            ->icon(Heroicon::OutlinedArrowRightEndOnRectangle)
+            ->modalIcon(Heroicon::OutlinedArrowRightEndOnRectangle)
+            ->color('success')
             ->visible(fn (): bool => Gate::allows('create', CheckIn::class))
             ->schema([
                 Select::make('branch_id')
@@ -56,7 +59,7 @@ class CheckInAction extends Action
                 Notification::make()
                     ->danger()
                     ->title("{$record->full_name} is turned away.")
-                    ->body(CheckInResource::reasonLabel($checkIn->reason_code))
+                    ->body($checkIn->reason_code->label())
                     ->send();
             });
     }

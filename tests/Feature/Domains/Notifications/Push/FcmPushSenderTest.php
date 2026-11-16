@@ -105,6 +105,23 @@ it('throws when FCM is down or refuses for another reason', function (int $statu
     'forbidden' => [403, ['error' => ['status' => 'PERMISSION_DENIED', 'message' => 'SenderId mismatch']], 'SenderId mismatch'],
 ]);
 
+it('reads the service account\'s key from FCM_CREDENTIALS_JSON on a host without a disk', function () {
+    config([
+        'services.fcm.credentials' => '/nowhere/key.json',
+        'services.fcm.credentials_json' => base64_encode((string) file_get_contents($this->credentialsPath)),
+    ]);
+    fakeFcm();
+
+    expect((new FcmPushSender)->send('phone-token-1', $this->message))->toBe(PushResult::Sent);
+});
+
+it('says FCM_CREDENTIALS_JSON is wrong when it isn\'t a key', function () {
+    config(['services.fcm.credentials_json' => base64_encode('not json')]);
+
+    expect(fn () => (new FcmPushSender)->send('phone-token-1', $this->message))
+        ->toThrow(PushNotSent::class, 'FCM_CREDENTIALS_JSON must be');
+});
+
 it('says what is missing when push is not set up', function () {
     config(['services.fcm.credentials' => '/nowhere/key.json']);
 

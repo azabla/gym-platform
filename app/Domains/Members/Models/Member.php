@@ -105,6 +105,21 @@ class Member extends Model
     }
 
     /**
+     * Members whose home branch is any of the branches; every member when the
+     * branches are null (every branch). See ADR 0025.
+     *
+     * @param  Builder<self>  $query
+     * @param  list<int>|null  $branchIds
+     */
+    #[Scope]
+    protected function homeAtAnyOf(Builder $query, ?array $branchIds): void
+    {
+        if ($branchIds !== null) {
+            $query->whereIn('home_branch_id', $branchIds);
+        }
+    }
+
+    /**
      * Members whose name contains the text, or whose phone number contains its
      * digits ("0911 23" finds +251911234567). "%" and "_" match literally.
      *

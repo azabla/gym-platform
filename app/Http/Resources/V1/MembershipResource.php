@@ -5,9 +5,11 @@ namespace App\Http\Resources\V1;
 use App\Domains\Attendance\Access\Visits;
 use App\Domains\Billing\Balances\MembershipBalance;
 use App\Domains\Billing\Models\Payment;
+use App\Domains\Billing\Models\PaymentLink;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
+use App\Domains\Organizations\Tenancy\CurrentStaff;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -32,6 +34,26 @@ class MembershipResource extends JsonResource
         (new Collection($memberships))->load(self::RELATIONS);
         self::attachBalances(...$memberships);
         self::attachVisitsUsed(...$memberships);
+        self::attachOpenPaymentLinks(...$memberships);
+    }
+
+    /**
+     * Give each membership its open payment link, if any, from Billing, in one
+     * query for all of them (ADR 0031). A link at a branch the staff member
+     * doesn't work at isn't shown, as in the lists (ADR 0025).
+     */
+    public static function attachOpenPaymentLinks(Membership ...$memberships): void
+    {
+        $openPaymentLinks = PaymentLink::query()
+            ->pending()
+            ->forAnyOf(app(CurrentStaff::class)->get()->limitedToBranchIds())
+            ->whereIn('membership_id', array_map(fn (Membership $membership): int => $membership->id, $memberships))
+            ->get()
+            ->keyBy('membership_id');
+
+        foreach ($memberships as $membership) {
+            $membership->setRelation('openPaymentLink', $openPaymentLinks->get($membership->id));
+        }
     }
 
     /**
@@ -103,6 +125,12 @@ class MembershipResource extends JsonResource
                 'cancelled_by' => $this->whenLoaded('cancelledBy', fn (Staff $staff) => $this->staffMember($staff)),
                 'reason' => $this->cancellation_reason,
             ],
+            'open_payment_link' => $this->whenLoaded('openPaymentLink', fn (PaymentLink $paymentLink) => [
+                'id' => $paymentLink->id,
+                'amount' => $paymentLink->amount,
+                'checkout_url' => $paymentLink->checkout_url,
+                'created_at' => $paymentLink->created_at?->toIso8601String(),
+            ]),
         ];
     }
 

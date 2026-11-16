@@ -10,11 +10,16 @@ use App\Domains\Billing\Chapa\ChapaTransaction;
 use App\Domains\Billing\Chapa\Exceptions\ChapaRequestFailed;
 use App\Domains\Billing\Enums\PaymentLinkStatus;
 use App\Domains\Billing\Enums\PaymentMethod;
+use App\Domains\Billing\Events\PaymentLinkNeedsRefund;
+use App\Domains\Billing\Events\PaymentLinkSentToMember;
 use App\Domains\Billing\Exceptions\PaymentRefused;
 use App\Domains\Billing\Policies\PaymentLinkPolicy;
 use App\Domains\Members\Models\Member;
+use App\Domains\Memberships\Models\DiscountGroup;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Memberships\Models\Plan;
+use App\Domains\Memberships\Models\PromoCode;
+use App\Domains\Memberships\Pricing\PriceChoice;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
@@ -38,6 +43,7 @@ use Illuminate\Support\Str;
  * other. A membership has at most one pending link. See ADR 0009.
  *
  * @property Money $amount The amount asked for (amount_minor and currency).
+ * @property Money|null $list_amount The plan's price when a link to buy it with a promo code was opened.
  */
 #[UseFactory(PaymentLinkFactory::class)]
 #[UsePolicy(PaymentLinkPolicy::class)]
@@ -45,6 +51,9 @@ class PaymentLink extends Model
 {
     /** @use HasFactory<PaymentLinkFactory> */
     use BelongsToOrganization, HasFactory;
+
+    /** A link isn't texted to the member again within this many minutes. */
+    public const MINUTES_BETWEEN_TEXTS = 10;
 
     /**
      * Ask Chapa, with the gym's own account, for a payment page for the amount
@@ -71,19 +80,49 @@ class PaymentLink extends Model
     }
 
     /**
+     * Why staff can't open a link for the amount on the membership, or null
+     * when they can: the gym must have connected Chapa, the membership must
+     * not have an open link already, and it must still be owed the amount.
+     * The API and the staff panel both ask (ADR 0029).
+     */
+    public static function refusalToOpen(Membership $membership, Money $amount): ?PaymentRefused
+    {
+        if (! ChapaAccount::query()->exists()) {
+            return PaymentRefused::noChapaAccount();
+        }
+
+        if (static::query()->whereBelongsTo($membership)->pending()->exists()) {
+            return PaymentRefused::linkAlreadyOpen();
+        }
+
+        return Payment::refusalToReceive($membership, $amount)
+            ?? ($amount->isPositive() ? null : PaymentRefused::nothingDue());
+    }
+
+    /**
      * Ask Chapa for a payment page for the member to buy the plan in their
      * app, at its price now, and keep the link to it. The membership is
      * created only once Chapa confirms the payment (see settle()), so an
-     * abandoned checkout leaves nothing behind. See ADR 0013.
+     * abandoned checkout leaves nothing behind. At a lower price, through a
+     * promo code or the member's discount group, the link is for that price,
+     * names what gave it, and keeps the plan's price as its list amount (ADR
+     * 0013, ADR 0030 and ADR 0032).
      */
-    public static function openForPlan(Member $member, Plan $plan, Branch $branch, ChapaAccount $chapaAccount, string $callbackUrl): self
+    public static function openForPlan(Member $member, Plan $plan, Branch $branch, ChapaAccount $chapaAccount, string $callbackUrl, ?PriceChoice $priceChoice = null): self
     {
         $link = new self;
         $link->organization()->associate($member->organization_id);
         $link->member()->associate($member);
         $link->plan()->associate($plan);
         $link->branch()->associate($branch);
-        $link->amount = $plan->price;
+        $link->amount = $priceChoice === null ? $plan->price : $priceChoice->price;
+
+        if ($priceChoice?->isDiscounted() === true) {
+            $link->promoCode()->associate($priceChoice->promoCode);
+            $link->discountGroup()->associate($priceChoice->discountGroup);
+            $link->list_amount = $priceChoice->listPrice;
+        }
+
         $link->tx_ref = 'GP-'.Str::ulid();
         $link->status = PaymentLinkStatus::Pending;
         $link->checkout_url = app(ChapaClient::class)->startCheckout($link, $chapaAccount->secret_key, $callbackUrl);
@@ -106,7 +145,15 @@ class PaymentLink extends Model
             return null;
         }
 
-        $membership = Membership::buyInApp($member, $plan, Membership::firstFreeDayFor($member, $this->organization->today()), $this->amount);
+        $membership = Membership::buyInApp(
+            $member,
+            $plan,
+            Membership::firstFreeDayFor($member, $this->organization->today()),
+            $this->amount,
+            $this->promoCode,
+            $this->list_amount,
+            $this->discountGroup,
+        );
         $this->membership()->associate($membership);
 
         return $membership;
@@ -156,6 +203,78 @@ class PaymentLink extends Model
     }
 
     /**
+     * Why the link can't be marked refunded, or null when it can: only a link
+     * needing a refund can be (ADR 0031).
+     */
+    public function refusalToMarkRefunded(): ?PaymentRefused
+    {
+        return $this->status === PaymentLinkStatus::RefundNeeded ? null : PaymentRefused::noRefundNeeded();
+    }
+
+    /**
+     * The gym gave the member's money back from its Chapa dashboard. The link
+     * is locked meanwhile, so two desks marking it at once refund it once.
+     *
+     * @throws PaymentRefused when the link doesn't need a refund
+     */
+    public function markRefunded(Staff $refundedBy, ?string $note): void
+    {
+        DB::transaction(function () use ($refundedBy, $note): void {
+            $paymentLink = static::query()->whereKey($this->id)->lockForUpdate()->firstOrFail();
+            $refusal = $paymentLink->refusalToMarkRefunded();
+
+            if ($refusal !== null) {
+                throw $refusal;
+            }
+
+            $paymentLink->status = PaymentLinkStatus::Refunded;
+            $paymentLink->refunded_at = CarbonImmutable::now();
+            $paymentLink->refundedBy()->associate($refundedBy);
+            $paymentLink->refund_note = $note === null || trim($note) === '' ? null : trim($note);
+            $paymentLink->save();
+        });
+
+        $this->refresh();
+    }
+
+    /**
+     * Why the link can't be texted to the member now, or null when it can: it
+     * must be open, and not texted in the last few minutes (ADR 0031).
+     */
+    public function refusalToSendBySms(CarbonImmutable $now): ?PaymentRefused
+    {
+        if ($this->status !== PaymentLinkStatus::Pending) {
+            return PaymentRefused::linkNotOpen();
+        }
+
+        if ($this->sms_sent_at !== null && $this->sms_sent_at->greaterThan($now->subMinutes(self::MINUTES_BETWEEN_TEXTS))) {
+            return PaymentRefused::textedAMomentAgo();
+        }
+
+        return null;
+    }
+
+    /**
+     * Text the link to the member: the time is kept, and the member hears of
+     * it by SMS once the change is saved (PaymentLinkSentToMember).
+     *
+     * @throws PaymentRefused when the link can't be texted now
+     */
+    public function sendToMember(CarbonImmutable $now): void
+    {
+        $refusal = $this->refusalToSendBySms($now);
+
+        if ($refusal !== null) {
+            throw $refusal;
+        }
+
+        $this->sms_sent_at = $now;
+        $this->save();
+
+        PaymentLinkSentToMember::dispatch($this);
+    }
+
+    /**
      * Ask Chapa, with the gym's own key, whether the member has paid, and
      * record the payment if so. A link that is already settled isn't asked
      * about again.
@@ -199,6 +318,7 @@ class PaymentLink extends Model
             if ($membership === null) {
                 $paymentLink->status = PaymentLinkStatus::RefundNeeded;
                 $paymentLink->save();
+                PaymentLinkNeedsRefund::dispatch($paymentLink);
 
                 return;
             }
@@ -216,6 +336,7 @@ class PaymentLink extends Model
             } catch (PaymentRefused) {
                 $paymentLink->status = PaymentLinkStatus::RefundNeeded;
                 $paymentLink->save();
+                PaymentLinkNeedsRefund::dispatch($paymentLink);
 
                 return;
             }
@@ -250,6 +371,29 @@ class PaymentLink extends Model
     }
 
     /**
+     * The promo code a link to buy a plan was opened with, if any. A code
+     * archived since is still honoured: the member paid its price (ADR 0030).
+     *
+     * @return BelongsTo<PromoCode, $this>
+     */
+    public function promoCode(): BelongsTo
+    {
+        return $this->belongsTo(PromoCode::class)->withTrashed();
+    }
+
+    /**
+     * The discount group whose price a link to buy a plan asks, if any. A
+     * group archived since is still honoured: the member paid its price
+     * (ADR 0032).
+     *
+     * @return BelongsTo<DiscountGroup, $this>
+     */
+    public function discountGroup(): BelongsTo
+    {
+        return $this->belongsTo(DiscountGroup::class)->withTrashed();
+    }
+
+    /**
      * The membership the link pays, or the one bought through it once paid.
      *
      * @return BelongsTo<Membership, $this>
@@ -281,6 +425,12 @@ class PaymentLink extends Model
         return $this->belongsTo(Staff::class, 'cancelled_by_staff_id')->withTrashed();
     }
 
+    /** @return BelongsTo<Staff, $this> */
+    public function refundedBy(): BelongsTo
+    {
+        return $this->belongsTo(Staff::class, 'refunded_by_staff_id')->withTrashed();
+    }
+
     /**
      * The payment the link became, once Chapa confirmed it.
      *
@@ -303,6 +453,21 @@ class PaymentLink extends Model
     }
 
     /**
+     * Links for any of the branches; every one when the branches are null
+     * (every branch). See ADR 0025.
+     *
+     * @param  Builder<self>  $query
+     * @param  list<int>|null  $branchIds
+     */
+    #[Scope]
+    protected function forAnyOf(Builder $query, ?array $branchIds): void
+    {
+        if ($branchIds !== null) {
+            $query->whereIn('branch_id', $branchIds);
+        }
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -311,9 +476,12 @@ class PaymentLink extends Model
     {
         return [
             'amount' => AsMoney::class.':amount_minor,currency',
+            'list_amount' => AsMoney::class.':list_amount_minor,currency',
             'status' => PaymentLinkStatus::class,
             'settled_at' => 'immutable_datetime',
             'cancelled_at' => 'immutable_datetime',
+            'refunded_at' => 'immutable_datetime',
+            'sms_sent_at' => 'immutable_datetime',
         ];
     }
 }

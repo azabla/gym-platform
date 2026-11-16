@@ -9,7 +9,7 @@ DC   = docker compose
 EXEC = $(DC) exec app
 
 .DEFAULT_GOAL := help
-.PHONY: help build up down restart workers ps logs shell artisan composer test lint fix analyse check fresh bucket psql
+.PHONY: help build up down restart workers ps logs shell artisan composer test lint fix analyse check fresh demo bucket psql
 
 help: ## List available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -60,6 +60,9 @@ check: lint analyse test ## Everything CI will run
 
 fresh: ## Drop and re-run all migrations with seeders
 	$(EXEC) php artisan migrate:fresh --seed
+
+demo: ## Add two months of demo activity to Demo Gym (after make fresh)
+	$(EXEC) php artisan db:seed --class=DemoActivitySeeder
 
 bucket: ## Create the local S3 bucket (once)
 	echo "s3.bucket.create -name gym-local" | $(DC) exec -T seaweedfs weed shell -master=localhost:9333

@@ -60,6 +60,20 @@ return [
             'report' => false,
         ],
 
+        // The nightly database dumps (ADR 0028): the same R2 account as the s3 disk, but a
+        // private bucket of their own, since the s3 disk's bucket has a public URL.
+        'backups' => [
+            'driver' => 's3',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION'),
+            'bucket' => env('BACKUP_AWS_BUCKET'),
+            'endpoint' => env('AWS_ENDPOINT'),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'throw' => true,
+            'report' => false,
+        ],
+
     ],
 
     /*

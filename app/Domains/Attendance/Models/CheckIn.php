@@ -19,8 +19,10 @@ use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
 use Carbon\CarbonImmutable;
 use Database\Factories\CheckInFactory;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -157,6 +159,21 @@ class CheckIn extends Model
         }
 
         return $checkIn;
+    }
+
+    /**
+     * Check-ins made at any of the branches; every one when the branches are
+     * null (every branch). See ADR 0025.
+     *
+     * @param  Builder<self>  $query
+     * @param  list<int>|null  $branchIds
+     */
+    #[Scope]
+    protected function madeAtAnyOf(Builder $query, ?array $branchIds): void
+    {
+        if ($branchIds !== null) {
+            $query->whereIn('branch_id', $branchIds);
+        }
     }
 
     /**

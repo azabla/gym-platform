@@ -8,6 +8,9 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Where Chapa sends a member after paying: back to the app, which has the API confirm the payment (ADR 0022).
+Route::view('payments/returned', 'payments.returned')->name('payments.returned');
+
 // Staff set their password from a link sent by SMS, and ask for one when they forget it (ADR 0019).
 Route::prefix('password')->name('staff.password.')->group(function (): void {
     Route::get('forgot', [ForgotStaffPasswordController::class, 'create'])->name('forgot');

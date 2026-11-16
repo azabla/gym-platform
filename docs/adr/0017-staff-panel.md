@@ -60,11 +60,15 @@ These are read-only, for looking things up:
 
 ### Deferred
 
-- Doing things from the panel. ADR 0018 adds the front desk: members, selling, freezing, cancelling, payments, refunds, voids and check-ins. Payment links, announcements, plans and branches stay in the app.
-- Lists limited to a staff member's branches. Like the API's lists, they show the whole gym.
+- Doing things from the panel. Since then:
+  - ADR 0018 added the front desk;
+  - ADR 0019 added staff, with password links;
+  - ADR 0023 added plans, branches, opening hours and announcements.
+
+  ADR 0029 added Chapa and payment links.
+- Lists limited to a staff member's branches. ADR 0025 added them, in the API too.
 - Charts over time, comparing periods, and exports (ADR 0014).
 - A platform-admin panel across all gyms.
-- Password reset, which still needs email or SMS delivery (ADR 0004).
 
 ## Consequences
 

@@ -12,4 +12,12 @@ enum CheckInMethod: string
 {
     case Qr = 'qr';
     case Desk = 'desk';
+
+    /**
+     * The method in words, as the staff panel and reports show it.
+     */
+    public function label(): string
+    {
+        return $this === self::Qr ? 'QR code' : 'At the desk';
+    }
 }

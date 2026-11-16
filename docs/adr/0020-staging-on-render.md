@@ -29,7 +29,7 @@ The platform only ran on developers' machines, so no gym owner could try it. We 
 ### Deferred
 
 - The real server: separate web, worker and scheduler processes, its own Postgres and Redis, backups and a domain.
-- Real SMS, push and mail on staging.
+- Real SMS, push and mail on staging. ADR 0028 makes SMS, push, error tracking and backups ready to switch on.
 
 ## Consequences
 

@@ -12,6 +12,7 @@ use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Shared\Money\Money;
 use Carbon\CarbonImmutable;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -30,6 +31,8 @@ class RefundAction extends MoneyAction
         parent::setUp();
 
         $this->label('Refund')
+            ->icon(Heroicon::OutlinedArrowUturnLeft)
+            ->modalIcon(Heroicon::OutlinedArrowUturnLeft)
             ->color('danger')
             ->visible(fn (Membership $record): bool => Gate::allows('refund', Payment::class) && $record->cancelled_at !== null);
     }

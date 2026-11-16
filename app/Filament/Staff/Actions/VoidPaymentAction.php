@@ -10,6 +10,7 @@ use App\Domains\Organizations\Tenancy\CurrentStaff;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -29,6 +30,8 @@ class VoidPaymentAction extends Action
         parent::setUp();
 
         $this->label('Void')
+            ->icon(Heroicon::OutlinedNoSymbol)
+            ->modalIcon(Heroicon::OutlinedNoSymbol)
             ->color('danger')
             ->requiresConfirmation()
             ->visible(fn (Payment $record): bool => Gate::allows('void', $record) && $record->voided_at === null)

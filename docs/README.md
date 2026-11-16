@@ -21,6 +21,7 @@ app/Domains/Announcements/ Announcements from a gym to its members, now or sched
 app/Http/                  The API: controllers, form requests, middleware and resources (v1); Me/ folders hold the members app's side
 app/Filament/Staff/        The staff panel at /staff (Filament): its user, tenant middleware, dashboard, widgets and lists
 app/Dashboards/            Figures drawn from several domains, shared by the API and the staff panel
+app/Reports/               CSV reports of payments, memberships, check-ins and members, shared by the API and the staff panel
 app/Providers/Filament/    The staff panel's configuration
 app/Console/Commands/      Artisan commands, such as gyms:create and the check of open payment links
 resources/views/staff-password/ The pages where staff set or reset their password from an SMS link
@@ -45,7 +46,9 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 8. Gym-specific API routes sit under `/api/v1/organizations/{slug}` inside the `organization` middleware group. See ADR 0004.
 9. Phone numbers are a `PhoneNumber` in code and an E.164 string (`+251911234567`) in the database, never stored as typed. See ADR 0005.
 10. Anything that depends on "today" uses the gym's date, `Organization::today()`, never the server's (UTC) date. See ADR 0006.
-11. The staff panel shows and does only what the API allows: it goes through the same policies, its figures come from the same code (`App\Dashboards`), and the rules for a change live in the domain as `refusalTo…` methods that both call. Domains never depend on it. See ADR 0017 and ADR 0018.
+11. The staff panel shows and does only what the API allows: it goes through the same policies, its figures come from the same code (`App\Dashboards`), and the rules for a change live in the domain (`refusalTo…` methods, and checks such as `Plan::nameTakenBy()`) that both call. Domains never depend on it. See ADR 0017, ADR 0018 and ADR 0023.
+12. Staff limited to some branches see records where they happened (payments, links and check-ins by branch) and members where they belong (by home branch), through the models' branch scopes such as `Payment::takenAtAnyOf()`; a search still finds any member of the gym. Every list, total, report and dashboard uses the same scopes. See ADR 0025.
+13. Every staff panel list starts from `Tables::standard()` and shows statuses through `Badges`, money aligned right, and a filter for each status, branch, date and owner; every form comes in sections with placeholders and help. See ADR 0033.
 
 ## Glossary
 
@@ -55,13 +58,15 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Branch | A physical location of an organization. |
 | User | An identity that can log in: staff with their phone and a password, members with a code sent to their phone. One user per phone number. |
 | API docs | The interactive API documentation at /docs/api (and the OpenAPI document at /docs/api.json), generated from the code by Scramble, for staff signed in to the panel (ADR 0021). |
-| Staff panel | The website at /staff where staff sign in with their phone and password, choose a gym, see its dashboard and lists, work the front desk (members, sales, freezes, payments and check-ins), and, as owners and managers, manage the staff (ADRs 0017 to 0019). |
+| Report | A CSV file of the gym's payments, memberships sold, check-ins or members, for a period and the staff member's branches, from the API or the panel's lists. Who may download each one depends on the role (ADR 0024). |
+| Staff panel | The website at /staff where staff sign in with their phone and password, choose a gym, see its dashboard and lists, work the front desk (members, sales, freezes, payments and check-ins), and, as owners and managers, manage the staff and set up the gym: plans, branches, opening hours and announcements (ADRs 0017 to 0019 and 0023). |
 | Password link | A one-time link sent by SMS to set a staff member's first password (an invite, valid 7 days) or reset a forgotten one (valid 60 minutes). See ADR 0019. |
 | Archived staff | Staff who left: they can no longer act at the gym, what they recorded still names them, and they can be restored (ADR 0019). |
 | Members app | The app where members see their memberships, what they owe and their receipts, and pay with Chapa. It shows every gym where their phone number is registered (ADR 0010). |
 | Sign-in code | A 6-digit code sent by SMS that signs a member in to the members app. It works for 10 minutes and 5 tries. |
 | QR credential | What lets a member's phone show their QR code at one gym: a secret given to the phone once, from which it makes a code every 30 seconds (GQ1), even offline. One phone per member (ADR 0011). |
 | Notification | A message to a member at one gym: in the app's inbox, by push when they allow it, and by SMS for expiry. See ADR 0012. |
+| Staff notification | A message to a staff member at one gym, in the panel's Inbox and the API: money paid online, a refund to make, a freeze made or ended in the app, and the morning list of members to call, by role and branch. See ADR 0027. |
 | Announcement | A message from a gym to its members in its own words, to every branch or one, sent now or at a set time, in the inbox and by push (ADR 0015). |
 | Check-in | A member coming through the door, by scanning their QR code or at the desk. Every attempt is kept, allowed or denied, with the reason when denied. |
 | Member | A gym customer, registered at a home branch but welcome at every branch of the gym. May or may not have a User. |
@@ -70,11 +75,13 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Membership | A plan sold to a member for set dates, both included. A member has one membership at a time. |
 | Visit pack | A plan that allows a number of visits within its dates, such as 10 visits in 60 days. A visit is a day with a check-in that let the member in (ADR 0016). |
 | Opening hours | When a branch is open, by weekday, in the gym's time zone. A branch without any is always open. Check-ins outside them are turned away. |
-| Freeze | A pause in a membership. The membership's end date moves later by the number of frozen days. |
-| Discount | A reduction of a plan's price at sale, as an amount or a percentage, with a reason. Only owners and managers can give one. |
+| Freeze | A pause in a membership. The membership's end date moves later by the number of frozen days. Staff freeze at the desk; members freeze their own in the app, from today, within the freeze days left (ADR 0026). |
+| Discount | A reduction of a plan's price at sale, as an amount or a percentage, with a reason. Only owners and managers can type one; anyone who sells can use a promo code. |
+| Discount group | A group of members the gym prices lower, such as Student 10%, until a day if given. Its members pay its price in the app and at the desk, or a promo code's when lower, never both (ADR 0032). |
+| Promo code | A code the gym shares, such as NEWYEAR, worth a discount on a plan in the app or at the desk, with optional dates, a total, once per member and some plans only. A use is a membership sold with it (ADR 0030). |
 | Payment | Money a member paid towards a membership, by cash, Telebirr, CBE Birr or bank transfer, or online through Chapa. A membership can be paid in parts. |
 | Chapa account | A gym's own account with Chapa, the payment gateway. The owner connects it with its secret key, and members' online payments go straight to it (ADR 0009). |
-| Payment link | A link to Chapa's payment page for an amount owed on a membership, or for a plan a member is buying in the app (ADR 0013). Staff send it to the member, and the payment is recorded once Chapa confirms it. Marked refund needed if paid when nothing was due any more. |
+| Payment link | A link to Chapa's payment page for an amount owed on a membership, or for a plan a member is buying in the app (ADR 0013). Staff copy it or text it to the member, and the payment is recorded once Chapa confirms it. Marked refund needed if paid when nothing was due any more, then refunded once the gym gives the money back (ADR 0031). |
 | Refund | Money given back on a cancelled membership, up to what was paid. Stored as a payment going the other way. |
 | Void | Marking a payment or refund as recorded by mistake. It stays on record but no longer counts. |
 | Receipt | The record of a payment or refund for the member, numbered 1, 2, 3 in each gym with no gaps. |
@@ -105,11 +112,20 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0017](adr/0017-staff-panel.md) | The staff panel |
 | [0018](adr/0018-front-desk-in-the-staff-panel.md) | Working the front desk in the staff panel |
 | [0019](adr/0019-gyms-and-staff.md) | Gyms and staff |
-<<<<<<< HEAD
 | [0020](adr/0020-staging-on-render.md) | Staging on Render |
-=======
 | [0021](adr/0021-api-documentation-with-scramble.md) | API documentation with Scramble |
->>>>>>> feature/api-docs
+| [0022](adr/0022-back-from-chapa-and-the-gym-in-pushes.md) | Back from Chapa, and the gym in every push |
+| [0023](adr/0023-gym-setup-in-the-staff-panel.md) | Setting up a gym in the staff panel |
+| [0024](adr/0024-reports-exports-and-charts.md) | Reports, exports and charts over time |
+| [0025](adr/0025-lists-limited-to-a-staff-members-branches.md) | Lists limited to a staff member's branches |
+| [0026](adr/0026-freezing-in-the-members-app.md) | Freezing a membership in the members app |
+| [0027](adr/0027-staff-notifications.md) | Staff notifications |
+| [0028](adr/0028-going-live.md) | Going live: real accounts, error tracking and backups |
+| [0029](adr/0029-chapa-in-the-staff-panel.md) | Chapa and payment links in the staff panel |
+| [0030](adr/0030-promo-codes.md) | Promo codes, in the members app and at the desk |
+| [0031](adr/0031-refunds-made-and-links-by-sms.md) | Refunds made, open links on memberships, and links by SMS |
+| [0032](adr/0032-discount-groups-and-the-discounts-report.md) | Discount groups and the discounts report |
+| [0033](adr/0033-staff-panel-look-and-conventions.md) | The staff panel's look and conventions |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 

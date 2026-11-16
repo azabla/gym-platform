@@ -5,8 +5,12 @@ namespace App\Http\Requests\Api\V1\Memberships;
 use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Discount\Discount;
 use App\Domains\Memberships\Discount\Exceptions\InvalidDiscount;
+use App\Domains\Memberships\Exceptions\PromoCodeRefused;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Memberships\Models\Plan;
+use App\Domains\Memberships\Models\PromoCode;
+use App\Domains\Memberships\Pricing\PriceChoice;
+use App\Domains\Memberships\Pricing\Pricing;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use Carbon\CarbonImmutable;
 use Closure;
@@ -36,11 +40,14 @@ class StoreMembershipRequest extends FormRequest
             'starts_on' => ['nullable', 'bail', 'date_format:Y-m-d', $this->notInThePastUnlessAllowed()],
             'discount' => ['nullable', 'bail', 'string', $this->discountOnlyFromOwnersAndManagers(), $this->discountThatFitsThePrice()],
             'discount_reason' => ['nullable', 'string', 'max:500', 'required_with:discount'],
+            'promo_code' => ['nullable', 'string', 'max:30', 'prohibits:discount'],
         ];
     }
 
     /**
-     * The new membership must fit around the member's other memberships.
+     * The promo code, if one is sent, must be usable for the member and plan
+     * today (ADR 0030), and the new membership must fit around the member's
+     * other memberships.
      *
      * @return array<int, Closure(Validator): void>
      */
@@ -52,7 +59,8 @@ class StoreMembershipRequest extends FormRequest
                     return;
                 }
 
-                $refusal = Membership::refusalToSell($this->member(), $this->plan(), $this->startsOn(), $this->today());
+                $refusal = $this->promoCodeRefusal()
+                    ?? Membership::refusalToSell($this->member(), $this->plan(), $this->startsOn(), $this->today());
 
                 if ($refusal !== null) {
                     $validator->errors()->add($refusal->field, $refusal->getMessage());
@@ -61,9 +69,42 @@ class StoreMembershipRequest extends FormRequest
         ];
     }
 
+    /**
+     * The promo code that was sent, if any. Any staff member who sells may
+     * use one, because an owner or manager made it.
+     */
+    public function promoCode(): ?PromoCode
+    {
+        return $this->filled('promo_code') ? PromoCode::findByCode($this->string('promo_code')->toString()) : null;
+    }
+
+    private function promoCodeRefusal(): ?PromoCodeRefused
+    {
+        if (! $this->filled('promo_code')) {
+            return null;
+        }
+
+        $promoCode = $this->promoCode();
+
+        if ($promoCode === null) {
+            return PromoCodeRefused::unknown();
+        }
+
+        return $promoCode->refusalToUse($this->member(), $this->plan(), $this->today());
+    }
+
     public function plan(): Plan
     {
         return Plan::query()->findOrFail($this->integer('plan_id'));
+    }
+
+    /**
+     * Without a typed discount, what the member pays: the plan's price, their
+     * discount group's, or the promo code's, whichever is lowest (ADR 0032).
+     */
+    public function priceChoice(): PriceChoice
+    {
+        return Pricing::bestFor($this->member(), $this->plan(), $this->today(), $this->promoCode());
     }
 
     /**

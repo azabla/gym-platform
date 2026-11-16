@@ -7,9 +7,11 @@ namespace App\Filament\Staff\Actions;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Memberships\Models\MembershipFreeze;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
+use App\Domains\Organizations\Tenancy\CurrentStaff;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -29,6 +31,9 @@ class EndFreezeAction extends Action
         parent::setUp();
 
         $this->label('End freeze')
+            ->icon(Heroicon::OutlinedPlayCircle)
+            ->modalIcon(Heroicon::OutlinedPlayCircle)
+            ->color('info')
             ->visible(fn (Membership $record): bool => Gate::allows('freeze', $record) && self::freezesNotOver($record) !== [])
             ->schema(fn (Membership $record): array => [
                 Select::make('freeze_id')
@@ -46,7 +51,7 @@ class EndFreezeAction extends Action
                     Refusals::halt($action, $refusal);
                 }
 
-                $record->endFreeze($freeze, $today);
+                $record->endFreeze($freeze, $today, app(CurrentStaff::class)->get());
 
                 Notification::make()->success()->title("Freeze ended. It now ends on {$record->refresh()->ends_on->format('j F Y')}.")->send();
             });

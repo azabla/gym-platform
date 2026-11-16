@@ -52,7 +52,7 @@ class StorePaymentLinkRequest extends FormRequest
 
     /**
      * The gym must have connected Chapa, the membership must not have an open
-     * link already, and it must still be owed the amount.
+     * link already, and it must still be owed the amount (PaymentLink::refusalToOpen()).
      *
      * @return array<int, Closure(Validator): void>
      */
@@ -64,11 +64,10 @@ class StorePaymentLinkRequest extends FormRequest
                     return;
                 }
 
-                $problem = $this->problem();
+                $refusal = PaymentLink::refusalToOpen($this->membership(), $this->amount());
 
-                if ($problem !== null) {
-                    [$field, $message] = $problem;
-                    $validator->errors()->add($field, $message);
+                if ($refusal !== null) {
+                    $validator->errors()->add($refusal->field, $refusal->getMessage());
                 }
             },
         ];
@@ -94,27 +93,5 @@ class StorePaymentLinkRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->useTheOnlyBranchByDefault();
-    }
-
-    /**
-     * @return array{0: string, 1: string}|null the field and the message, or null when the link can be created
-     */
-    private function problem(): ?array
-    {
-        if (! ChapaAccount::query()->exists()) {
-            return ['chapa_account', 'Connect the gym\'s Chapa account first.'];
-        }
-
-        if (PaymentLink::query()->whereBelongsTo($this->membership())->pending()->exists()) {
-            return ['membership', 'This membership already has an open payment link. Cancel it to create a new one.'];
-        }
-
-        $refusal = Payment::refusalToReceive($this->membership(), $this->amount());
-
-        if ($refusal !== null) {
-            return [$refusal->field, $refusal->getMessage()];
-        }
-
-        return $this->amount()->isPositive() ? null : ['amount', 'Nothing is due on this membership.'];
     }
 }

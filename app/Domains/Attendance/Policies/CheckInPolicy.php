@@ -20,6 +20,15 @@ final class CheckInPolicy
         return $this->isCurrentStaff($user);
     }
 
+    /**
+     * Download the check-ins report: every staff member, as they see the
+     * check-ins (ADR 0024).
+     */
+    public function export(User $user): bool
+    {
+        return $this->isCurrentStaff($user);
+    }
+
     public function create(User $user): bool
     {
         return $this->isCurrentStaff($user);

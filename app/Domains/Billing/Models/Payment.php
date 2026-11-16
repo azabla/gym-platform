@@ -350,6 +350,21 @@ class Payment extends Model
     }
 
     /**
+     * Payments and refunds taken at any of the branches; every one when the
+     * branches are null (every branch). See ADR 0025.
+     *
+     * @param  Builder<self>  $query
+     * @param  list<int>|null  $branchIds
+     */
+    #[Scope]
+    protected function takenAtAnyOf(Builder $query, ?array $branchIds): void
+    {
+        if ($branchIds !== null) {
+            $query->whereIn('branch_id', $branchIds);
+        }
+    }
+
+    /**
      * The membership as it is now, locked until the transaction ends.
      */
     private static function lock(Membership $membership): Membership

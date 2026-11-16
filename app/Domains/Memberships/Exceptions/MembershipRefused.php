@@ -83,6 +83,11 @@ final class MembershipRefused extends DomainException
             : 'This membership has no freeze days left.', 'ends_on');
     }
 
+    public static function freezeInThePast(): self
+    {
+        return new self('A freeze can start today at the earliest.', 'starts_on');
+    }
+
     public static function freezeAlreadyEnded(): self
     {
         return new self('This freeze has already ended.', 'freeze');

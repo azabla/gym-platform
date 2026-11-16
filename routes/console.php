@@ -19,5 +19,11 @@ Schedule::command('model:prune', ['--model' => [SignInCode::class, PasswordLink:
 // Members hear before their membership ends, and the day after; each gym's go out from 09:00 its time (ADR 0012).
 Schedule::command('notifications:send-membership-reminders')->hourly()->withoutOverlapping();
 
+// Staff hear how many members to call, once a day from 08:00 each gym's time (ADR 0027).
+Schedule::command('notifications:send-staff-morning-list')->hourly()->withoutOverlapping();
+
 // Scheduled announcements go out within a minute of their time (ADR 0015).
 Schedule::command('announcements:send-due')->everyMinute()->withoutOverlapping();
+
+// The database is dumped to the private backups bucket at 02:00 in Addis Ababa, on the deployed app only (ADR 0028).
+Schedule::command('db:backup')->dailyAt('23:00')->environments('production')->withoutOverlapping();

@@ -49,6 +49,36 @@ final class PaymentRefused extends DomainException
         return new self('This payment is already voided.', 'payment');
     }
 
+    public static function noChapaAccount(): self
+    {
+        return new self('Connect the gym\'s Chapa account first.', 'chapa_account');
+    }
+
+    public static function linkAlreadyOpen(): self
+    {
+        return new self('This membership already has an open payment link. Cancel it to create a new one.', 'membership');
+    }
+
+    public static function noRefundNeeded(): self
+    {
+        return new self('Only a link needing a refund can be marked refunded.', 'payment_link');
+    }
+
+    public static function linkNotOpen(): self
+    {
+        return new self('Only an open link can be texted to the member.', 'payment_link');
+    }
+
+    public static function textedAMomentAgo(): self
+    {
+        return new self('The link was texted to the member a moment ago. Wait a few minutes before sending it again.', 'payment_link');
+    }
+
+    public static function nothingDue(): self
+    {
+        return new self('Nothing is due on this membership.', 'amount');
+    }
+
     public static function voidLeavesMoreRefundedThanPaid(): self
     {
         return new self('Voiding this payment would leave more refunded than paid. Void the refund first.', 'payment');

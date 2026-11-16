@@ -40,12 +40,22 @@ final class PlanPolicy
 
     public function update(User $user, Plan $plan): bool
     {
-        return $this->managesPlans($this->staffFor($user, $plan));
+        return $this->managesThePlan($this->staffFor($user, $plan), $plan);
     }
 
     public function delete(User $user, Plan $plan): bool
     {
-        return $this->managesPlans($this->staffFor($user, $plan));
+        return $this->managesThePlan($this->staffFor($user, $plan), $plan);
+    }
+
+    /**
+     * Owners and managers manage a plan valid only at branches they work at:
+     * a manager limited to some branches can't change a plan sold at others.
+     * See ADR 0023.
+     */
+    private function managesThePlan(?Staff $staff, Plan $plan): bool
+    {
+        return $this->managesPlans($staff) && $staff?->worksAtEach($plan->limitedToBranchIds()) === true;
     }
 
     /**

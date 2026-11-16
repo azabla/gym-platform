@@ -52,6 +52,7 @@ it('creates a link for everything I owe, at my home branch, and gives the same l
         ->assertJsonPath('data.status', 'pending')
         ->assertJsonPath('data.amount.amount_minor', 150000)
         ->assertJsonPath('data.checkout_url', 'https://checkout.chapa.co/checkout/payment/tigist123')
+        ->assertJsonPath('data.return_url', route('payments.returned'))
         ->assertJsonPath('data.membership_id', $this->membership->id)
         ->assertJsonPath('data.payment', null)
         ->json('data.id');
@@ -66,7 +67,8 @@ it('creates a link for everything I owe, at my home branch, and gives the same l
         && $request['amount'] === '1500.00'
         && $request['tx_ref'] === $paymentLink->tx_ref
         && $request['phone_number'] === '0922345678'
-        && str_ends_with($request['callback_url'], '/api/v1/chapa/callback'));
+        && str_ends_with($request['callback_url'], '/api/v1/chapa/callback')
+        && $request['return_url'] === route('payments.returned'));
 
     payInTheApp($this->membership)
         ->assertOk()
@@ -144,6 +146,7 @@ it('checks a link with Chapa when I come back from paying, and shows its receipt
         ->assertOk()
         ->assertJsonPath('data.status', 'paid')
         ->assertJsonPath('data.checkout_url', null)
+        ->assertJsonPath('data.return_url', null)
         ->assertJsonPath('data.payment.receipt_number', 1)
         ->assertJsonPath('data.payment.paid_on', '2026-10-23');
 
@@ -174,4 +177,10 @@ it('does not let me pay, see or check another member\'s membership or link', fun
         ->assertNotFound();
 
     Http::assertNothingSent();
+});
+
+it('sends members back from Chapa to a page that points to the app', function () {
+    $this->get(route('payments.returned'))
+        ->assertOk()
+        ->assertSee('Back to the app');
 });

@@ -41,7 +41,7 @@ it('lists my memberships at the gym, newest first, with what is paid and due, an
         'price' => Money::of('2,250'),
         'discount_reason' => 'Student',
     ]);
-    MembershipFreeze::factory()->for($this->october)->create(['starts_on' => '2026-10-10', 'ends_on' => '2026-10-12']);
+    $this->freeze = MembershipFreeze::factory()->for($this->october)->create(['starts_on' => '2026-10-10', 'ends_on' => '2026-10-12']);
     Payment::factory()->for($this->october)->create(['amount' => Money::of('1,500')]);
     actingAsMember($this->tigist);
 
@@ -57,7 +57,7 @@ it('lists my memberships at the gym, newest first, with what is paid and due, an
         ->assertJsonPath('data.1.freeze_days_allowed', 7)
         ->assertJsonPath('data.1.freeze_days_used', 3)
         ->assertJsonPath('data.1.freeze_days_left', 4)
-        ->assertJsonPath('data.1.freezes', [['starts_on' => '2026-10-10', 'ends_on' => '2026-10-12', 'days' => 3]])
+        ->assertJsonPath('data.1.freezes', [['id' => $this->freeze->id, 'starts_on' => '2026-10-10', 'ends_on' => '2026-10-12', 'days' => 3, 'frozen_in_app' => false]])
         ->assertJsonMissingPath('data.0.discount')
         ->assertJsonMissingPath('data.0.list_price')
         ->assertJsonMissingPath('data.1.sold_by');

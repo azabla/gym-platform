@@ -52,11 +52,13 @@ The membership has `visits_remaining` for a visit pack (ADR 0016). Volt's `grace
 | `GET /me/gyms` | Every gym where the phone number is a member: `slug`, `name`, `member` (`id`, `full_name`, `home_branch`), `membership` at a glance (`id`, `plan`, `status`, `starts_on`, `ends_on`) or `null`, and `balance_due` there |
 | `GET /me/gyms/{gym}/memberships` | The member's memberships, newest first |
 | `GET /me/gyms/{gym}/memberships/{id}` | One membership |
+| `POST /me/gyms/{gym}/memberships/{id}/freezes` | Freeze it: `starts_on` (optional, today when left out, never in the past), `ends_on` and an optional `reason`. `201` with the membership as it is now (new `ends_on`, `freeze_days_left`, `freezes`). `422` on `starts_on` or `ends_on` with the reason, for example "A freeze can start today at the earliest." or "This membership can be frozen for 4 more days."; a plan without freeze days answers "This membership has no freeze days left." (ADR 0026) |
+| `POST /me/gyms/{gym}/memberships/{id}/freezes/{freeze}/end` | End a freeze going on or still to come, early. `200` with the membership as it is now. `422` on `freeze` when it has already ended. |
 | `GET /me/gyms/{gym}/branches` | The gym's branches, by name, each with its `opening_hours` |
 | `GET /me/gyms/{gym}/payments` | Receipts, newest first |
 | `GET /me/gyms/{gym}/payments/{id}` | One receipt |
 
-**A membership:** `id`, `plan` (`id`, `name`), `status` (`upcoming`, `active`, `frozen`, `expired` or `cancelled`), `starts_on`, `ends_on` (both included), `price`, `amount_paid`, `balance_due`, `valid_at_all_branches`, `branches`, `visits_remaining` (visits left on a visit pack, or `null` when there is no limit), `freeze_days_allowed`, `freeze_days_used`, `freeze_days_left`, `freezes` (`starts_on`, `ends_on`, `days`), `cancelled_at`, `open_payment_link`.
+**A membership:** `id`, `plan` (`id`, `name`), `status` (`upcoming`, `active`, `frozen`, `expired` or `cancelled`), `starts_on`, `ends_on` (both included), `price`, `amount_paid`, `balance_due`, `valid_at_all_branches`, `branches`, `visits_remaining` (visits left on a visit pack, or `null` when there is no limit), `freeze_days_allowed`, `freeze_days_used`, `freeze_days_left`, `freezes` (`id`, `starts_on`, `ends_on`, `days`, `frozen_in_app`), `cancelled_at`, `open_payment_link`. Offer **Freeze** when `freeze_days_left` is above 0 and the membership isn't cancelled or expired, and **End freeze** on a freeze whose `ends_on` is today or later.
 
 **A receipt:** `id`, `receipt_number`, `type` (`payment` or `refund`), `amount`, `method` (`cash`, `telebirr`, `cbe_birr`, `bank_transfer` or `chapa`), `reference`, `paid_on`, `branch`, `membership` (`id`, `plan`), `voided`.
 
@@ -72,18 +74,22 @@ The membership has `visits_remaining` for a visit pack (ADR 0016). Volt's `grace
 | `GET /me/gyms/{gym}/payment-links/{id}` | The link as it stands |
 | `POST /me/gyms/{gym}/payment-links/{id}/check` | Asks Chapa now, after the member comes back from Chapa's page. Ten a minute. |
 
-Open `checkout_url` in a browser tab. A link's `status` is `pending`, `paid`, `cancelled` or `refund_needed`; once `paid`, `payment` has the receipt number.
+Open `checkout_url` in a browser tab or web view. A link's `status` is `pending`, `paid`, `cancelled`, `refund_needed` (paid when nothing was due any more; the gym gives the money back) or `refunded` (the gym has given it back, ADR 0031); once `paid`, `payment` has the receipt number.
+
+While a link is `pending` it also has `return_url`: Chapa sends the member there after paying, to a page that points back to the app. Close the checkout when it is reached, then `POST payment-links/{id}/check`; reaching it proves nothing about the payment (ADR 0022).
 
 ## Buying a membership
 
 | Request | Answer |
 |---|---|
-| `GET /me/gyms/{gym}/plans` | The plans the member can buy: those on sale at their home branch, cheapest first. `id`, `name`, `description`, `price`, `duration` (`count`, `unit`), `freeze_days_allowed`, `valid_at_all_branches`, and `starts_on` and `ends_on` if bought now. |
-| `POST /me/gyms/{gym}/plans/{plan}/purchase` | `201` with a payment link (`id`, `status`, `amount`, `checkout_url`, `plan`, `membership_id: null`). `200` with the same link if asked again for the same plan. `422` on `chapa_account` when the gym doesn't take online payments, or on `plan` when the plan isn't sold at the member's branch. |
+| `GET /me/gyms/{gym}/plans` | The plans the member can buy: those on sale at their home branch, cheapest first. `id`, `name`, `description`, `price`, `price_with_code`, `your_price`, `your_discount`, `duration` (`count`, `unit`), `freeze_days_allowed`, `valid_at_all_branches`, and `starts_on` and `ends_on` if bought now. With `?promo_code=NEWYEAR`, `price_with_code` is the plan's price with the code, or null where the code doesn't apply; without a code it is null. `422` on `promo_code` when the code doesn't exist, hasn't started, has ended, is used up or the member has used it, with the reason to show. |
+| `POST /me/gyms/{gym}/plans/{plan}/purchase` | Optional body `{"promo_code": "NEWYEAR"}`. `201` with a payment link (`id`, `status`, `amount`, `list_amount`, `promo_code`, `checkout_url`, `plan`, `membership_id: null`); with a code, `amount` is the price with it and `list_amount` the plan's price, otherwise `list_amount` and `promo_code` are null. `200` with the same link if asked again for the same plan and code. `422` on `chapa_account` when the gym doesn't take online payments, on `plan` when the plan isn't sold at the member's branch, or on `promo_code` when the code can't be used for this plan, including one that would make it free ("Show it at the desk"). |
 
 - Open `checkout_url`. When the member comes back, `POST payment-links/{id}/check`. Once `status` is `paid`, `membership_id` is the new membership and `payment` has the receipt.
 - **Nothing is created until it's paid.** The new membership starts the day after the member's last one ends, or today if it has ended, at the price shown when they started buying.
-- **One purchase at a time:** choosing another plan cancels the unpaid link and opens a new one.
+- **One purchase at a time:** choosing another plan, or another code or none, cancels the unpaid link and opens a new one.
+- **Promo codes (ADR 0030):** let the member type a code on the plans screen, show `price_with_code` beside `price`, and send the same code when buying. Codes ignore capitals and spaces. A code that ends while the member is paying is still honoured.
+- **Discount groups (ADR 0032):** a member the gym puts in a group (such as Student) pays less. Show `your_price` beside `price` when it isn't null, with `your_discount.name` ("Student", or the code); `your_discount.source` is `discount_group` or `promo_code`. With a code, `your_price` is the better of the code and the group, never both. Buying charges `your_price`. A plan the group makes free is a `422` on `plan` ("Get it at the desk").
 - A membership bought this way has `sold_in_app: true`.
 
 ## The QR code
@@ -138,13 +144,13 @@ A push has a `title` and `body`, safe for a lock screen, and `data`, every value
 |---|---|---|---|
 | `membership_expiring` | 5, 3 and 1 days before a membership ends | `membership_id` | that membership |
 | `membership_expired` | the day after it ends | `membership_id` | that membership |
-| `membership_frozen` | the gym freezes it | `membership_id` | that membership |
+| `membership_frozen` | the gym freezes it (not when the member freezes it in the app) | `membership_id` | that membership |
 | `payment_succeeded` | a payment is recorded | `payment_id`, `membership_id` | that receipt |
 | `visit_denied` | a check-in is turned away | `check_in_id`, `reason_code` | visits |
 | `visits_running_low` | a visit pack has one visit left | `membership_id` | that membership |
 | `announcement` | the gym sends an announcement | `announcement_id` | that announcement |
 
-Every push also has `notification_id` (mark it read when tapped) and `organization_id`, to switch to the right gym first.
+Every push also has `notification_id` (mark it read when tapped), and `gym`, the gym's slug, to switch to the right gym first (ADR 0022). `organization_id`, the gym's number, is there too.
 
 ### Inbox
 
@@ -200,5 +206,5 @@ Checked in this order; the first that applies is the answer.
 
 - Offline scanning (Volt's phase 7).
 - Member photos.
-- Freezing a membership in the app, and discounts in the app.
+- Discounts in the app.
 - Opening hours past midnight, and holiday closures.

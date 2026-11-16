@@ -87,6 +87,32 @@ it('makes a plan valid at all branches again', function () {
         ->assertJsonPath('data.branches', []);
 });
 
+it('keeps a manager limited to some branches to plans valid only there', function () {
+    $bole = Branch::factory()->for($this->gym)->create();
+    $main = Branch::factory()->for($this->gym)->create();
+    $everywhere = Plan::factory()->for($this->gym)->create();
+    $boleOnly = Plan::factory()->for($this->gym)->create();
+    $boleOnly->makeAvailableOnlyAt($bole);
+    actingAsStaff($this->gym, StaffRole::Manager, $bole);
+
+    $this->patchJson(route('api.v1.organizations.plans.update', ['organization' => 'demo-gym', 'plan' => $everywhere]), ['name' => 'Renamed'])
+        ->assertForbidden();
+    $this->deleteJson(route('api.v1.organizations.plans.destroy', ['organization' => 'demo-gym', 'plan' => $everywhere]))
+        ->assertForbidden();
+
+    $this->patchJson(route('api.v1.organizations.plans.update', ['organization' => 'demo-gym', 'plan' => $boleOnly]), ['name' => 'Bole Monthly'])
+        ->assertOk();
+    $this->patchJson(route('api.v1.organizations.plans.update', ['organization' => 'demo-gym', 'plan' => $boleOnly]), ['branch_ids' => null])
+        ->assertUnprocessable()->assertJsonValidationErrors(['branch_ids' => 'Choose branches you work at.']);
+    $this->patchJson(route('api.v1.organizations.plans.update', ['organization' => 'demo-gym', 'plan' => $boleOnly]), ['branch_ids' => [$main->id]])
+        ->assertUnprocessable()->assertJsonValidationErrors(['branch_ids.0']);
+
+    $this->postJson(route('api.v1.organizations.plans.store', ['organization' => 'demo-gym']), $this->monthlyPlanDetails)
+        ->assertUnprocessable()->assertJsonValidationErrors(['branch_ids']);
+    $this->postJson(route('api.v1.organizations.plans.store', ['organization' => 'demo-gym']), [...$this->monthlyPlanDetails, 'branch_ids' => [$bole->id]])
+        ->assertCreated();
+});
+
 it('lets only owners and managers create, edit and archive plans', function (StaffRole $role) {
     $plan = Plan::factory()->for($this->gym)->create();
     actingAsStaff($this->gym, $role);

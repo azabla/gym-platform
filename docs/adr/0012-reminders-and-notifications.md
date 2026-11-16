@@ -74,7 +74,7 @@ The Volt doc's paths differ (`/devices/current/push-token`, no gym in the path).
 - Announcements from the gym.
 - Amharic messages, until a fluent speaker writes them.
 - Invoices, failed-payment messages and renewal messages.
-- Staff notifications.
+- Staff notifications. ADR 0027 added them.
 - Delivery reports from FCM and AfroMessage.
 
 ## Consequences

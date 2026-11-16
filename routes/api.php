@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Me\MyAnnouncementController;
 use App\Http\Controllers\Api\V1\Me\MyBranchController;
 use App\Http\Controllers\Api\V1\Me\MyCheckInController;
 use App\Http\Controllers\Api\V1\Me\MyDashboardController;
+use App\Http\Controllers\Api\V1\Me\MyFreezeController;
 use App\Http\Controllers\Api\V1\Me\MyGymController;
 use App\Http\Controllers\Api\V1\Me\MyMembershipController;
 use App\Http\Controllers\Api\V1\Me\MyNotificationController;
@@ -25,15 +26,20 @@ use App\Http\Controllers\Api\V1\Organizations\BranchOpeningHoursController;
 use App\Http\Controllers\Api\V1\Organizations\ChapaAccountController;
 use App\Http\Controllers\Api\V1\Organizations\CheckInController;
 use App\Http\Controllers\Api\V1\Organizations\DashboardController;
+use App\Http\Controllers\Api\V1\Organizations\DiscountGroupController;
 use App\Http\Controllers\Api\V1\Organizations\MemberController;
+use App\Http\Controllers\Api\V1\Organizations\MemberDiscountGroupController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipCancellationController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipFreezeController;
 use App\Http\Controllers\Api\V1\Organizations\PaymentController;
 use App\Http\Controllers\Api\V1\Organizations\PaymentLinkController;
 use App\Http\Controllers\Api\V1\Organizations\PlanController;
+use App\Http\Controllers\Api\V1\Organizations\PromoCodeController;
 use App\Http\Controllers\Api\V1\Organizations\RefundController;
+use App\Http\Controllers\Api\V1\Organizations\ReportController;
 use App\Http\Controllers\Api\V1\Organizations\StaffController;
+use App\Http\Controllers\Api\V1\Organizations\StaffNotificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
@@ -102,6 +108,12 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 Route::post('memberships/{membership}/payment-link', [MyPaymentLinkController::class, 'store'])
                     ->whereNumber('membership')
                     ->name('memberships.payment-link.store');
+                Route::post('memberships/{membership}/freezes', [MyFreezeController::class, 'store'])
+                    ->whereNumber('membership')
+                    ->name('memberships.freezes.store');
+                Route::post('memberships/{membership}/freezes/{freeze}/end', [MyFreezeController::class, 'end'])
+                    ->whereNumber(['membership', 'freeze'])
+                    ->name('memberships.freezes.end');
                 Route::get('payment-links/{payment_link}', [MyPaymentLinkController::class, 'show'])
                     ->whereNumber('payment_link')
                     ->name('payment-links.show');
@@ -121,13 +133,43 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->name('organizations.')
             ->group(function (): void {
                 Route::get('dashboard', DashboardController::class)->name('dashboard');
-                Route::apiResource('branches', BranchController::class)->only(['index', 'show']);
+                Route::get('reports/payments', [ReportController::class, 'payments'])->name('reports.payments');
+                Route::get('reports/memberships', [ReportController::class, 'memberships'])->name('reports.memberships');
+                Route::get('reports/discounts', [ReportController::class, 'discounts'])->name('reports.discounts');
+                Route::get('reports/check-ins', [ReportController::class, 'checkIns'])->name('reports.check-ins');
+                Route::get('reports/members', [ReportController::class, 'members'])->name('reports.members');
+                Route::get('notifications', [StaffNotificationController::class, 'index'])->name('notifications.index');
+                Route::post('notifications/read-all', [StaffNotificationController::class, 'readAll'])->name('notifications.read-all');
+                Route::post('notifications/{notification}/read', [StaffNotificationController::class, 'read'])
+                    ->whereUuid('notification')
+                    ->name('notifications.read');
+                Route::apiResource('branches', BranchController::class)->only(['index', 'store', 'show', 'update']);
                 Route::get('branches/{branch}/opening-hours', [BranchOpeningHoursController::class, 'show'])
                     ->name('branches.opening-hours.show');
                 Route::put('branches/{branch}/opening-hours', [BranchOpeningHoursController::class, 'update'])
                     ->name('branches.opening-hours.update');
                 Route::apiResource('members', MemberController::class);
                 Route::apiResource('plans', PlanController::class);
+                Route::apiResource('discount-groups', DiscountGroupController::class)
+                    ->only(['index', 'store', 'show', 'update'])
+                    ->withTrashed(['show']);
+                Route::post('discount-groups/{discount_group}/archive', [DiscountGroupController::class, 'archive'])
+                    ->name('discount-groups.archive');
+                Route::post('discount-groups/{discount_group}/restore', [DiscountGroupController::class, 'restore'])
+                    ->withTrashed()
+                    ->name('discount-groups.restore');
+                Route::put('members/{member}/discount-group', [MemberDiscountGroupController::class, 'update'])
+                    ->name('members.discount-group.update');
+                Route::delete('members/{member}/discount-group', [MemberDiscountGroupController::class, 'destroy'])
+                    ->name('members.discount-group.destroy');
+                Route::apiResource('promo-codes', PromoCodeController::class)
+                    ->only(['index', 'store', 'show', 'update'])
+                    ->withTrashed(['show']);
+                Route::post('promo-codes/{promo_code}/archive', [PromoCodeController::class, 'archive'])
+                    ->name('promo-codes.archive');
+                Route::post('promo-codes/{promo_code}/restore', [PromoCodeController::class, 'restore'])
+                    ->withTrashed()
+                    ->name('promo-codes.restore');
                 Route::apiResource('members.memberships', MembershipController::class)
                     ->only(['index', 'store', 'show'])
                     ->shallow();
@@ -153,6 +195,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     ->name('payment-links.cancel');
                 Route::post('payment-links/{payment_link}/check', [PaymentLinkController::class, 'check'])
                     ->name('payment-links.check');
+                Route::post('payment-links/{payment_link}/refunded', [PaymentLinkController::class, 'refunded'])
+                    ->name('payment-links.refunded');
+                Route::post('payment-links/{payment_link}/sms', [PaymentLinkController::class, 'sms'])
+                    ->name('payment-links.sms');
                 Route::get('check-ins', [CheckInController::class, 'index'])
                     ->name('check-ins.index');
                 Route::post('check-ins/scan', [CheckInController::class, 'scan'])

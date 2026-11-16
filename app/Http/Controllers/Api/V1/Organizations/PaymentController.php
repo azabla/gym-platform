@@ -28,7 +28,7 @@ class PaymentController extends Controller
         $payments = Payment::query()
             ->when($request->filled('from'), fn ($query) => $query->where('paid_on', '>=', $request->string('from')->toString()))
             ->when($request->filled('to'), fn ($query) => $query->where('paid_on', '<=', $request->string('to')->toString()))
-            ->when($request->filled('branch_id'), fn ($query) => $query->where('branch_id', $request->integer('branch_id')))
+            ->takenAtAnyOf($request->branchIds())
             ->when($request->filled('method'), fn ($query) => $query->where('method', $request->string('method')->toString()))
             ->when($request->filled('member_id'), fn ($query) => $query->whereRelation('membership', 'member_id', $request->integer('member_id')));
 

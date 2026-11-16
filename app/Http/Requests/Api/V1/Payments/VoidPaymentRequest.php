@@ -4,8 +4,10 @@ namespace App\Http\Requests\Api\V1\Payments;
 
 use App\Domains\Billing\Models\Payment;
 use Closure;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Validator;
 
 class VoidPaymentRequest extends FormRequest
@@ -13,9 +15,13 @@ class VoidPaymentRequest extends FormRequest
     /**
      * Determine if the user is authorized to make this request.
      */
-    public function authorize(): bool
+    /**
+     * A payment taken at a branch the staff member doesn't work at is a 404,
+     * as if it weren't there (ADR 0025).
+     */
+    public function authorize(): Response
     {
-        return $this->user()->can('void', $this->payment());
+        return Gate::inspect('void', $this->payment());
     }
 
     /**

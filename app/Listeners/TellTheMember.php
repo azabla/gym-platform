@@ -6,11 +6,13 @@ use App\Domains\Attendance\Access\Visits;
 use App\Domains\Attendance\Events\CheckInAllowed;
 use App\Domains\Attendance\Events\CheckInDenied;
 use App\Domains\Billing\Enums\PaymentType;
+use App\Domains\Billing\Events\PaymentLinkSentToMember;
 use App\Domains\Billing\Events\PaymentRecorded;
 use App\Domains\Memberships\Events\MembershipFrozen as MembershipWasFrozen;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Notifications\MembershipFrozen;
+use App\Notifications\PaymentLinkSent;
 use App\Notifications\PaymentSucceeded;
 use App\Notifications\VisitDenied;
 use App\Notifications\VisitsRunningLow;
@@ -46,6 +48,11 @@ final class TellTheMember
     {
         $freeze = $event->freeze;
 
+        // A member who froze it in the app knows already (ADR 0026).
+        if ($freeze->isFromTheApp()) {
+            return;
+        }
+
         $this->atTheGym($freeze->organization_id, fn () => $freeze->membership->member->notify(MembershipFrozen::for($freeze)));
     }
 
@@ -78,6 +85,16 @@ final class TellTheMember
                 $checkIn->member->notify(VisitsRunningLow::for($membership));
             }
         });
+    }
+
+    /**
+     * The desk asked for the open link to be texted to the member (ADR 0031).
+     */
+    public function handlePaymentLinkSentToMember(PaymentLinkSentToMember $event): void
+    {
+        $paymentLink = $event->paymentLink;
+
+        $this->atTheGym($paymentLink->organization_id, fn () => $paymentLink->member->notify(PaymentLinkSent::for($paymentLink)));
     }
 
     /**

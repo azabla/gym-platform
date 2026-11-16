@@ -8,9 +8,11 @@ use App\Casts\AsMoney;
 use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Discount\Discount;
 use App\Domains\Memberships\Enums\MembershipStatus;
+use App\Domains\Memberships\Events\MembershipFreezeEnded;
 use App\Domains\Memberships\Events\MembershipFrozen;
 use App\Domains\Memberships\Exceptions\MembershipRefused;
 use App\Domains\Memberships\Policies\MembershipPolicy;
+use App\Domains\Memberships\Pricing\PriceChoice;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
@@ -62,27 +64,46 @@ class Membership extends Model
 
     /**
      * Sell the plan to the member, starting on the given day, at the plan's
-     * price less the discount, if any. The membership belongs to the member's
-     * gym, and its end date, list price and branches come from the plan.
+     * price less the discount, if any: one staff typed, a promo code's (ADR
+     * 0030) or a discount group's (ADR 0032). The membership belongs to the
+     * member's gym, and its end date, list price and branches come from the
+     * plan.
      */
-    public static function sell(Member $member, Plan $plan, CarbonImmutable $startsOn, Staff $soldBy, ?Discount $discount = null): self
+    public static function sell(Member $member, Plan $plan, CarbonImmutable $startsOn, Staff $soldBy, ?Discount $discount = null, ?PromoCode $promoCode = null, ?DiscountGroup $discountGroup = null): self
     {
-        return self::record($member, $plan, $startsOn, $soldBy, $plan->price, $discount?->appliedTo($plan->price) ?? $plan->price, $discount?->reason);
+        $discount = $promoCode?->discount() ?? $discountGroup?->discount() ?? $discount;
+
+        return self::record($member, $plan, $startsOn, $soldBy, $plan->price, $discount?->appliedTo($plan->price) ?? $plan->price, $discount?->reason, $promoCode, $promoCode === null ? $discountGroup : null);
+    }
+
+    /**
+     * Sell at the price Pricing chose: the plan's, or its discount group's or
+     * promo code's (ADR 0032).
+     */
+    public static function sellAt(PriceChoice $priceChoice, Member $member, Plan $plan, CarbonImmutable $startsOn, Staff $soldBy): self
+    {
+        return self::sell($member, $plan, $startsOn, $soldBy, promoCode: $priceChoice->promoCode, discountGroup: $priceChoice->discountGroup);
     }
 
     /**
      * The member bought the plan in their app and paid the given price for it,
      * so no staff member sold it. The price is what the member paid, even if
-     * the plan's price changed since. See ADR 0013.
+     * the plan's price changed since. With a promo code or a discount group,
+     * the list price is the plan's price when they started buying (ADR 0013,
+     * ADR 0030 and ADR 0032).
      */
-    public static function buyInApp(Member $member, Plan $plan, CarbonImmutable $startsOn, Money $pricePaid): self
+    public static function buyInApp(Member $member, Plan $plan, CarbonImmutable $startsOn, Money $pricePaid, ?PromoCode $promoCode = null, ?Money $listPrice = null, ?DiscountGroup $discountGroup = null): self
     {
-        return self::record($member, $plan, $startsOn, null, $pricePaid, $pricePaid, null);
+        $discounted = $promoCode !== null || $discountGroup !== null;
+        $listPrice = $discounted ? ($listPrice ?? $pricePaid) : $pricePaid;
+        $discountReason = $listPrice->isGreaterThan($pricePaid) ? ($promoCode?->discountReason() ?? $discountGroup?->discountReason()) : null;
+
+        return self::record($member, $plan, $startsOn, null, $listPrice, $pricePaid, $discountReason, $promoCode, $promoCode === null ? $discountGroup : null);
     }
 
-    private static function record(Member $member, Plan $plan, CarbonImmutable $startsOn, ?Staff $soldBy, Money $listPrice, Money $price, ?string $discountReason): self
+    private static function record(Member $member, Plan $plan, CarbonImmutable $startsOn, ?Staff $soldBy, Money $listPrice, Money $price, ?string $discountReason, ?PromoCode $promoCode = null, ?DiscountGroup $discountGroup = null): self
     {
-        return DB::transaction(function () use ($member, $plan, $startsOn, $soldBy, $listPrice, $price, $discountReason): self {
+        return DB::transaction(function () use ($member, $plan, $startsOn, $soldBy, $listPrice, $price, $discountReason, $promoCode, $discountGroup): self {
             $membership = new self;
             $membership->organization()->associate($member->organization_id);
             $membership->member()->associate($member);
@@ -94,6 +115,8 @@ class Membership extends Model
             $membership->list_price = $listPrice;
             $membership->price = $price;
             $membership->discount_reason = $discountReason;
+            $membership->promoCode()->associate($promoCode);
+            $membership->discountGroup()->associate($discountGroup);
             $membership->freeze_days_allowed = $plan->freeze_days_allowed;
             $membership->visit_limit = $plan->visit_limit;
             $membership->valid_at_all_branches = $plan->available_at_all_branches;
@@ -173,12 +196,18 @@ class Membership extends Model
      * Why the membership can't be frozen from the first day through the last,
      * or null when it can. The freeze must start while the membership runs,
      * not overlap another freeze, and stay within the freeze days its plan
-     * allowed, unless the staff member may go beyond them.
+     * allowed, unless the staff member may go beyond them. A member freezing
+     * in the app gives the gym's today as the earliest first day: only staff
+     * date a freeze in the past (ADR 0026).
      */
-    public function refusalToFreeze(CarbonImmutable $firstDay, CarbonImmutable $lastDay, bool $mayGoBeyondAllowance): ?MembershipRefused
+    public function refusalToFreeze(CarbonImmutable $firstDay, CarbonImmutable $lastDay, bool $mayGoBeyondAllowance, ?CarbonImmutable $notBefore = null): ?MembershipRefused
     {
         if ($this->cancelled_at !== null) {
             return MembershipRefused::cancelled();
+        }
+
+        if ($notBefore !== null && $firstDay->isBefore($notBefore)) {
+            return MembershipRefused::freezeInThePast();
         }
 
         if ($lastDay->isBefore($firstDay)) {
@@ -242,9 +271,10 @@ class Membership extends Model
     /**
      * Pause the membership from the first day through the last. Its end date
      * moves later by the number of frozen days, and so does every membership of
-     * the member queued after it.
+     * the member queued after it. No staff member means the member froze it
+     * themselves, in the app (ADR 0026).
      */
-    public function freeze(CarbonImmutable $firstDay, CarbonImmutable $lastDay, string $reason, Staff $frozenBy): MembershipFreeze
+    public function freeze(CarbonImmutable $firstDay, CarbonImmutable $lastDay, string $reason, ?Staff $frozenBy): MembershipFreeze
     {
         return DB::transaction(function () use ($firstDay, $lastDay, $reason, $frozenBy): MembershipFreeze {
             $days = (int) $firstDay->diffInDays($lastDay) + 1;
@@ -274,11 +304,12 @@ class Membership extends Model
      * End the freeze early because the member is back today. It then ends
      * yesterday, or is removed if it hadn't started yet. The days that are no
      * longer frozen come off this membership's end date, and off every
-     * membership of the member queued after it.
+     * membership of the member queued after it. No staff member means the
+     * member ended it themselves, in the app (ADR 0026).
      */
-    public function endFreeze(MembershipFreeze $freeze, CarbonImmutable $today): void
+    public function endFreeze(MembershipFreeze $freeze, CarbonImmutable $today, ?Staff $endedBy): void
     {
-        DB::transaction(function () use ($freeze, $today): void {
+        DB::transaction(function () use ($freeze, $today, $endedBy): void {
             if ($freeze->starts_on->isBefore($today)) {
                 $daysNoLongerFrozen = (int) $today->diffInDays($freeze->ends_on) + 1;
                 $freeze->ends_on = $today->subDay();
@@ -293,6 +324,8 @@ class Membership extends Model
             $this->moveQueuedMemberships(-$daysNoLongerFrozen);
 
             $this->unsetRelation('freezes');
+
+            MembershipFreezeEnded::dispatch($this, $endedBy === null);
         });
     }
 
@@ -348,6 +381,26 @@ class Membership extends Model
         return $this->belongsTo(Staff::class, 'sold_by_staff_id')->withTrashed();
     }
 
+    /**
+     * The promo code it was sold with, if any (ADR 0030).
+     *
+     * @return BelongsTo<PromoCode, $this>
+     */
+    public function promoCode(): BelongsTo
+    {
+        return $this->belongsTo(PromoCode::class)->withTrashed();
+    }
+
+    /**
+     * The discount group whose price it was sold at, if any (ADR 0032).
+     *
+     * @return BelongsTo<DiscountGroup, $this>
+     */
+    public function discountGroup(): BelongsTo
+    {
+        return $this->belongsTo(DiscountGroup::class)->withTrashed();
+    }
+
     /** @return BelongsTo<Staff, $this> */
     public function cancelledBy(): BelongsTo
     {
@@ -391,6 +444,22 @@ class Membership extends Model
     protected function notCancelled(Builder $query): void
     {
         $query->whereNull('cancelled_at');
+    }
+
+    /**
+     * Memberships of members whose home branch is any of the branches,
+     * archived members included; every one when the branches are null (every
+     * branch). See ADR 0025.
+     *
+     * @param  Builder<self>  $query
+     * @param  list<int>|null  $branchIds
+     */
+    #[Scope]
+    protected function ofMembersAtAnyOf(Builder $query, ?array $branchIds): void
+    {
+        if ($branchIds !== null) {
+            $query->whereIn('member_id', Member::query()->withTrashed()->homeAtAnyOf($branchIds)->select('id'));
+        }
     }
 
     /**

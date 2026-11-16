@@ -10,7 +10,8 @@ namespace App\Domains\Billing\Enums;
  * - paid: Chapa confirmed the payment, and it was recorded;
  * - cancelled: staff withdrew it, for example because the member paid another way;
  * - refund_needed: Chapa took the money when nothing was due any more, so the
- *   gym refunds it from its Chapa dashboard.
+ *   gym refunds it from its Chapa dashboard;
+ * - refunded: the gym gave that money back, and staff marked it so (ADR 0031).
  *
  * See ADR 0009.
  */
@@ -20,4 +21,5 @@ enum PaymentLinkStatus: string
     case Paid = 'paid';
     case Cancelled = 'cancelled';
     case RefundNeeded = 'refund_needed';
+    case Refunded = 'refunded';
 }

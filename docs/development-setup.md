@@ -250,6 +250,10 @@ curl -s http://localhost:8080/api/v1/organizations/demo-gym/members/3/membership
   -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
   -d '{"plan_id":2,"discount":"10%","discount_reason":"Student"}'
 
+# Or with the demo promo code NEWYEAR, which any staff member who sells may use (send it instead of a discount)
+#   -d '{"plan_id":2,"promo_code":"NEWYEAR"}'
+# Owners and managers manage codes at /api/v1/organizations/demo-gym/promo-codes (ADR 0030)
+
 # Freeze Abebe's membership (membership 1 after make fresh) from today for a week;
 # its end date moves a week later. Monthly memberships can be frozen for 7 days.
 END=$(date -d '+6 days' +%F 2>/dev/null || date -v+6d +%F)
@@ -303,6 +307,14 @@ curl -s http://localhost:8080/api/v1/organizations/demo-gym/memberships/1/refund
 # members and the memberships ending this week. Add ?from=2026-10-01&to=2026-10-31 for a month.
 curl -s http://localhost:8080/api/v1/organizations/demo-gym/dashboard \
   -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN"
+
+# The dashboard's "trends" give the period day by day: takings, check-ins, and busy hours.
+# Reports download as CSV files, for the same period and branch rules (ADR 0024):
+# payments and memberships for owners, managers and accountants, check-ins for everyone,
+# members for owners and managers. Payments take ?method= and ?member_id=, check-ins ?result=,
+# members ?search=.
+curl -s 'http://localhost:8080/api/v1/organizations/demo-gym/reports/payments?from=2026-10-01&to=2026-10-31' \
+  -H "Authorization: Bearer $TOKEN" -o payments.csv
 
 # Main Branch's opening hours (seeded Monday to Saturday, 06:00 to 21:00); outside them
 # a check-in is turned away with OUTSIDE_HOURS. PUT {"hours":[]} makes it always open.
@@ -412,6 +424,13 @@ curl -s http://localhost:8080/api/v1/me/gyms/demo-gym/memberships \
 curl -s http://localhost:8080/api/v1/me/gyms/demo-gym/payments \
   -H 'Accept: application/json' -H "Authorization: Bearer $MEMBER_TOKEN"
 
+# Freeze membership 2 from today for three days, within its freeze days left (ADR 0026);
+# the answer has its new end date. End the freeze early with
+# POST .../memberships/2/freezes/{freeze id}/end. Tigist gets no message for her own freeze.
+curl -s http://localhost:8080/api/v1/me/gyms/demo-gym/memberships/2/freezes \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $MEMBER_TOKEN" \
+  -d "{\"ends_on\":\"$(date -d '+2 days' +%F)\",\"reason\":\"Travelling\"}"
+
 # Pay what she owes on membership 2. This needs the gym's Chapa test key (above),
 # and gives the open link if there is one. The response has the checkout_url.
 curl -s -X POST http://localhost:8080/api/v1/me/gyms/demo-gym/memberships/2/payment-link \
@@ -477,6 +496,21 @@ curl -s -X POST http://localhost:8080/api/v1/me/gyms/demo-gym/payment-links/LINK
 
 Once it's paid, the answer has the new `membership_id`, and her memberships list shows it, starting today because her last one has expired, with `sold_in_app: true`.
 
+To use the demo promo code NEWYEAR (20% off any plan, once per member; ADR 0030):
+
+```bash
+# Each plan's price with the code, in price_with_code
+curl -s 'http://localhost:8080/api/v1/me/gyms/demo-gym/plans?promo_code=newyear' \
+  -H 'Accept: application/json' -H "Authorization: Bearer $MEMBER_TOKEN"
+
+# Buy Monthly with it: the link asks 2,000 ETB, with list_amount 2,500 ETB
+curl -s -X POST http://localhost:8080/api/v1/me/gyms/demo-gym/plans/2/purchase \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer $MEMBER_TOKEN" \
+  -d '{"promo_code":"NEWYEAR"}'
+```
+
+Once paid, the membership shows the list price, the price paid and the reason "Promo code NEWYEAR", and asking with NEWYEAR again says she has used it.
+
 ### Notifications
 
 In development `PUSH_DRIVER=log` and `SMS_DRIVER=log`, so pushes and SMS land in `storage/logs/laravel.log`. Messages go through the queue, so run `make workers` first.
@@ -525,10 +559,24 @@ Each part has an ADR:
 
 ## Trying the staff panel
 
-`make composer c=install` also publishes the panel's assets. After `make fresh`, open http://localhost:8080/staff and sign in with one of the demo phones above (password `password`). You land on Demo Gym's dashboard: today's figures and the members to call. Change the period or the branch at the top.
+`make composer c=install` also publishes the panel's assets. After `make fresh`, open http://localhost:8080/staff and sign in with one of the demo phones above (password `password`). You land on Demo Gym's dashboard: today's figures, with the last week as sparklines, and the members to call. Change the period or the branch at the top.
+
+The menu is grouped into **Front desk** (members, memberships, check-ins, announcements), **Money** (payments, payment links, online payments), **Gym setup** (plans, promo codes, discount groups, branches, staff) and **Reports**, a page with every CSV report. Each list has its filters above it (open them with the funnel), columns you can show or hide, and badges for statuses. The panel follows the device's light or dark setting; switch it in the user menu. See ADR 0033.
+
+### Demo activity
+
+The base seed is small on purpose, so the examples in this guide keep their ids. To see the gym busy, run `make demo` after `make fresh` (it adds nothing a second time). It adds:
+- about 40 members at Main and Bole, in every membership state: active, ending this week, expired, frozen (one in the app), cancelled, upcoming and visit packs, a few sold with NEWYEAR or a typed discount;
+- payments over the last two months by every method, some only part paid, and a refund;
+- a month of check-ins at morning and evening peaks, a few turned away;
+- payment links waiting (one texted), paid, needing a refund and refunded;
+- an announcement sent and one scheduled for tomorrow;
+- messages in the owner's and receptionist's Inbox.
+
+It also adds two staff members: a manager at Bole Branch (`0911 00 00 04`) and a trainer (`0911 00 00 05`), password `password`. No member is texted or pushed while it runs.
 
 - As the owner (`0911 00 00 01`), you see the money too, and every list: members, memberships, payments, check-ins and staff.
-- As the receptionist (`0911 00 00 02`), the dashboard covers Main Branch only, and the money is hidden. The lists still show the whole gym, as in the API.
+- As the receptionist (`0911 00 00 02`), everything covers Main Branch only, and the money is hidden on the dashboard. Members lists Abebe and Tigist, of Main; search for Hana, of Bole, and her page and membership still open, so the desk can check her in. Payments and check-ins show only those made at Main, and a payment taken at Bole is a 404. The API answers the same (ADR 0025).
 - As the accountant (`0911 00 00 03`), you see the money and the payments.
 
 To work the front desk, as the receptionist:
@@ -540,7 +588,25 @@ To work the front desk, as the receptionist:
 
 Then sign in as the owner. On that membership's page, **Cancel membership**, then **Refund** the cash. On the refund's page, **Void** it if it was a mistake. Each action asks only for what the API would, and refuses what the API would refuse, in the same words.
 
-Payment links stay in the app.
+To take money online, as the owner, open **Online payments** and choose **Connect Chapa** with your Chapa test secret key (`CHASECK_TEST-…`). Managers and accountants see the page without the buttons. Then, as the receptionist, open Tigist's membership and choose **Create payment link**: it suggests what she still owes and opens the new link, with its address to copy and send. Pay it on Chapa's test page, then choose **Check now**: the link is paid, and the payment shows in Payments. **Payment links** lists them all, at your branches; filter by **Refund needed** for money Chapa took when nothing was due. See ADR 0029.
+
+A waiting link also shows on its membership's page, and **Send by SMS** (there or on the link's page) texts it to the member; the SMS lands in `storage/logs/laravel.log` (run `make workers` first), and a second try within 10 minutes is refused. When the dashboard shows **Refunds to make**, give the money back from Chapa's dashboard, then, as the owner or accountant, open the link and choose **Mark refunded** with Chapa's reference as the note. The API does the same with `POST /api/v1/organizations/demo-gym/payment-links/{id}/sms` and `.../refunded`. See ADR 0031.
+
+Staff messages arrive in the **Inbox** at the top of the menu, with the unread count (ADR 0027). Pay a link with Chapa's test card, or have Tigist freeze a membership in the app (above), and the owner's Inbox shows it; the accountant hears about money, the receptionist at Main about Main's members. Run `make artisan c=notifications:send-staff-morning-list` after 08:00 to send the morning list of members to call. The API answers the same at `GET /api/v1/organizations/demo-gym/notifications`.
+
+To download a report, choose **Download CSV** on the Payments, Memberships, Check-ins or Members list, then a period and a branch. The dashboard also charts the period: takings each day (owners, managers and accountants only), check-ins each day and the busy hours. See ADR 0024.
+
+To set up the gym, as the owner:
+
+1. On **Branches**, choose **Add branch**: Piassa Branch, code `PIASSA`. Give it opening hours on its page, for example Monday 06:00 to 21:00; leave the week empty for always open. The API does the same with `POST /api/v1/organizations/demo-gym/branches` and `PATCH .../branches/{id}`.
+2. On **Plans**, choose **Add plan**: a name, a price, how long it lasts, freeze days, visits for a pack, and the branches it is sold at (empty for every branch).
+3. On **Announcements**, choose **New announcement**: send it now, or turn off **Send now** and choose a time in the gym's time zone. One that hasn't gone out can be changed or cancelled from the list.
+
+Sign in as the receptionist (Main Branch only): selling to a Main Branch member offers the plans on sale there, not Bole Monthly. A manager limited to one branch manages only the plans sold at their branches. See ADR 0023.
+
+**Promo codes** lists the gym's codes, with NEWYEAR already there, where each stands and how many times it was used. Add one with a discount (`20%` or `500`), optional first and last days, a total, once per member and some plans; archive it to stop it. As the receptionist, type NEWYEAR in **Sell membership**: it shows the price with the code and sells at it. See ADR 0030.
+
+**Discount groups** holds groups such as Student 10% (`make demo` adds Student and Staff family). As the owner, open a member and choose **Discount group** to put them in one, optionally until a day. Selling to them then charges the group's price without typing anything, or a promo code's when it is lower; their plans in the app show `your_price`. **Download discounts** on the memberships list gives every discount in a period, typed, by code or by group, with what it cost. The API: `/api/v1/organizations/demo-gym/discount-groups`, `PUT .../members/{id}/discount-group` and `.../reports/discounts`. See ADR 0032.
 
 To add staff, as the owner, open **Staff** and choose **Add staff member**: name, phone, role and branches. The SMS goes through the queue (run `make workers` first) to `storage/logs/laravel.log`: `grep 'SMS to +251944556677' storage/logs/laravel.log | tail -1`. Open the link, choose a password, and sign in with their phone. On their page you can change the role or branches, **Archive** them (they lose the gym on their next click), **Restore** them, or **Send invite again** while it's pending. **Forgot your password?** on the sign-in page sends a reset link the same way. See ADR 0017 to ADR 0019.
 
@@ -567,7 +633,8 @@ Staging runs on Render's free plan from the `deployment` branch: one web service
 ### Once: file storage on Cloudflare R2
 
 1. In Cloudflare, open **R2**, create a bucket (for example `gym-staging`), and under its **Settings** allow public access through the `r2.dev` address. Keep that address.
-2. In **R2 > Manage API tokens**, create a token with **Object Read & Write** on that bucket. Keep the access key ID, the secret access key, and the S3 endpoint `https://<account id>.r2.cloudflarestorage.com`.
+2. Create a second bucket for the nightly database dumps (for example `gym-staging-backups`), and leave its public access **off**. A dump holds every member's phone number (ADR 0028).
+3. In **R2 > Manage API tokens**, create a token with **Object Read & Write** on both buckets. Keep the access key ID, the secret access key, and the S3 endpoint `https://<account id>.r2.cloudflarestorage.com`.
 
 ### Once: the Blueprint
 
@@ -583,6 +650,8 @@ Staging runs on Render's free plan from the `deployment` branch: one web service
    | `AWS_BUCKET` | The bucket's name |
    | `AWS_ENDPOINT` | `https://<account id>.r2.cloudflarestorage.com` |
    | `AWS_URL` | The bucket's public `r2.dev` address |
+   | `BACKUP_AWS_BUCKET` | The private backups bucket's name |
+   | AfroMessage, Firebase and Sentry settings | Leave empty until going live (below) |
 
 3. Choose **Apply**. The first build takes several minutes. Each start runs the migrations, then the app answers at `https://gym-platform.onrender.com/up` (or the address Render shows). The panel is at `/staff`.
 
@@ -609,6 +678,45 @@ docker compose exec \
 
 - The service sleeps after 15 minutes without visits, and the first visit after that takes about a minute. While it sleeps, scheduled work waits until it wakes.
 - Neon's free plan doesn't expire, but holds 0.5 GB and suspends the database when idle; the first query after that waits a moment while it wakes.
+- The nightly backup runs at 02:00 in Addis Ababa only if the service is awake then; a sleeping scheduler skips it rather than catching up. An always-on instance backs up every night.
+
+## Going live
+
+Everything below is built and switched off; each part is turned on from the service's **Environment** in Render, without a code change, and Render deploys again on save. See ADR 0028.
+
+### Real text messages (AfroMessage)
+
+1. At [afromessage.com](https://afromessage.com), create the platform's account, an identifier, and an approved sender name.
+2. Set `AFROMESSAGE_TOKEN`, `AFROMESSAGE_IDENTIFIER_ID` and `AFROMESSAGE_SENDER_NAME`, then `SMS_DRIVER=afromessage`.
+3. Ask for a sign-in code in the members app with your own number: it should arrive by SMS, and no longer appear in the **Logs**.
+
+### Real pushes (Firebase)
+
+1. In the [Firebase console](https://console.firebase.google.com), create the platform's project with the members app's Android and iOS apps, and under **Project settings > Service accounts** generate a new private key.
+2. Base64-encode the downloaded key on one line: `base64 -w0 service-account.json` (on macOS, `base64 -i service-account.json`).
+3. Set `FCM_PROJECT_ID` to the project's ID, `FCM_CREDENTIALS_JSON` to that line, then `PUSH_DRIVER=fcm`.
+4. A key that isn't right fails each push with a message naming the variable, in the **Logs** and in Sentry.
+
+### Online payments (Chapa)
+
+Nothing changes on the platform: each gym connects its own Chapa account (ADR 0009). The owner replaces the test key with the live one under the panel's **Online payments**, **Replace key**, or with `PUT /api/v1/organizations/{gym}/chapa-account` (ADR 0029).
+
+### Error tracking (Sentry)
+
+1. At [sentry.io](https://sentry.io), create a Laravel project and copy its DSN.
+2. Set `SENTRY_LARAVEL_DSN`. Unhandled errors from the API, the panel, the queue and the scheduler then appear in Sentry, with only the user's id and the gym's slug; refusals, validation errors and 404s don't.
+
+### Backups and restoring
+
+`php artisan db:backup` dumps the database to the private bucket as `YYYY-MM-DD.dump`, every night on the deployed app, and keeps 30 days. A failed backup shows in the **Logs** and in Sentry. The development image's `pg_dump` is Debian's version 15, which refuses to dump Neon's Postgres 17, so backups run from the Render image, which has version 17.
+
+To restore, download the dump from the backups bucket in Cloudflare, then restore it into an empty database (for example a new database `gym_restored` in the Neon project), with `pg_restore` 17 on your machine:
+
+```bash
+pg_restore --no-owner --no-privileges --dbname="postgresql://...neon.tech/gym_restored?sslmode=require" 2026-11-15.dump
+```
+
+Add `--clean --if-exists` to restore over an existing database, or `--table=members` for one table. Point `DB_URL` at the restored database once you have checked it.
 
 ## Troubleshooting
 
