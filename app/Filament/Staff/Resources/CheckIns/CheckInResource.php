@@ -13,13 +13,18 @@ use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\CheckIns\Pages\ListCheckIns;
 use App\Filament\Staff\Resources\Concerns\LimitsToTheStaffMembersBranches;
+use App\Filament\Staff\Resources\Members\MemberResource;
+use App\Filament\Staff\Support\Badges;
+use App\Filament\Staff\Support\Tables;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Filament\Forms\Components\DatePicker;
 use Filament\Resources\Resource;
+use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\Indicator;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -27,8 +32,8 @@ use UnitEnum;
 
 /**
  * Who came in, and who was turned away and why, newest first, with times
- * where the gym is. Checking members in stays in the app. See ADR 0011 and
- * ADR 0017.
+ * where the gym is. Members are checked in from their page or the list of
+ * members. See ADR 0011, ADR 0017 and ADR 0033.
  */
 class CheckInResource extends Resource
 {
@@ -44,38 +49,59 @@ class CheckInResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
+        return Tables::standard($table, Heroicon::OutlinedArrowRightEndOnRectangle, 'No check-ins here', 'Check members in from their page, or change the filters.')
             ->defaultSort('checked_in_at', 'desc')
-            ->defaultPaginationPageOption(25)
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['member', 'branch']))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['member', 'branch', 'checkedInBy.user']))
+            ->searchPlaceholder('Member name')
             ->columns([
-                TextColumn::make('checked_in_at')->label('When')->dateTime()->timezone(self::gym()->timezone)->sortable(),
-                TextColumn::make('member.full_name')->label('Member')->placeholder('Unknown'),
-                TextColumn::make('branch.name')->label('Branch'),
-                TextColumn::make('method')->formatStateUsing(fn (CheckInMethod $state): string => $state->label()),
-                TextColumn::make('result')
-                    ->badge()
-                    ->color(fn (CheckInResult $state): string => $state === CheckInResult::Allowed ? 'success' : 'danger')
-                    ->formatStateUsing(fn (CheckInResult $state): string => ucfirst($state->value)),
+                TextColumn::make('checked_in_at')
+                    ->label('When')
+                    ->dateTime('j M Y, H:i')
+                    ->timezone(self::gym()->timezone)
+                    ->description(fn (CheckIn $record): string => $record->checked_in_at->diffForHumans())
+                    ->sortable(),
+                TextColumn::make('member.full_name')
+                    ->label('Member')
+                    ->weight(FontWeight::SemiBold)
+                    ->placeholder('Unknown')
+                    ->searchable()
+                    ->url(fn (CheckIn $record): ?string => $record->member_id === null ? null : MemberResource::getUrl('view', ['record' => $record->member_id])),
+                Tables::badge('result')
+                    ->description(fn (CheckIn $record): ?string => $record->reason_code?->label()),
+                TextColumn::make('branch.name')->label('Branch')->badge()->color('gray'),
+                Tables::badge('method'),
                 TextColumn::make('reason_code')
                     ->label('Reason')
-                    ->formatStateUsing(fn (CheckInDenial $state): string => $state->label()),
+                    ->formatStateUsing(fn (CheckInDenial $state): string => $state->label())
+                    ->placeholder('None')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('checkedInBy.user.name')->label('By')->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Filter::make('on')
+                    ->label('Day')
                     ->schema([
-                        DatePicker::make('on')->label('Day'),
+                        DatePicker::make('on')->label('Day')->native(false)->displayFormat('j M Y'),
                     ])
                     ->query(fn (Builder $query, array $data): Builder => $query->when(
                         $data['on'] ?? null,
                         fn (Builder $query, string $day): Builder => self::onDay($query, CarbonImmutable::parse($day)),
-                    )),
-                SelectFilter::make('branch')->relationship('branch', 'name', self::onlyTheirBranches(...)),
-                SelectFilter::make('result')->options([
-                    CheckInResult::Allowed->value => 'Allowed',
-                    CheckInResult::Denied->value => 'Denied',
-                ]),
+                    ))
+                    ->indicateUsing(fn (array $data): ?Indicator => filled($data['on'] ?? null)
+                        ? Indicator::make('On '.CarbonImmutable::parse((string) $data['on'])->format('j M Y'))
+                        : null),
+                Tables::dateRange('between', 'checked_in_at', 'Between', isMoment: true),
+                SelectFilter::make('branch')->native(false)->relationship('branch', 'name', self::onlyTheirBranches(...)),
+                SelectFilter::make('result')->native(false)->options(Badges::options(CheckInResult::class)),
+                SelectFilter::make('reason_code')
+                    ->label('Reason')
+                    ->native(false)
+                    ->options(collect(CheckInDenial::cases())->mapWithKeys(
+                        fn (CheckInDenial $denial): array => [$denial->value => $denial->label()],
+                    )->all()),
+                SelectFilter::make('method')->native(false)->options(Badges::options(CheckInMethod::class)),
                 SelectFilter::make('member')
+                    ->native(false)
                     ->relationship('member', 'full_name')
                     ->searchable(),
             ]);

@@ -15,6 +15,8 @@ use App\Filament\Staff\Resources\Announcements\Pages\CreateAnnouncement;
 use App\Filament\Staff\Resources\Announcements\Pages\EditAnnouncement;
 use App\Filament\Staff\Resources\Announcements\Pages\ListAnnouncements;
 use App\Filament\Staff\Resources\Concerns\ShowsGymTime;
+use App\Filament\Staff\Support\Badges;
+use App\Filament\Staff\Support\Tables;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
@@ -29,8 +31,10 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -61,30 +65,57 @@ class AnnouncementResource extends Resource
     {
         return $schema
             ->components([
-                Section::make('Announcement')
+                Section::make('Message')
+                    ->description('Members see it in the app\'s inbox, and as a push on their phone if they allow them.')
+                    ->icon(Heroicon::OutlinedChatBubbleLeftRight)
                     ->schema([
-                        TextInput::make('title')->required()->maxLength(80),
-                        Textarea::make('body')->required()->maxLength(1000)->rows(4),
+                        TextInput::make('title')
+                            ->placeholder('Closed on Sunday')
+                            ->required()
+                            ->maxLength(80)
+                            ->hint('Up to 80 characters'),
+                        Textarea::make('body')
+                            ->label('Message')
+                            ->placeholder('Both branches are closed this Sunday for the holiday. See you on Monday!')
+                            ->required()
+                            ->maxLength(1000)
+                            ->rows(5)
+                            ->autosize()
+                            ->hint('Up to 1,000 characters'),
+                    ]),
+                Section::make('Who and when')
+                    ->icon(Heroicon::OutlinedUserGroup)
+                    ->columns(2)
+                    ->schema([
                         Select::make('branch_id')
                             ->label('To')
+                            ->native(false)
                             ->options(fn (): array => app(CurrentStaff::class)->get()->branchesWorkedAt()->mapWithKeys(
                                 fn (Branch $branch): array => [$branch->id => "Members of {$branch->name}"],
                             )->all())
                             ->placeholder('Every member of the gym')
+                            ->helperText(fn (): ?string => app(CurrentStaff::class)->get()->works_at_all_branches ? null : 'You speak to the members of one of your branches.')
                             ->required(fn (): bool => ! app(CurrentStaff::class)->get()->works_at_all_branches),
                         Toggle::make('include_recently_expired')
-                            ->label('Also members whose membership ended in the last '.Announcement::RECENTLY_EXPIRED_DAYS.' days'),
+                            ->label('Also recent members')
+                            ->helperText('Members whose membership ended in the last '.Announcement::RECENTLY_EXPIRED_DAYS.' days, to win them back.')
+                            ->inline(false),
                         Toggle::make('send_now')
                             ->label('Send now')
+                            ->helperText('Turn off to choose a time.')
                             ->default(true)
                             ->live()
+                            ->inline(false)
                             ->visibleOn('create')
                             ->dehydrated(),
                         DateTimePicker::make('send_at')
                             ->label('Send at')
+                            ->native(false)
                             ->seconds(false)
+                            ->displayFormat('j M Y, H:i')
                             ->timezone(self::gymTimezone())
-                            ->helperText('In the gym\'s time zone.')
+                            ->prefixIcon(Heroicon::OutlinedClock)
+                            ->helperText('In the gym\'s time zone. It goes out within a minute of this time.')
                             ->required(fn (Get $get, string $operation): bool => $operation === 'edit' || ! $get('send_now'))
                             ->visible(fn (Get $get, string $operation): bool => $operation === 'edit' || ! $get('send_now')),
                     ]),
@@ -93,26 +124,57 @@ class AnnouncementResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
+        return Tables::standard($table, Heroicon::OutlinedMegaphone, 'No announcements yet', 'Tell members about closures, classes or offers, now or at a time you choose.')
             ->defaultSort('send_at', 'desc')
-            ->defaultPaginationPageOption(25)
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('branch'))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['branch', 'postedBy.user']))
+            ->searchPlaceholder('Title')
             ->columns([
-                TextColumn::make('title')->searchable(),
+                TextColumn::make('title')
+                    ->weight(FontWeight::SemiBold)
+                    ->description(fn (Announcement $record): string => str($record->body)->limit(70)->toString())
+                    ->searchable()
+                    ->wrap(),
                 TextColumn::make('audience')
                     ->label('To')
-                    ->state(fn (Announcement $record): string => $record->branch === null ? 'Whole gym' : $record->branch->name),
-                TextColumn::make('status')
                     ->badge()
-                    ->state(fn (Announcement $record): string => $record->status()->value)
-                    ->color(fn (string $state): string => match (AnnouncementStatus::from($state)) {
-                        AnnouncementStatus::Scheduled => 'warning',
-                        AnnouncementStatus::Sent => 'success',
-                        AnnouncementStatus::Cancelled => 'gray',
-                    })
-                    ->formatStateUsing(fn (string $state): string => ucfirst($state)),
-                TextColumn::make('send_at')->label('Goes out')->dateTime()->timezone(self::gymTimezone())->sortable(),
-                TextColumn::make('recipients_count')->label('Reached')->placeholder('—'),
+                    ->color(fn (Announcement $record): string => $record->branch === null ? 'primary' : 'gray')
+                    ->state(fn (Announcement $record): string => $record->branch === null ? 'Whole gym' : $record->branch->name),
+                Tables::badge('status')
+                    ->state(fn (Announcement $record): AnnouncementStatus => $record->status()),
+                TextColumn::make('send_at')
+                    ->label('Goes out')
+                    ->dateTime('j M Y, H:i')
+                    ->timezone(self::gymTimezone())
+                    ->description(fn (Announcement $record): string => $record->send_at->diffForHumans())
+                    ->sortable(),
+                TextColumn::make('recipients_count')
+                    ->label('Reached')
+                    ->numeric()
+                    ->alignEnd()
+                    ->formatStateUsing(fn (?int $state): string => $state === null ? '—' : number_format($state).' members')
+                    ->placeholder('—'),
+                TextColumn::make('postedBy.user.name')->label('Posted by')->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                SelectFilter::make('status')
+                    ->native(false)
+                    ->options(Badges::options(AnnouncementStatus::class))
+                    ->query(fn (Builder $query, array $data): Builder => match (AnnouncementStatus::tryFrom((string) ($data['value'] ?? ''))) {
+                        AnnouncementStatus::Scheduled => $query->whereNull('sent_at')->whereNull('cancelled_at'),
+                        AnnouncementStatus::Sent => $query->whereNotNull('sent_at'),
+                        AnnouncementStatus::Cancelled => $query->whereNotNull('cancelled_at'),
+                        null => $query,
+                    }),
+                SelectFilter::make('to')
+                    ->label('To')
+                    ->native(false)
+                    ->options(fn (): array => ['gym' => 'Whole gym', ...app(CurrentStaff::class)->get()->branchesWorkedAt()->pluck('name', 'id')->all()])
+                    ->query(fn (Builder $query, array $data): Builder => match (true) {
+                        blank($data['value'] ?? null) => $query,
+                        $data['value'] === 'gym' => $query->whereNull('branch_id'),
+                        default => $query->where('branch_id', (int) $data['value']),
+                    }),
+                Tables::dateRange('goes_out', 'send_at', 'Goes out', isMoment: true),
             ])
             ->recordActions([
                 EditAction::make(),

@@ -12,11 +12,15 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\Indicator;
 use Filament\Tables\Table;
+use Illuminate\Contracts\Pagination\CursorPaginator;
+use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * The staff panel's table conventions in one place (ADR 0033): striped rows,
@@ -43,10 +47,22 @@ final class Tables
     }
 
     /**
-     * An amount of money, aligned right, from the state given (a Money, or
-     * null for none).
+     * The records on the table's current page, to look up what they show in
+     * one query for the page rather than one per row.
      *
-     * @param  Closure(mixed): mixed  $money
+     * @return list<Model>
+     */
+    public static function pageRecords(HasTable $livewire): array
+    {
+        $records = $livewire->getTableRecords();
+
+        return array_values($records instanceof Paginator || $records instanceof CursorPaginator ? $records->items() : $records->all());
+    }
+
+    /**
+     * An amount of money, aligned right, from the state given (a Money, or
+     * null for none). The closure takes what Filament injects into a column's
+     * state, such as the record and the table.
      */
     public static function money(string $name, Closure $money, ?string $label = null): TextColumn
     {

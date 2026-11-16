@@ -74,6 +74,6 @@ it('shows when a membership was cancelled in the gym\'s time, not UTC', function
     $this->cancelled->forceFill(['cancelled_at' => CarbonImmutable::parse('2026-10-23 22:30:00', 'UTC')])->save();
 
     Livewire::test(ViewMembership::class, ['record' => $this->cancelled->getRouteKey()])
-        ->assertSee('Oct 24, 2026 01:30:00')
+        ->assertSee('24 Oct 2026, 01:30')
         ->assertDontSee('Oct 23, 2026 22:30:00');
 });

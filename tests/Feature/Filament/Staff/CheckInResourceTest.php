@@ -30,7 +30,7 @@ it('shows the check-ins of a day where the gym is', function () {
         ->filterTable('on', ['on' => '2026-10-24'])
         ->assertCanSeeTableRecords([$this->earlyOn24th, $this->denied])
         ->assertCanNotSeeTableRecords([$this->on23rd])
-        ->assertSee('Oct 24, 2026 01:30:00');
+        ->assertSee('24 Oct 2026, 01:30');
 });
 
 it('shows who was turned away, and why', function () {
