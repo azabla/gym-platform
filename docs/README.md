@@ -118,6 +118,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0026](adr/0026-freezing-in-the-members-app.md) | Freezing a membership in the members app |
 | [0027](adr/0027-staff-notifications.md) | Staff notifications |
 | [0028](adr/0028-going-live.md) | Going live: real accounts, error tracking and backups |
+| [0029](adr/0029-chapa-in-the-staff-panel.md) | Chapa and payment links in the staff panel |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 

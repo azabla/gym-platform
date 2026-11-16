@@ -65,7 +65,7 @@ These are read-only, for looking things up:
   - ADR 0019 added staff, with password links;
   - ADR 0023 added plans, branches, opening hours and announcements.
 
-  Payment links stay in the app.
+  ADR 0029 added Chapa and payment links.
 - Lists limited to a staff member's branches. ADR 0025 added them, in the API too.
 - Charts over time, comparing periods, and exports (ADR 0014).
 - A platform-admin panel across all gyms.
