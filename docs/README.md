@@ -67,7 +67,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Sign-in code | A 6-digit code sent by SMS that signs a member in to the members app. It works for 10 minutes and 5 tries. |
 | QR credential | What lets a member's phone show their QR code at one gym: a secret given to the phone once, from which it makes a code every 30 seconds (GQ1), even offline. One phone per member (ADR 0011). |
 | Notification | A message to a member at one gym: in the app's inbox, by push when they allow it, and by SMS for expiry. See ADR 0012. |
-| Staff notification | A message to a staff member at one gym, in the panel's Inbox and the API: money paid online, a refund to make, a freeze made or ended in the app, and the morning list of members to call, by role and branch. See ADR 0027. |
+| Staff notification | A message to a staff member at one gym, in the panel's Inbox and the API: money paid online, a refund to make, a freeze made or ended in the app, and the morning list of members to call, by role and branch. See ADR 0027. Each also goes by push to the staff app, and by SMS when the staff member turns it on for its topic (never from 21:00 to 07:00), as chosen on My notifications (ADR 0035). |
 | Message language | The language messages are written in, English or Amharic. Each gym has one for its members, a member may have their own (set at the desk or by the app), and each staff member picks one for their own messages. The panel itself stays English (ADR 0034). |
 | Announcement | A message from a gym to its members in its own words, to every branch or one, sent now or at a set time, in the inbox and by push (ADR 0015). |
 | Check-in | A member coming through the door, by scanning their QR code or at the desk. Every attempt is kept, allowed or denied, with the reason when denied. |
@@ -129,6 +129,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0032](adr/0032-discount-groups-and-the-discounts-report.md) | Discount groups and the discounts report |
 | [0033](adr/0033-staff-panel-look-and-conventions.md) | The staff panel's look and conventions |
 | [0034](adr/0034-message-languages.md) | Message languages (English and Amharic) |
+| [0035](adr/0035-staff-push-and-sms.md) | Push and SMS to staff |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 
