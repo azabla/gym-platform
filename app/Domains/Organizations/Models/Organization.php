@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Organizations\Models;
 
+use App\Domains\Shared\Language\Language;
 use Carbon\CarbonImmutable;
 use Database\Factories\OrganizationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'slug'])]
+#[Fillable(['name', 'slug', 'message_language'])]
 #[UseFactory(OrganizationFactory::class)]
 class Organization extends Model
 {
@@ -20,13 +21,24 @@ class Organization extends Model
     use HasFactory;
 
     /**
-     * The same default as the database column, so a new gym knows its time zone before it is saved.
+     * The same defaults as the database columns, so a new gym knows its time
+     * zone and message language before it is saved.
      *
      * @var array<string, mixed>
      */
     protected $attributes = [
         'timezone' => 'Africa/Addis_Ababa',
+        'message_language' => 'en',
     ];
+
+    /**
+     * The language the gym's members get messages in, unless a member has
+     * chosen their own. See ADR 0034.
+     */
+    public function messageLanguage(): Language
+    {
+        return $this->message_language;
+    }
 
     /** @return HasMany<Branch, $this> */
     public function branches(): HasMany
@@ -48,5 +60,17 @@ class Organization extends Model
     public function today(): CarbonImmutable
     {
         return CarbonImmutable::parse(CarbonImmutable::now($this->timezone)->toDateString());
+    }
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'message_language' => Language::class,
+        ];
     }
 }
