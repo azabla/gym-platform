@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Domains\Billing\Models\PaymentLink;
+use App\Domains\Notifications\Enums\StaffNotificationTopic;
 
 /**
  * Chapa took money that wasn't due any more: the gym refunds it from its
@@ -27,5 +28,10 @@ final class RefundNeeded extends StaffNotification
     public function databaseType(object $notifiable): string
     {
         return 'staff_refund_needed';
+    }
+
+    public function topic(): StaffNotificationTopic
+    {
+        return StaffNotificationTopic::Refunds;
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Notifications;
 
+use App\Domains\Notifications\Enums\StaffNotificationTopic;
+
 /**
  * The morning list: how many memberships at the staff member's branches end
  * in the next 7 days with nothing sold after them, the members to call. It
@@ -17,5 +19,10 @@ final class MembersToCall extends StaffNotification
     public function databaseType(object $notifiable): string
     {
         return 'staff_members_to_call';
+    }
+
+    public function topic(): StaffNotificationTopic
+    {
+        return StaffNotificationTopic::MembersToCall;
     }
 }

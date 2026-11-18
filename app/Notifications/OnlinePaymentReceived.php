@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Domains\Billing\Models\Payment;
+use App\Domains\Notifications\Enums\StaffNotificationTopic;
 
 /**
  * A member paid online, through Chapa: a payment link paid, or a plan bought
@@ -29,5 +30,10 @@ final class OnlinePaymentReceived extends StaffNotification
     public function databaseType(object $notifiable): string
     {
         return 'staff_online_payment';
+    }
+
+    public function topic(): StaffNotificationTopic
+    {
+        return StaffNotificationTopic::OnlinePayments;
     }
 }

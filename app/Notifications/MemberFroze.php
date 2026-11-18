@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Domains\Memberships\Models\MembershipFreeze;
+use App\Domains\Notifications\Enums\StaffNotificationTopic;
 
 /**
  * A member froze their membership themselves, in the app (ADR 0026 and ADR
@@ -31,5 +32,10 @@ final class MemberFroze extends StaffNotification
     public function databaseType(object $notifiable): string
     {
         return 'staff_member_froze';
+    }
+
+    public function topic(): StaffNotificationTopic
+    {
+        return StaffNotificationTopic::AppFreezes;
     }
 }
