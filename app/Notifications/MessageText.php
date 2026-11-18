@@ -2,6 +2,8 @@
 
 namespace App\Notifications;
 
+use App\Domains\Members\Models\Member;
+
 /**
  * Writes a message to a member in a language, from its type and details, the
  * same way for the inbox, the push and the SMS. A detail given as
@@ -35,8 +37,23 @@ final class MessageText
     }
 
     /**
+     * An SMS to a member, in their message language: their own, else their
+     * gym's (ADR 0034). Anyone else gets the application's language.
+     *
+     * @param  array<string, mixed>  $details
+     */
+    public static function smsTo(object $notifiable, string $type, array $details): string
+    {
+        $language = $notifiable instanceof Member
+            ? $notifiable->messageLanguage()->value
+            : (string) config('app.fallback_locale');
+
+        return self::sms($type, $details, $language);
+    }
+
+    /**
      * A message to staff, from lang/{language}/staff_notifications.php
-     * (ADR 0027).
+     * (ADR 0027), in the staff member's message language (ADR 0034).
      *
      * @param  array<string, mixed>  $details
      */

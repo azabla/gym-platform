@@ -43,11 +43,11 @@ it('lists my messages at the gym, newest first, written in my language, with the
         ->assertOk()
         ->assertJsonPath('data.*.id', [$newer->id, $older->id])
         ->assertJsonPath('data.0.type', 'visit_denied')
-        ->assertJsonPath('data.0.title', 'Check-in refused')
-        ->assertJsonPath('data.0.body', 'You couldn\'t check in at Main Branch: your membership has ended.')
+        ->assertJsonPath('data.0.title', 'መግባት አልተፈቀደም')
+        ->assertJsonPath('data.0.body', 'Main Branch ላይ መግባት አልቻሉም፦ አባልነትዎ አብቅቷል።')
         ->assertJsonPath('data.0.data', ['check_in_id' => '41'])
         ->assertJsonPath('data.0.read_at', null)
-        ->assertJsonPath('data.1.body', 'Your Monthly membership at Demo Gym ends in 3 days, on 2026-10-27.')
+        ->assertJsonPath('data.1.body', 'በDemo Gym ያለዎት የMonthly አባልነት በ3 ቀናት ውስጥ፣ 2026-10-27 ላይ ያበቃል።')
         ->assertJsonPath('data.1.read_at', fn ($readAt) => $readAt !== null)
         ->assertJsonPath('meta.unread_count', 1);
 });

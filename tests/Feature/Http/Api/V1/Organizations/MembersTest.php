@@ -276,3 +276,22 @@ it('archives a member, who then leaves the list', function () {
 
     expect(Member::query()->acrossOrganizations()->withTrashed()->sole()->trashed())->toBeTrue();
 });
+
+it('keeps a member\'s own message language, or none to follow the gym', function () {
+    actingAsStaff($this->gym, StaffRole::Receptionist);
+
+    $id = $this->postJson(route('api.v1.organizations.members.store', ['organization' => 'demo-gym']), [
+        'full_name' => 'Abebe Kebede',
+        'phone' => '0933 45 67 89',
+        'home_branch_id' => $this->mainBranch->id,
+        'message_language' => 'am',
+    ])->assertCreated()->assertJsonPath('data.message_language', 'am')->json('data.id');
+
+    $this->patchJson(route('api.v1.organizations.members.update', ['organization' => 'demo-gym', 'member' => $id]), ['message_language' => null])
+        ->assertOk()
+        ->assertJsonPath('data.message_language', null);
+
+    $this->patchJson(route('api.v1.organizations.members.update', ['organization' => 'demo-gym', 'member' => $id]), ['message_language' => 'fr'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['message_language']);
+});

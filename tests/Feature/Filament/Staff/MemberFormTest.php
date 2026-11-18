@@ -6,6 +6,7 @@ use App\Domains\Members\Models\Member;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Organization;
+use App\Domains\Shared\Language\Language;
 use App\Filament\Staff\Resources\Members\MemberResource;
 use App\Filament\Staff\Resources\Members\Pages\CreateMember;
 use App\Filament\Staff\Resources\Members\Pages\EditMember;
@@ -87,4 +88,20 @@ it('keeps trainers from registering, editing or archiving members', function () 
 
     Livewire::test(ViewMember::class, ['record' => $member->getRouteKey()])
         ->assertActionHidden(DeleteAction::class);
+});
+
+it('sets a member\'s message language, or leaves them on the gym\'s', function () {
+    $this->gym->update(['message_language' => 'am']);
+    actingAsStaffInPanel($this->gym, StaffRole::Receptionist, $this->mainBranch);
+    $member = Member::factory()->for($this->mainBranch, 'homeBranch')->create();
+
+    Livewire::test(ViewMember::class, ['record' => $member->id])
+        ->assertSee('Gym default (Amharic (አማርኛ))');
+
+    Livewire::test(EditMember::class, ['record' => $member->id])
+        ->fillForm(['message_language' => 'en'])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($member->refresh()->messageLanguage())->toBe(Language::English);
 });

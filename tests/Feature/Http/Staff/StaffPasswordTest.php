@@ -141,3 +141,15 @@ it('shows the forgot-password page', function () {
         ->assertOk()
         ->assertSee('Forgot your password?');
 });
+
+it('writes the staff texts in the user\'s message language', function () {
+    $this->dawit->update(['message_language' => 'am']);
+
+    PasswordLink::invite($this->dawit, 'Demo Gym');
+
+    Notification::assertSentTo($this->dawit, PasswordLinkNotification::class, function (PasswordLinkNotification $notification): bool {
+        return str_starts_with($notification->toSms($this->dawit), 'Demo Gym በ'.config('app.name').' ላይ እንደ ሰራተኛ አክሎዎታል።');
+    });
+
+    expect((new StaffAddedNotification('Demo Gym'))->toSms($this->dawit))->toStartWith('Demo Gym በ'.config('app.name').' ላይ እንደ ሰራተኛ አክሎዎታል።');
+});

@@ -28,6 +28,7 @@ use App\Filament\Staff\Resources\Members\Pages\EditMember;
 use App\Filament\Staff\Resources\Members\Pages\ListMembers;
 use App\Filament\Staff\Resources\Members\Pages\ViewMember;
 use App\Filament\Staff\Support\Badges;
+use App\Filament\Staff\Support\Languages;
 use App\Filament\Staff\Support\Tables;
 use App\Rules\ValidPhoneNumber;
 use BackedEnum;
@@ -134,6 +135,13 @@ class MemberResource extends Resource
                             ->displayFormat('j M Y')
                             ->maxDate(fn (): string => self::today()->subDay()->toDateString())
                             ->beforeOrEqual('yesterday'),
+                        Select::make('message_language')
+                            ->label('Message language')
+                            ->native(false)
+                            ->placeholder(fn (): string => Languages::gymDefault())
+                            ->options(Languages::options())
+                            ->prefixIcon(Heroicon::OutlinedLanguage)
+                            ->helperText('Their texts come in this language. The members app changes it when they switch language.'),
                     ]),
                 Section::make('Emergency contact')
                     ->description('Who to call if something happens at the gym. Optional, but give both or neither.')
@@ -203,6 +211,10 @@ class MemberResource extends Resource
                             ->placeholder('Not given'),
                         TextEntry::make('date_of_birth')->label('Date of birth')->date('j M Y')->placeholder('Not given'),
                         TextEntry::make('created_at')->label('Registered')->date('j M Y')->timezone(self::gymTimezone()),
+                        TextEntry::make('message_language')
+                            ->label('Message language')
+                            ->state(fn (Member $record): string => $record->message_language === null ? Languages::gymDefault() : Languages::label($record->message_language))
+                            ->icon(Heroicon::OutlinedLanguage),
                     ]),
                 Section::make('Emergency contact')
                     ->icon(Heroicon::OutlinedLifebuoy)

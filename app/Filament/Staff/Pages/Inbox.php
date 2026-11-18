@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Staff\Pages;
 
+use App\Domains\Identity\Models\User;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Filament\Staff\Resources\Concerns\ShowsGymTime;
 use App\Filament\Staff\Resources\Members\MemberResource;
@@ -114,7 +115,10 @@ class Inbox extends Page implements HasTable
 
     private static function text(DatabaseNotification $notification, string $part): string
     {
-        return MessageText::forStaff($notification->type, $part, (array) ($notification->data['details'] ?? []));
+        $user = auth()->user();
+        $language = $user instanceof User ? $user->messageLanguage()->value : 'en';
+
+        return MessageText::forStaff($notification->type, $part, (array) ($notification->data['details'] ?? []), $language);
     }
 
     /**

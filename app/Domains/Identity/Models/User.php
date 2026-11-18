@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Identity\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Domains\Shared\Language\Language;
 use App\Domains\Shared\PhoneNumber\PhoneNumber;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -23,7 +24,7 @@ use Laravel\Sanctum\PersonalAccessToken;
  * email) and a password (ADR 0019), members of a gym with a code sent to
  * their phone (ADR 0010). Every user has an email or a phone number.
  */
-#[Fillable(['name', 'email', 'phone', 'password'])]
+#[Fillable(['name', 'email', 'phone', 'password', 'message_language'])]
 #[Hidden(['password', 'remember_token'])]
 #[UseFactory(UserFactory::class)]
 class User extends Authenticatable
@@ -35,6 +36,15 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     /**
+     * The same default as the database column.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'message_language' => 'en',
+    ];
+
+    /**
      * The user who signs in with the phone number, created the first time,
      * named after the person. A phone number reaches a user only through a
      * sign-in code sent to it, so it is always the user's own.
@@ -42,6 +52,15 @@ class User extends Authenticatable
     public static function forPhone(PhoneNumber $phone, string $name): self
     {
         return static::query()->firstOrCreate(['phone' => $phone->e164], ['name' => $name]);
+    }
+
+    /**
+     * The language of the user's own messages as staff: their inbox and their
+     * SMS. The panel itself stays in English. See ADR 0034.
+     */
+    public function messageLanguage(): Language
+    {
+        return $this->message_language;
     }
 
     /**
@@ -86,6 +105,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'message_language' => Language::class,
         ];
     }
 }

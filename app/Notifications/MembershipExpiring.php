@@ -48,7 +48,7 @@ final class MembershipExpiring extends MemberNotification implements SendableByS
 
     public function toSms(object $notifiable): string
     {
-        return MessageText::sms('membership_expiring', $this->details, (string) config('app.fallback_locale'));
+        return MessageText::smsTo($notifiable, 'membership_expiring', $this->details);
     }
 
     public function databaseType(object $notifiable): string

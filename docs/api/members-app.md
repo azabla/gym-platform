@@ -28,6 +28,7 @@ Every endpoint's fields and answers are also in the generated API docs at `/docs
 | `DELETE /auth/tokens/current` | `204`. Signs out this phone and revokes its QR credential. |
 
 - A code is 6 digits, works for 10 minutes and 5 tries, and only the newest one works.
+- Send `Accept-Language` (`am` or `en`) with `POST /auth/sms-codes`: the code's SMS is written in it, English otherwise.
 - Limits: a code a minute and five an hour for each number; five sign-in tries a minute.
 - There is no self-registration: staff register members at the gym, and the member signs in with that phone number.
 - One token per phone. Keep it in secure storage.
@@ -136,6 +137,16 @@ payload = "GQ1:" + credential_id + ":" + step + ":" + code
 - Send it after signing in, whenever FCM replaces the token, and when the member changes language.
 - Signing out (`DELETE /auth/tokens/current`) deletes it too.
 
+### Language
+
+| Request | Answer |
+|---|---|
+| `PUT /me/language` `{"language": "am"}` | `204`. Texts to the member come in this language at every gym. `language` is `am` or `en`; anything else gets a `422`. |
+
+- Call it when the member changes the app's language, together with `PUT /me/push-token` and its new `locale`.
+- The gym's desk can also set a member's language. Until either does, texts come in the gym's own message language (ADR 0034).
+- Pushes follow the push token's `locale`, and the inbox follows `Accept-Language`, so the app shows its own language whatever the texts use.
+
 ### Pushes
 
 A push has a `title` and `body`, safe for a lock screen, and `data`, every value a string:
@@ -160,7 +171,7 @@ Every push also has `notification_id` (mark it read when tapped), and `gym`, the
 | `POST /me/gyms/{gym}/notifications/{id}/read` | `204`, safe to repeat |
 | `POST /me/gyms/{gym}/notifications/read-all` | `204`, this gym's only |
 
-`title` and `body` are written in the request's `Accept-Language` (`en` for now; `am` once written), so send it. An announcement's are the gym's own words, the same in every language.
+`title` and `body` are written in the request's `Accept-Language` (`am` or `en`; anything else gets English), so send it. An announcement's are the gym's own words, the same in every language.
 
 ### Preferences
 

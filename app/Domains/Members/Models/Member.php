@@ -11,6 +11,7 @@ use App\Domains\Notifications\Enums\NotificationTopic;
 use App\Domains\Notifications\Models\PushToken;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
+use App\Domains\Shared\Language\Language;
 use App\Domains\Shared\PhoneNumber\PhoneNumber;
 use Database\Factories\MemberFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -34,7 +35,7 @@ use Illuminate\Notifications\Notifiable;
  * inbox: by SMS to the member's phone, and by push to every phone signed in
  * with that number.
  */
-#[Fillable(['full_name', 'phone', 'email', 'gender', 'date_of_birth', 'emergency_contact_name', 'emergency_contact_phone'])]
+#[Fillable(['full_name', 'phone', 'email', 'gender', 'date_of_birth', 'emergency_contact_name', 'emergency_contact_phone', 'message_language'])]
 #[UseFactory(MemberFactory::class)]
 #[UsePolicy(MemberPolicy::class)]
 class Member extends Model
@@ -82,6 +83,19 @@ class Member extends Model
         }
 
         return $preferences;
+    }
+
+    /**
+     * The language the member's SMS are written in: their own choice, else
+     * their gym's. See ADR 0034.
+     */
+    public function messageLanguage(): Language
+    {
+        if ($this->message_language !== null) {
+            return $this->message_language;
+        }
+
+        return $this->organization->messageLanguage();
     }
 
     /**
@@ -170,6 +184,7 @@ class Member extends Model
             'gender' => Gender::class,
             'date_of_birth' => 'date',
             'notification_preferences' => 'array',
+            'message_language' => Language::class,
         ];
     }
 }

@@ -5,8 +5,10 @@ declare(strict_types=1);
 use App\Domains\Members\Models\Member;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Organization;
+use App\Domains\Shared\Language\Language;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 
 it('stores phone numbers in international form', function () {
     $member = Member::factory()->create([
@@ -51,4 +53,21 @@ it('refuses a home branch from another gym', function () {
 
 it('keeps the emergency contact name and phone together', function () {
     Member::factory()->create(['emergency_contact_name' => 'Almaz Kebede']);
+})->throws(QueryException::class, 'violates check constraint');
+
+it('writes to a member in their own language, else their gym\'s', function () {
+    $organization = Organization::factory()->create(['message_language' => 'am']);
+    $branch = Branch::factory()->for($organization)->create();
+
+    $followsTheGym = Member::factory()->for($organization)->for($branch, 'homeBranch')->create();
+    $choseEnglish = Member::factory()->for($organization)->for($branch, 'homeBranch')->create(['message_language' => 'en']);
+
+    expect($followsTheGym->messageLanguage())->toBe(Language::Amharic)
+        ->and($choseEnglish->messageLanguage())->toBe(Language::English);
+});
+
+it('refuses a message language it cannot write in', function () {
+    $member = Member::factory()->create();
+
+    DB::table('members')->where('id', $member->id)->update(['message_language' => 'fr']);
 })->throws(QueryException::class, 'violates check constraint');

@@ -2,8 +2,9 @@
 
 /*
 | Messages to staff, in the staff panel's inbox and the API's (ADR 0027).
-| They don't show on a lock screen, so they name the member. English only for
-| now; Amharic would go in lang/am/staff_notifications.php with the same keys.
+| They don't show on a lock screen, so they name the member. Each staff
+| member reads them in their own message language; Amharic is in
+| lang/am/staff_notifications.php with the same keys (ADR 0034).
 */
 
 return [

@@ -563,6 +563,15 @@ Each part has an ADR:
 
 The menu is grouped into **Front desk** (members, memberships, check-ins, announcements), **Money** (payments, payment links, online payments), **Gym setup** (plans, promo codes, discount groups, branches, staff) and **Reports**, a page with every CSV report. Each list has its filters above it (open them with the funnel), columns you can show or hide, and badges for statuses. The panel follows the device's light or dark setting; switch it in the user menu. See ADR 0033.
 
+Messages come in English or Amharic (ADR 0034). As the owner, open **Gym setup > Gym settings** and change the message language to Amharic, then send the reminders and read the texts in the log:
+
+```bash
+make artisan c=notifications:send-membership-reminders
+grep 'SMS to' storage/logs/laravel.log | tail -3
+```
+
+A member's own language (on their form) wins over the gym's. **Message language** in the user menu changes the language of your own Inbox. Ask for a sign-in code with `-H 'Accept-Language: am'` to get it in Amharic.
+
 ### Demo activity
 
 The base seed is small on purpose, so the examples in this guide keep their ids. To see the gym busy, run `make demo` after `make fresh` (it adds nothing a second time). It adds:

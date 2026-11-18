@@ -47,6 +47,6 @@ final class PaymentLinkSent extends Notification implements SendableBySms, Shoul
 
     public function toSms(object $notifiable): string
     {
-        return MessageText::sms('payment_link_sent', $this->details, (string) config('app.fallback_locale'));
+        return MessageText::smsTo($notifiable, 'payment_link_sent', $this->details);
     }
 }

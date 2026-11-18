@@ -49,6 +49,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 11. The staff panel shows and does only what the API allows: it goes through the same policies, its figures come from the same code (`App\Dashboards`), and the rules for a change live in the domain (`refusalTo…` methods, and checks such as `Plan::nameTakenBy()`) that both call. Domains never depend on it. See ADR 0017, ADR 0018 and ADR 0023.
 12. Staff limited to some branches see records where they happened (payments, links and check-ins by branch) and members where they belong (by home branch), through the models' branch scopes such as `Payment::takenAtAnyOf()`; a search still finds any member of the gym. Every list, total, report and dashboard uses the same scopes. See ADR 0025.
 13. Every staff panel list starts from `Tables::standard()` and shows statuses through `Badges`, money aligned right, and a filter for each status, branch, date and owner; every form comes in sections with placeholders and help. See ADR 0033.
+14. Every message text lives in `lang/en` with its Amharic in `lang/am`, under the same key and placeholders (checked by `tests/Feature/Lang/AmharicMessagesTest.php`), never in code. New Amharic is reviewed by a fluent speaker. See ADR 0034.
 
 ## Glossary
 
@@ -67,6 +68,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | QR credential | What lets a member's phone show their QR code at one gym: a secret given to the phone once, from which it makes a code every 30 seconds (GQ1), even offline. One phone per member (ADR 0011). |
 | Notification | A message to a member at one gym: in the app's inbox, by push when they allow it, and by SMS for expiry. See ADR 0012. |
 | Staff notification | A message to a staff member at one gym, in the panel's Inbox and the API: money paid online, a refund to make, a freeze made or ended in the app, and the morning list of members to call, by role and branch. See ADR 0027. |
+| Message language | The language messages are written in, English or Amharic. Each gym has one for its members, a member may have their own (set at the desk or by the app), and each staff member picks one for their own messages. The panel itself stays English (ADR 0034). |
 | Announcement | A message from a gym to its members in its own words, to every branch or one, sent now or at a set time, in the inbox and by push (ADR 0015). |
 | Check-in | A member coming through the door, by scanning their QR code or at the desk. Every attempt is kept, allowed or denied, with the reason when denied. |
 | Member | A gym customer, registered at a home branch but welcome at every branch of the gym. May or may not have a User. |
@@ -126,6 +128,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0031](adr/0031-refunds-made-and-links-by-sms.md) | Refunds made, open links on memberships, and links by SMS |
 | [0032](adr/0032-discount-groups-and-the-discounts-report.md) | Discount groups and the discounts report |
 | [0033](adr/0033-staff-panel-look-and-conventions.md) | The staff panel's look and conventions |
+| [0034](adr/0034-message-languages.md) | Message languages (English and Amharic) |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 
