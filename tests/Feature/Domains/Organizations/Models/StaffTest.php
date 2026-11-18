@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use App\Domains\Identity\Models\User;
+use App\Domains\Notifications\Enums\PushApp;
+use App\Domains\Notifications\Enums\StaffNotificationTopic;
+use App\Domains\Notifications\Models\PushToken;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Exceptions\StaffRefused;
 use App\Domains\Organizations\Models\Branch;
@@ -167,4 +170,35 @@ it('covers staff who work only at its own branches', function () {
         ->and($atBoth->covers($atBole))->toBeTrue()
         ->and($atBole->covers($atBoth))->toBeFalse()
         ->and($atBoth->covers($everywhere))->toBeFalse();
+});
+
+it('pushes every topic and texts none until the staff member chooses', function () {
+    $staff = Staff::factory()->create();
+
+    expect($staff->notificationChoices())->toBe([
+        'online_payments' => ['push' => true, 'sms' => false],
+        'refunds' => ['push' => true, 'sms' => false],
+        'app_freezes' => ['push' => true, 'sms' => false],
+        'members_to_call' => ['push' => true, 'sms' => false],
+    ]);
+
+    $staff->chooseNotifications(['refunds' => ['sms' => true], 'members_to_call' => ['push' => false]]);
+    $staff->chooseNotifications(['refunds' => ['push' => false]]);
+
+    expect($staff->refresh()->wantsTextsAbout(StaffNotificationTopic::Refunds))->toBeTrue()
+        ->and($staff->wantsPushesAbout(StaffNotificationTopic::Refunds))->toBeFalse()
+        ->and($staff->wantsPushesAbout(StaffNotificationTopic::MembersToCall))->toBeFalse()
+        ->and($staff->wantsPushesAbout(StaffNotificationTopic::OnlinePayments))->toBeTrue();
+});
+
+it('pushes to the staff app only, and texts the user\'s phone', function () {
+    $user = User::factory()->withPhone('0911 22 33 44')->create();
+    $staff = Staff::factory()->for($user)->create();
+    $staffApp = $user->createToken('staff app');
+    $membersApp = $user->createToken('members app');
+    PushToken::register($user->id, $staffApp->accessToken->id, 'staff-app-token', null, PushApp::Staff);
+    PushToken::register($user->id, $membersApp->accessToken->id, 'members-app-token', null);
+
+    expect($staff->routeNotificationForPush()->pluck('token')->all())->toBe(['staff-app-token'])
+        ->and($staff->routeNotificationForSms()?->e164)->toBe('+251911223344');
 });

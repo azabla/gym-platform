@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace App\Domains\Organizations\Models;
 
 use App\Domains\Identity\Models\User;
+use App\Domains\Notifications\Enums\PushApp;
+use App\Domains\Notifications\Enums\StaffNotificationTopic;
+use App\Domains\Notifications\Models\PushToken;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Exceptions\StaffRefused;
 use App\Domains\Organizations\Policies\StaffPolicy;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
+use App\Domains\Shared\PhoneNumber\PhoneNumber;
 use Database\Factories\StaffFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -110,6 +114,81 @@ class Staff extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Whether messages about the topic also come by push: on until the staff
+     * member turns it off. See ADR 0035.
+     */
+    public function wantsPushesAbout(StaffNotificationTopic $topic): bool
+    {
+        return ($this->notification_preferences[$topic->value]['push'] ?? true) === true;
+    }
+
+    /**
+     * Whether messages about the topic also come by SMS: off until the staff
+     * member turns it on. See ADR 0035.
+     */
+    public function wantsTextsAbout(StaffNotificationTopic $topic): bool
+    {
+        return ($this->notification_preferences[$topic->value]['sms'] ?? false) === true;
+    }
+
+    /**
+     * Turn push or SMS on or off for some topics, keeping the rest.
+     *
+     * @param  array<string, array{push?: bool, sms?: bool}>  $choices  by topic, such as ["refunds" => ["sms" => true]]
+     */
+    public function chooseNotifications(array $choices): void
+    {
+        $preferences = $this->notification_preferences ?? [];
+
+        foreach ($choices as $topic => $channels) {
+            $preferences[$topic] = [...($preferences[$topic] ?? []), ...$channels];
+        }
+
+        $this->notification_preferences = $preferences;
+        $this->save();
+    }
+
+    /**
+     * Whether each topic comes by push and by SMS, by topic.
+     *
+     * @return array<string, array{push: bool, sms: bool}>
+     */
+    public function notificationChoices(): array
+    {
+        $choices = [];
+
+        foreach (StaffNotificationTopic::cases() as $topic) {
+            $choices[$topic->value] = ['push' => $this->wantsPushesAbout($topic), 'sms' => $this->wantsTextsAbout($topic)];
+        }
+
+        return $choices;
+    }
+
+    /**
+     * Pushes go to every phone signed in to the staff app as this staff
+     * member's user (ADR 0035).
+     *
+     * @return Collection<int, PushToken>
+     */
+    public function routeNotificationForPush(): Collection
+    {
+        return PushToken::query()
+            ->where('user_id', $this->user_id)
+            ->where('app', PushApp::Staff->value)
+            ->get();
+    }
+
+    /**
+     * SMS goes to the user's phone, if they have one.
+     */
+    public function routeNotificationForSms(): ?PhoneNumber
+    {
+        $phone = $this->user?->phone;
+
+        return $phone === null ? null : PhoneNumber::of($phone);
     }
 
     /**
@@ -287,6 +366,7 @@ class Staff extends Model
         return [
             'role' => StaffRole::class,
             'works_at_all_branches' => 'boolean',
+            'notification_preferences' => 'array',
         ];
     }
 }
