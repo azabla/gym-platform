@@ -4,17 +4,20 @@ declare(strict_types=1);
 
 namespace App\Domains\Organizations\Models;
 
+use App\Domains\Organizations\Policies\OrganizationPolicy;
 use App\Domains\Shared\Language\Language;
 use Carbon\CarbonImmutable;
 use Database\Factories\OrganizationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['name', 'slug', 'message_language'])]
 #[UseFactory(OrganizationFactory::class)]
+#[UsePolicy(OrganizationPolicy::class)]
 class Organization extends Model
 {
     /** @use HasFactory<OrganizationFactory> */

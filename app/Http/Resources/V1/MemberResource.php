@@ -19,7 +19,8 @@ class MemberResource extends JsonResource
      * up, otherwise the last one that ended, or null. The balance due, also
      * attached by MemberController, is what the member still owes across their
      * memberships. The discount group, attached on a single member, is null
-     * when they are in none (ADR 0032).
+     * when they are in none (ADR 0032). The message language is null when the
+     * member gets their gym's (ADR 0034).
      *
      * @return array<string, mixed>
      */
@@ -36,6 +37,7 @@ class MemberResource extends JsonResource
                 'name' => $this->emergency_contact_name,
                 'phone' => $this->emergency_contact_phone,
             ],
+            'message_language' => $this->message_language,
             'home_branch' => new BranchResource($this->whenLoaded('homeBranch')),
             'membership' => $this->whenLoaded(
                 'membershipAtAGlance',

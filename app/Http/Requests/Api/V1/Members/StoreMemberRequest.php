@@ -7,6 +7,7 @@ use App\Domains\Members\Models\Member;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
+use App\Domains\Shared\Language\Language;
 use App\Domains\Shared\PhoneNumber\Exceptions\InvalidPhoneNumber;
 use App\Domains\Shared\PhoneNumber\PhoneNumber;
 use App\Rules\ValidPhoneNumber;
@@ -42,6 +43,7 @@ class StoreMemberRequest extends FormRequest
             'emergency_contact_name' => ['nullable', 'string', 'max:255', 'required_with:emergency_contact_phone'],
             'emergency_contact_phone' => ['nullable', 'bail', 'string', new ValidPhoneNumber, 'required_with:emergency_contact_name'],
             'home_branch_id' => ['required', 'bail', 'integer', $this->branchTheStaffMemberWorksAt()],
+            'message_language' => ['nullable', Rule::enum(Language::class)],
         ];
     }
 

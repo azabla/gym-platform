@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\Me\MyCheckInController;
 use App\Http\Controllers\Api\V1\Me\MyDashboardController;
 use App\Http\Controllers\Api\V1\Me\MyFreezeController;
 use App\Http\Controllers\Api\V1\Me\MyGymController;
+use App\Http\Controllers\Api\V1\Me\MyLanguageController;
 use App\Http\Controllers\Api\V1\Me\MyMembershipController;
 use App\Http\Controllers\Api\V1\Me\MyNotificationController;
 use App\Http\Controllers\Api\V1\Me\MyNotificationPreferenceController;
@@ -32,6 +33,7 @@ use App\Http\Controllers\Api\V1\Organizations\MemberDiscountGroupController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipCancellationController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipFreezeController;
+use App\Http\Controllers\Api\V1\Organizations\OrganizationSettingsController;
 use App\Http\Controllers\Api\V1\Organizations\PaymentController;
 use App\Http\Controllers\Api\V1\Organizations\PaymentLinkController;
 use App\Http\Controllers\Api\V1\Organizations\PlanController;
@@ -69,6 +71,11 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->middleware('throttle:30,1')
             ->name('me.push-token.update');
         Route::delete('me/push-token', [MyPushTokenController::class, 'destroy'])->name('me.push-token.destroy');
+
+        // The language my messages are written in, at every gym and as staff (ADR 0034).
+        Route::put('me/language', [MyLanguageController::class, 'update'])
+            ->middleware('throttle:30,1')
+            ->name('me.language.update');
 
         // The members app: the gyms where my phone number is registered, and my records at each (ADR 0010).
         Route::get('me/gyms', [MyGymController::class, 'index'])->name('me.gyms.index');
@@ -188,6 +195,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 Route::post('payments/{payment}/void', [PaymentController::class, 'void'])
                     ->name('payments.void');
                 Route::apiSingleton('chapa-account', ChapaAccountController::class)->destroyable();
+                Route::apiSingleton('settings', OrganizationSettingsController::class);
                 Route::post('memberships/{membership}/payment-links', [PaymentLinkController::class, 'store'])
                     ->name('memberships.payment-links.store');
                 Route::apiResource('payment-links', PaymentLinkController::class)->only(['index', 'show']);

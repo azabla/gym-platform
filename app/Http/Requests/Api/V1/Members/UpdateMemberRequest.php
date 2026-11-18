@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V1\Members;
 
 use App\Domains\Members\Enums\Gender;
+use App\Domains\Shared\Language\Language;
 use App\Rules\ValidPhoneNumber;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
@@ -34,6 +35,7 @@ class UpdateMemberRequest extends StoreMemberRequest
             'emergency_contact_name' => ['nullable', 'bail', 'string', 'max:255', 'present_with:emergency_contact_phone', 'required_with:emergency_contact_phone'],
             'emergency_contact_phone' => ['nullable', 'bail', 'string', new ValidPhoneNumber, 'present_with:emergency_contact_name', 'required_with:emergency_contact_name'],
             'home_branch_id' => ['sometimes', 'bail', 'integer', $this->branchTheStaffMemberWorksAt()],
+            'message_language' => ['nullable', Rule::enum(Language::class)],
         ];
     }
 }
