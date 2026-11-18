@@ -171,3 +171,15 @@ it('sends one code a minute to each number, however it is typed', function () {
 
     askForSmsCode('0922 34 56 78')->assertAccepted();
 });
+
+it('writes the sign-in code in the app\'s language', function () {
+    $this->withHeader('Accept-Language', 'am-ET')->postJson(route('api.v1.auth.sms-codes.store'), ['phone' => '0922 34 56 78'])->assertAccepted();
+
+    $code = lastSmsCodeSentTo('+251922345678');
+    $appName = config('app.name');
+
+    Notification::assertSentOnDemand(
+        SignInCodeNotification::class,
+        fn (SignInCodeNotification $notification): bool => $notification->toSms(new AnonymousNotifiable) === "የ{$appName} መግቢያ ኮድዎ {$code} ነው። በ10 ደቂቃ ውስጥ ያበቃል። ለማንም አያጋሩት።",
+    );
+});

@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace App\Domains\Identity\Notifications;
 
+use App\Domains\Identity\Models\User;
 use App\Domains\Notifications\Sms\SendableBySms;
 use App\Domains\Notifications\Sms\SmsChannel;
+use App\Domains\Shared\Language\Language;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
 /**
  * Tells someone who already has a password that a gym added them as staff,
- * by SMS from the queue. See ADR 0019.
+ * by SMS from the queue, in their message language. See ADR 0019 and
+ * ADR 0034.
  */
 class StaffAddedNotification extends Notification implements SendableBySms, ShouldQueue
 {
@@ -37,9 +40,10 @@ class StaffAddedNotification extends Notification implements SendableBySms, Shou
 
     public function toSms(object $notifiable): string
     {
-        $appName = (string) config('app.name');
-        $url = route('filament.staff.auth.login');
-
-        return "{$this->gymName} added you as staff on {$appName}. Sign in at {$url} with your phone and password.";
+        return (string) __('sms.staff_added', [
+            'gym' => $this->gymName,
+            'app' => (string) config('app.name'),
+            'url' => route('filament.staff.auth.login'),
+        ], $notifiable instanceof User ? $notifiable->messageLanguage()->value : Language::English->value);
     }
 }

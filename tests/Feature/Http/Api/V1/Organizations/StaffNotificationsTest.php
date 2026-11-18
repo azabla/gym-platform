@@ -54,3 +54,14 @@ it('keeps another staff member\'s message out of reach', function () {
         'notification' => $someoneElse->notifications()->firstOrFail()->id,
     ]))->assertNotFound();
 });
+
+it('writes the messages in the staff member\'s message language', function () {
+    $staff = actingAsStaff($this->gym, StaffRole::Manager);
+    $staff->user->update(['message_language' => 'am']);
+    $staff->notify(MembersToCall::count(1));
+
+    $this->getJson(route('api.v1.organizations.notifications.index', ['organization' => 'demo-gym']))
+        ->assertOk()
+        ->assertJsonPath('data.0.title', 'የሚደወልላቸው አባላት')
+        ->assertJsonPath('data.0.body', 'የሚደወልለት 1 አባል አለ፦ በሚቀጥሉት 7 ቀናት የሚያበቃ አባልነት አለ፣ ከዚያ በኋላ ምንም አልተሸጠም።');
+});

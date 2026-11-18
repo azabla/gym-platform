@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\V1\Me;
 
+use App\Domains\Shared\Language\Language;
 use App\Notifications\MessageText;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -18,19 +19,13 @@ use Illuminate\Notifications\DatabaseNotification;
 class MyNotificationResource extends JsonResource
 {
     /**
-     * The languages messages can be written in. A language without its file
-     * yet falls back to English, key by key.
-     */
-    public const LANGUAGES = ['en', 'am'];
-
-    /**
      * Transform the resource into an array.
      *
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array
     {
-        $language = $request->getPreferredLanguage(self::LANGUAGES) ?? 'en';
+        $language = $request->getPreferredLanguage(Language::codes()) ?? Language::English->value;
         $details = (array) ($this->data['details'] ?? []);
 
         return [

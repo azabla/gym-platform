@@ -76,3 +76,13 @@ it('shows only unread messages when asked', function () {
         ->assertCanSeeTableRecords([$unread])
         ->assertCanNotSeeTableRecords([$read]);
 });
+
+it('writes the messages in the staff member\'s message language', function () {
+    $staff = actingAsStaffInPanel($this->gym, StaffRole::Manager);
+    auth()->user()->update(['message_language' => 'am']);
+    $staff->notify(MembersToCall::count(4));
+
+    Livewire::test(Inbox::class)
+        ->assertSee('የሚደወልላቸው አባላት')
+        ->assertSee('የሚደወልላቸው 4 አባላት አሉ');
+});

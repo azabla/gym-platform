@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Auth;
 use App\Domains\Identity\Models\SignInCode;
 use App\Domains\Identity\Notifications\SignInCodeNotification;
 use App\Domains\Members\Models\Member;
+use App\Domains\Shared\Language\Language;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\RequestSmsCodeRequest;
 use Illuminate\Http\JsonResponse;
@@ -24,20 +25,22 @@ class SmsCodeController extends Controller
      * Send a sign-in code by SMS to a phone number registered as a member at
      * any gym. Every number gets the same answer, in the same time, so nobody
      * can use this to find out who is a member, and unregistered numbers
-     * can't run up the SMS bill. See ADR 0010.
+     * can't run up the SMS bill. See ADR 0010. The code is written in the
+     * app's language (Accept-Language), else English (ADR 0034).
      *
      * @unauthenticated
      */
     public function store(RequestSmsCodeRequest $request, Timebox $timebox): JsonResponse
     {
         $phone = $request->phone();
+        $language = Language::from($request->getPreferredLanguage(Language::codes()) ?? Language::English->value);
 
-        $timebox->call(function () use ($phone): void {
+        $timebox->call(function () use ($phone, $language): void {
             if (! Member::query()->acrossOrganizations()->where('phone', $phone->e164)->exists()) {
                 return;
             }
 
-            Notification::route('sms', $phone)->notify(new SignInCodeNotification(SignInCode::issue($phone)));
+            Notification::route('sms', $phone)->notify(new SignInCodeNotification(SignInCode::issue($phone), $language));
         }, self::ANSWER_MICROSECONDS);
 
         return response()->json([

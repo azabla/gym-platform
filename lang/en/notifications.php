@@ -3,8 +3,9 @@
 /*
 | Messages to members (ADR 0012), in the inbox, by push and by SMS. They show
 | on a lock screen, so they name the gym and the plan, never a person's name,
-| phone number or payment reference. Amharic goes in lang/am/notifications.php,
-| with the same keys; a key missing there falls back to this file.
+| phone number or payment reference. Amharic is in lang/am/notifications.php,
+| with the same keys; a key missing there falls back to this file. SMS go in
+| the member's message language, pushes and the inbox in the app's (ADR 0034).
 */
 
 return [

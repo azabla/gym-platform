@@ -7,6 +7,7 @@ namespace App\Domains\Identity\Notifications;
 use App\Domains\Identity\Models\SignInCode;
 use App\Domains\Notifications\Sms\SendableBySms;
 use App\Domains\Notifications\Sms\SmsChannel;
+use App\Domains\Shared\Language\Language;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -24,7 +25,13 @@ class SignInCodeNotification extends Notification implements SendableBySms, Shou
      */
     public int $tries = 3;
 
-    public function __construct(public readonly string $code) {}
+    /**
+     * @param  Language  $language  the app's language when the code was asked for (ADR 0034)
+     */
+    public function __construct(
+        public readonly string $code,
+        public readonly Language $language = Language::English,
+    ) {}
 
     /**
      * Get the notification's delivery channels.
@@ -38,9 +45,10 @@ class SignInCodeNotification extends Notification implements SendableBySms, Shou
 
     public function toSms(object $notifiable): string
     {
-        $appName = (string) config('app.name');
-        $minutes = SignInCode::MINUTES_VALID;
-
-        return "Your {$appName} sign-in code is {$this->code}. It expires in {$minutes} minutes. Don't share it with anyone.";
+        return (string) __('sms.sign_in_code', [
+            'app' => (string) config('app.name'),
+            'code' => $this->code,
+            'minutes' => (string) SignInCode::MINUTES_VALID,
+        ], $this->language->value);
     }
 }

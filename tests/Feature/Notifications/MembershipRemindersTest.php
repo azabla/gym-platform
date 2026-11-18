@@ -112,3 +112,16 @@ it('says nothing when the next membership is already sold, or the member left th
     expect(DB::table('notifications')->count())->toBe(0)
         ->and($this->texts->sent)->toBe([]);
 });
+
+it('texts a member in their gym\'s language, unless they chose their own', function () {
+    $this->gym->update(['message_language' => 'am']);
+    $dawit = Member::factory()->for($this->mainBranch, 'homeBranch')->create(['phone' => '0911 22 33 44', 'message_language' => 'en']);
+    Membership::factory()->for($dawit)->for($this->monthly)->create(['starts_on' => '2026-09-28', 'ends_on' => '2026-10-27']);
+
+    remindAt('2026-10-28 10:00');
+
+    expect($this->texts->sent)->toEqualCanonicalizing([
+        ['+251922345678', 'Demo Gym፦ የMonthly አባልነትዎ 2026-10-27 ላይ አብቅቷል። ስፖርትዎን ለመቀጠል በእንግዳ መቀበያ ያድሱ።'],
+        ['+251911223344', 'Demo Gym: your Monthly membership ended on 2026-10-27. Renew at the desk to keep training.'],
+    ]);
+});
