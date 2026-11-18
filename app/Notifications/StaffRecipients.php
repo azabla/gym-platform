@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Domains\Notifications\Enums\StaffNotificationTopic;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Staff;
@@ -22,7 +23,7 @@ final class StaffRecipients
      */
     public static function forMoneyAt(Branch $branch): Collection
     {
-        return self::withRolesAt([StaffRole::Owner, StaffRole::Manager, StaffRole::Accountant], [$branch->getKey()]);
+        return self::withRolesAt(self::ROLES_FOR_MONEY, [$branch->getKey()]);
     }
 
     /**
@@ -46,6 +47,33 @@ final class StaffRecipients
     {
         return self::withRolesAt(self::ROLES_FOR_MEMBERS, null);
     }
+
+    /**
+     * The topics a role hears about, for choosing push and SMS (ADR 0035):
+     * money for the roles that hear about money, members for those that hear
+     * about members. Trainers hear nothing.
+     *
+     * @return list<StaffNotificationTopic>
+     */
+    public static function topicsFor(StaffRole $role): array
+    {
+        $topics = [];
+
+        if (in_array($role, self::ROLES_FOR_MONEY, true)) {
+            $topics[] = StaffNotificationTopic::OnlinePayments;
+            $topics[] = StaffNotificationTopic::Refunds;
+        }
+
+        if (in_array($role, self::ROLES_FOR_MEMBERS, true)) {
+            $topics[] = StaffNotificationTopic::AppFreezes;
+            $topics[] = StaffNotificationTopic::MembersToCall;
+        }
+
+        return $topics;
+    }
+
+    /** The roles that hear about money. */
+    private const ROLES_FOR_MONEY = [StaffRole::Owner, StaffRole::Manager, StaffRole::Accountant];
 
     /** The roles that hear about members. */
     private const ROLES_FOR_MEMBERS = [StaffRole::Owner, StaffRole::Manager, StaffRole::Receptionist];

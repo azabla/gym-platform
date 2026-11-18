@@ -7,7 +7,7 @@ use App\Filament\Staff\Auth\Login;
 use App\Filament\Staff\Middleware\ActAsTenant;
 use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Pages\Dashboard;
-use App\Filament\Staff\Pages\MyMessageLanguage;
+use App\Filament\Staff\Pages\MyNotifications;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
@@ -68,12 +68,12 @@ class StaffPanelProvider extends PanelProvider
             ->darkMode()
             ->sidebarCollapsibleOnDesktop()
             ->navigationGroups(NavigationGroup::class)
-            // Each staff member's own message language (ADR 0034).
+            // Each staff member's own message language, push and SMS (ADR 0034 and ADR 0035).
             ->userMenuItems([
-                Action::make('messageLanguage')
-                    ->label('Message language')
-                    ->icon(Heroicon::OutlinedLanguage)
-                    ->url(fn (): string => MyMessageLanguage::getUrl()),
+                Action::make('myNotifications')
+                    ->label('My notifications')
+                    ->icon(Heroicon::OutlinedBellAlert)
+                    ->url(fn (): string => MyNotifications::getUrl()),
             ])
             ->discoverResources(in: app_path('Filament/Staff/Resources'), for: 'App\Filament\Staff\Resources')
             ->discoverPages(in: app_path('Filament/Staff/Pages'), for: 'App\Filament\Staff\Pages')
