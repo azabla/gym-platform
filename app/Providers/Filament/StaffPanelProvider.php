@@ -7,6 +7,8 @@ use App\Filament\Staff\Auth\Login;
 use App\Filament\Staff\Middleware\ActAsTenant;
 use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Pages\Dashboard;
+use App\Filament\Staff\Pages\MyMessageLanguage;
+use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -15,6 +17,7 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Icons\Heroicon;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -65,6 +68,13 @@ class StaffPanelProvider extends PanelProvider
             ->darkMode()
             ->sidebarCollapsibleOnDesktop()
             ->navigationGroups(NavigationGroup::class)
+            // Each staff member's own message language (ADR 0034).
+            ->userMenuItems([
+                Action::make('messageLanguage')
+                    ->label('Message language')
+                    ->icon(Heroicon::OutlinedLanguage)
+                    ->url(fn (): string => MyMessageLanguage::getUrl()),
+            ])
             ->discoverResources(in: app_path('Filament/Staff/Resources'), for: 'App\Filament\Staff\Resources')
             ->discoverPages(in: app_path('Filament/Staff/Pages'), for: 'App\Filament\Staff\Pages')
             ->pages([
