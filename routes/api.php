@@ -42,6 +42,7 @@ use App\Http\Controllers\Api\V1\Organizations\RefundController;
 use App\Http\Controllers\Api\V1\Organizations\ReportController;
 use App\Http\Controllers\Api\V1\Organizations\StaffController;
 use App\Http\Controllers\Api\V1\Organizations\StaffNotificationController;
+use App\Http\Controllers\Api\V1\Organizations\StaffNotificationPreferenceController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
@@ -147,6 +148,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 Route::get('reports/members', [ReportController::class, 'members'])->name('reports.members');
                 Route::get('notifications', [StaffNotificationController::class, 'index'])->name('notifications.index');
                 Route::post('notifications/read-all', [StaffNotificationController::class, 'readAll'])->name('notifications.read-all');
+                Route::get('notification-preferences', [StaffNotificationPreferenceController::class, 'show'])
+                    ->name('notification-preferences.show');
+                Route::patch('notification-preferences', [StaffNotificationPreferenceController::class, 'update'])
+                    ->name('notification-preferences.update');
                 Route::post('notifications/{notification}/read', [StaffNotificationController::class, 'read'])
                     ->whereUuid('notification')
                     ->name('notifications.read');
