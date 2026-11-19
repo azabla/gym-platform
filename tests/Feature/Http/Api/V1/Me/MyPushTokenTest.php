@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domains\Identity\Models\User;
+use App\Domains\Notifications\Enums\PushApp;
 use App\Domains\Notifications\Models\PushToken;
 
 beforeEach(function () {
@@ -57,4 +58,23 @@ it('refuses a missing token, another provider or a made-up language', function (
 
 it('needs a signed-in phone', function () {
     $this->putJson(route('api.v1.me.push-token.update'), ['token' => 'fcm-token-1'])->assertUnauthorized();
+});
+
+it('keeps which app the phone\'s push token is for, the members app unless told', function () {
+    fromPhone($this->phone->plainTextToken)
+        ->putJson(route('api.v1.me.push-token.update'), ['token' => 'fcm-token-1', 'app' => 'staff'])
+        ->assertNoContent();
+
+    expect(PushToken::query()->sole()->app)->toBe(PushApp::Staff);
+
+    fromPhone($this->phone->plainTextToken)
+        ->putJson(route('api.v1.me.push-token.update'), ['token' => 'fcm-token-1'])
+        ->assertNoContent();
+
+    expect(PushToken::query()->sole()->app)->toBe(PushApp::Members);
+
+    fromPhone($this->phone->plainTextToken)
+        ->putJson(route('api.v1.me.push-token.update'), ['token' => 'fcm-token-1', 'app' => 'desk'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['app']);
 });

@@ -195,6 +195,25 @@ The scanner is the staff app, signed in as staff (ADR 0004), under `/organizatio
 - Send an `Idempotency-Key` header (any text up to 100 characters, new for each scan) so a retry after a lost answer gets the first answer back, instead of `CODE_ALREADY_USED`.
 - Money owed doesn't stop entry: show `membership.balance_due` so the desk can ask for it.
 
+### Staff messages and pushes
+
+The staff app registers its push token like the members app, with `"app": "staff"`: `PUT /me/push-token` `{"token": "…", "locale": "am", "app": "staff"}`. Only then does it get staff pushes; it never gets members' pushes. See ADR 0035.
+
+| `type` | When | Other `data` | Open |
+|---|---|---|---|
+| `staff_online_payment` | a member paid online | `payment_id`, `membership_id` | that payment |
+| `staff_refund_needed` | Chapa took money that isn't due | `payment_link_id`, `member_id` | that payment link |
+| `staff_member_froze` | a member froze in the app | `membership_id` | that membership |
+| `staff_member_ended_freeze` | a member ended a freeze early in the app | `membership_id` | that membership |
+| `staff_members_to_call` | each morning from 08:00 | none | the members to call |
+
+- **Every push** also has `notification_id` (mark it read with `POST notifications/{id}/read`) and `gym`, the gym's slug. Its title and body are in the staff member's message language.
+- **The Inbox** is `GET notifications`, as in the panel.
+- **Choices.** `GET notification-preferences` returns, for this gym, `{"data": {"online_payments": {"push": true, "sms": false}, "refunds": {…}, "app_freezes": {…}, "members_to_call": {…}}}`.
+  - `PATCH` with any of those topics, each with `push`, `sms` or both as `true` or `false`, returns them all.
+  - An unknown topic or another value gets a `422`.
+- **Defaults.** Push is on and SMS off until changed. No SMS goes out between 21:00 and 07:00 gym time.
+
 ### Reason codes
 
 Checked in this order; the first that applies is the answer.

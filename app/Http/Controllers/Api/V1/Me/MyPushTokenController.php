@@ -14,7 +14,9 @@ class MyPushTokenController extends Controller
     /**
      * Keep this phone's push token from Firebase, and the language it wants
      * messages in. The app sends it after signing in, whenever Firebase
-     * replaces it, and when the member changes language. See ADR 0012.
+     * replaces it, and when the member changes language. See ADR 0012. The
+     * staff app says it is the staff app, so it gets staff messages and the
+     * members app members' (ADR 0035).
      */
     public function update(StorePushTokenRequest $request): Response
     {
@@ -23,6 +25,7 @@ class MyPushTokenController extends Controller
             $this->tokenId($request),
             $request->string('token')->toString(),
             $request->language(),
+            $request->app(),
         );
 
         return response()->noContent();

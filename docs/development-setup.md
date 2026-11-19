@@ -570,7 +570,7 @@ make artisan c=notifications:send-membership-reminders
 grep 'SMS to' storage/logs/laravel.log | tail -3
 ```
 
-A member's own language (on their form) wins over the gym's. **Message language** in the user menu changes the language of your own Inbox. Ask for a sign-in code with `-H 'Accept-Language: am'` to get it in Amharic.
+A member's own language (on their form) wins over the gym's. **My notifications** in the user menu changes the language of your own Inbox, and turns push and SMS on or off for each kind of staff message at this gym (ADR 0035). Turn SMS on for Members to call, then run `make artisan c=notifications:send-staff-morning-list` (from 08:00 gym time) and read the text in the log; staff get no texts from 21:00 to 07:00. Ask for a sign-in code with `-H 'Accept-Language: am'` to get it in Amharic.
 
 ### Demo activity
 

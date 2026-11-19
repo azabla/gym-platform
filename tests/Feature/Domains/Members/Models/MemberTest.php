@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Domains\Identity\Models\User;
 use App\Domains\Members\Models\Member;
+use App\Domains\Notifications\Enums\PushApp;
+use App\Domains\Notifications\Models\PushToken;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Shared\Language\Language;
@@ -71,3 +74,12 @@ it('refuses a message language it cannot write in', function () {
 
     DB::table('members')->where('id', $member->id)->update(['message_language' => 'fr']);
 })->throws(QueryException::class, 'violates check constraint');
+
+it('pushes to the members app only', function () {
+    $member = Member::factory()->create(['phone' => '0922 34 56 78']);
+    $user = User::factory()->withPhone('0922 34 56 78')->create();
+    PushToken::register($user->id, $user->createToken('members app')->accessToken->id, 'members-app-token', null);
+    PushToken::register($user->id, $user->createToken('staff app')->accessToken->id, 'staff-app-token', null, PushApp::Staff);
+
+    expect($member->routeNotificationForPush()->pluck('token')->all())->toBe(['members-app-token']);
+});

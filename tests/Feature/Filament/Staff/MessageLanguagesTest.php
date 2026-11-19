@@ -7,7 +7,6 @@ use App\Domains\Organizations\Models\Organization;
 use App\Domains\Shared\Language\Language;
 use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Pages\GymSettings;
-use App\Filament\Staff\Pages\MyMessageLanguage;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -35,26 +34,4 @@ it('shows other staff the settings without letting them change them', function (
     Livewire::test(GymSettings::class)
         ->assertSee('English')
         ->assertActionHidden('changeMessageLanguage');
-});
-
-it('lets each staff member choose the language of their own messages', function () {
-    actingAsStaffInPanel($this->gym, StaffRole::Receptionist);
-
-    Livewire::test(MyMessageLanguage::class)
-        ->assertSchemaStateSet(['message_language' => 'en'])
-        ->fillForm(['message_language' => 'am'])
-        ->call('save')
-        ->assertHasNoFormErrors()
-        ->assertNotified('Your messages now come in Amharic (አማርኛ).');
-
-    expect(auth()->user()->refresh()->messageLanguage())->toBe(Language::Amharic);
-});
-
-it('puts the message language in the user menu', function () {
-    actingAsStaffInPanel($this->gym, StaffRole::Trainer);
-
-    $this->get(GymSettings::getUrl(tenant: $this->gym))
-        ->assertOk()
-        ->assertSee('Message language')
-        ->assertSee(MyMessageLanguage::getUrl(tenant: $this->gym), escape: false);
 });

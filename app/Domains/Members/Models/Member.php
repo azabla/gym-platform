@@ -8,6 +8,7 @@ use App\Domains\Identity\Models\User;
 use App\Domains\Members\Enums\Gender;
 use App\Domains\Members\Policies\MemberPolicy;
 use App\Domains\Notifications\Enums\NotificationTopic;
+use App\Domains\Notifications\Enums\PushApp;
 use App\Domains\Notifications\Models\PushToken;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
@@ -107,7 +108,8 @@ class Member extends Model
     }
 
     /**
-     * Pushes go to every phone signed in as the user with the member's phone number.
+     * Pushes go to every phone signed in to the members app as the user with
+     * the member's phone number (ADR 0035).
      *
      * @return Collection<int, PushToken>
      */
@@ -115,6 +117,7 @@ class Member extends Model
     {
         return PushToken::query()
             ->whereIn('user_id', User::query()->where('phone', $this->getAttribute('phone'))->select('id'))
+            ->where('app', PushApp::Members->value)
             ->get();
     }
 

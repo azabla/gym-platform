@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Domains\Memberships\Models\Membership;
+use App\Domains\Notifications\Enums\StaffNotificationTopic;
 
 /**
  * A member ended a freeze early themselves, in the app, because they are back
@@ -27,5 +28,10 @@ final class MemberEndedFreeze extends StaffNotification
     public function databaseType(object $notifiable): string
     {
         return 'staff_member_ended_freeze';
+    }
+
+    public function topic(): StaffNotificationTopic
+    {
+        return StaffNotificationTopic::AppFreezes;
     }
 }
