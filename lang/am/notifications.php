@@ -45,6 +45,16 @@ return [
         'body' => 'በ:gym ባለዎት የ:plan አባልነት አንድ ጉብኝት ብቻ ቀርቶዎታል። ስፖርትዎን ለመቀጠል ያድሱት።',
     ],
 
+    'branch_closed' => [
+        'title' => ':branch ዝግ ይሆናል',
+        'body' => '{1} በ:gym የሚገኘው :branch :starts_on ላይ ዝግ ይሆናል፦ :reason።|[2,*] በ:gym የሚገኘው :branch ከ:starts_on እስከ :ends_on ዝግ ይሆናል፦ :reason።',
+    ],
+
+    'branch_hours_changed' => [
+        'title' => ':branch በተለየ ሰዓት ይከፈታል',
+        'body' => '{1} በ:gym የሚገኘው :branch :starts_on ላይ ከ:opens_at እስከ :closes_at ብቻ ክፍት ይሆናል፦ :reason።|[2,*] በ:gym የሚገኘው :branch ከ:starts_on እስከ :ends_on ከ:opens_at እስከ :closes_at ብቻ ክፍት ይሆናል፦ :reason።',
+    ],
+
     // The gym's own words, the same in every language (ADR 0015).
     'announcement' => [
         'title' => ':title',
