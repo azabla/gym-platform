@@ -13,21 +13,6 @@ beforeEach(function () {
 });
 
 /**
- * An image of the given size, its left half red and its right half blue.
- */
-function photoBytes(int $width, int $height, string $type = 'jpeg'): string
-{
-    $image = imagecreatetruecolor($width, $height);
-    imagefilledrectangle($image, 0, 0, intdiv($width, 2) - 1, $height - 1, (int) imagecolorallocate($image, 255, 0, 0));
-    imagefilledrectangle($image, intdiv($width, 2), 0, $width - 1, $height - 1, (int) imagecolorallocate($image, 0, 0, 255));
-
-    ob_start();
-    $type === 'png' ? imagepng($image) : imagejpeg($image, null, 95);
-
-    return (string) ob_get_clean();
-}
-
-/**
  * The JPEG with an EXIF block saying the camera was turned (orientation 6:
  * show it turned a quarter clockwise), as phones write it.
  */

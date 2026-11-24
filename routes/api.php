@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\V1\Organizations\DashboardController;
 use App\Http\Controllers\Api\V1\Organizations\DiscountGroupController;
 use App\Http\Controllers\Api\V1\Organizations\MemberController;
 use App\Http\Controllers\Api\V1\Organizations\MemberDiscountGroupController;
+use App\Http\Controllers\Api\V1\Organizations\MemberPhotoController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipCancellationController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipFreezeController;
@@ -174,6 +175,11 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     ->name('members.discount-group.update');
                 Route::delete('members/{member}/discount-group', [MemberDiscountGroupController::class, 'destroy'])
                     ->name('members.discount-group.destroy');
+                Route::put('members/{member}/photo', [MemberPhotoController::class, 'update'])
+                    ->middleware('throttle:30,1')
+                    ->name('members.photo.update');
+                Route::delete('members/{member}/photo', [MemberPhotoController::class, 'destroy'])
+                    ->name('members.photo.destroy');
                 Route::apiResource('promo-codes', PromoCodeController::class)
                     ->only(['index', 'store', 'show', 'update'])
                     ->withTrashed(['show']);

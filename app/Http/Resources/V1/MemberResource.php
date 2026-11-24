@@ -3,6 +3,7 @@
 namespace App\Http\Resources\V1;
 
 use App\Domains\Members\Models\Member;
+use App\Domains\Members\Photos\MemberPhoto;
 use App\Domains\Memberships\Models\MemberDiscount;
 use App\Domains\Memberships\Models\Membership;
 use Illuminate\Http\Request;
@@ -20,7 +21,8 @@ class MemberResource extends JsonResource
      * attached by MemberController, is what the member still owes across their
      * memberships. The discount group, attached on a single member, is null
      * when they are in none (ADR 0032). The message language is null when the
-     * member gets their gym's (ADR 0034).
+     * member gets their gym's (ADR 0034). The photo's link works for 10
+     * minutes, and is null without a photo (ADR 0036).
      *
      * @return array<string, mixed>
      */
@@ -38,6 +40,7 @@ class MemberResource extends JsonResource
                 'phone' => $this->emergency_contact_phone,
             ],
             'message_language' => $this->message_language,
+            'photo_url' => app(MemberPhoto::class)->urlFor($this->resource),
             'home_branch' => new BranchResource($this->whenLoaded('homeBranch')),
             'membership' => $this->whenLoaded(
                 'membershipAtAGlance',
