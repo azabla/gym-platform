@@ -3,6 +3,7 @@
 use App\Domains\Announcements\Exceptions\AnnouncementRefused;
 use App\Domains\Billing\Chapa\Exceptions\ChapaRequestFailed;
 use App\Domains\Billing\Exceptions\PaymentRefused;
+use App\Domains\Members\Exceptions\MemberPhotoRefused;
 use App\Domains\Memberships\Exceptions\MembershipRefused;
 use App\Domains\Memberships\Exceptions\PromoCodeRefused;
 use App\Domains\Organizations\Exceptions\StaffRefused;
@@ -79,6 +80,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // A staff change that would leave the gym without an owner (ADR 0019).
         $exceptions->map(fn (StaffRefused $exception) => ValidationException::withMessages([
+            $exception->field => $exception->getMessage(),
+        ]));
+
+        // A photo that isn't an image that can be read, or is too small (ADR 0036).
+        $exceptions->map(fn (MemberPhotoRefused $exception) => ValidationException::withMessages([
             $exception->field => $exception->getMessage(),
         ]));
 
