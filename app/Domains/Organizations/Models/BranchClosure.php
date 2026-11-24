@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Organizations\Models;
 
 use App\Domains\Organizations\Events\BranchClosureScheduled;
+use App\Domains\Organizations\Events\BranchClosureTakenBack;
 use App\Domains\Organizations\Exceptions\BranchClosureRefused;
 use App\Domains\Organizations\Hours\OpeningWindow;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
@@ -132,6 +133,30 @@ class BranchClosure extends Model
             );
 
             return $closures;
+        });
+    }
+
+    /**
+     * Take the closure back: the branch keeps its weekly hours those days.
+     * When its members were told of it and it hasn't ended, they hear that
+     * the branch is open as usual (BranchClosureTakenBack). See ADR 0039.
+     */
+    public function takeBack(): void
+    {
+        $membersKnew = $this->members_told_at !== null
+            && $this->ends_on->gte($this->organization()->firstOrFail()->today());
+
+        DB::transaction(function () use ($membersKnew): void {
+            $this->delete();
+
+            if ($membersKnew) {
+                BranchClosureTakenBack::dispatch(
+                    (int) $this->organization_id,
+                    (int) $this->branch_id,
+                    $this->starts_on->toDateString(),
+                    $this->ends_on->toDateString(),
+                );
+            }
         });
     }
 

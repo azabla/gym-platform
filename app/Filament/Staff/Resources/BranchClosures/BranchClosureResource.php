@@ -89,9 +89,10 @@ class BranchClosureResource extends Resource
                     ->visible(fn (BranchClosure $record): bool => Gate::allows('update', $record->branch))
                     ->requiresConfirmation()
                     ->modalHeading('Take this closure back?')
-                    ->modalDescription(fn (BranchClosure $record): string => "{$record->branch->name} keeps its weekly hours on ".self::daysOf($record).'. Members already told are not told again.')
+                    ->modalDescription(fn (BranchClosure $record): string => "{$record->branch->name} keeps its weekly hours on ".self::daysOf($record).'.'
+                        .($record->members_told_at === null ? '' : ' Members who were told of the closure hear it is open as usual.'))
                     ->action(function (BranchClosure $record): void {
-                        $record->delete();
+                        $record->takeBack();
 
                         Notification::make()->success()->title('Closure taken back.')->send();
                     }),

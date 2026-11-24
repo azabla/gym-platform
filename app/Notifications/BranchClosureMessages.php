@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Domains\Members\Models\Member;
+use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\BranchClosure;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Notification;
@@ -23,5 +24,17 @@ final class BranchClosureMessages
         );
 
         $closure->forceFill(['members_told_at' => CarbonImmutable::now()])->save();
+    }
+
+    /**
+     * Tell the branch's members it is open as usual on days a closure they
+     * were told about would have taken.
+     */
+    public static function tellMembersOfReopening(Branch $branch, string $startsOn, string $endsOn): void
+    {
+        Notification::send(
+            Member::query()->homeAtAnyOf([(int) $branch->id])->get(),
+            BranchReopened::for($branch, $startsOn, $endsOn),
+        );
     }
 }

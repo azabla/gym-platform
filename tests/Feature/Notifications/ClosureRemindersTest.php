@@ -63,3 +63,29 @@ it('reminds members told long ago, when the closure was added', function () {
 
     expect($this->hana->notifications()->pluck('type')->all())->toBe(['branch_hours_changed', 'branch_hours_changed']);
 });
+
+it('tells members who knew of a closure that the branch is open after all, when it is taken back', function () {
+    actingAsOrganization($this->gym);
+    [$told] = BranchClosure::schedule($this->owner, [$this->main], CarbonImmutable::parse('2026-10-26'), CarbonImmutable::parse('2026-10-27'), 'Repairs')->all();
+    [$farOff] = BranchClosure::schedule($this->owner, [$this->main], CarbonImmutable::parse('2026-12-20'), CarbonImmutable::parse('2026-12-20'), 'Meeting')->all();
+
+    $told->refresh()->takeBack();
+    $farOff->refresh()->takeBack();
+
+    $reopened = $this->hana->notifications()->where('type', 'branch_reopened')->sole();
+
+    expect($reopened->data['details'])->toMatchArray(['branch' => 'Main Branch', 'starts_on' => '2026-10-26', 'ends_on' => '2026-10-27', 'count' => 2])
+        ->and($this->abebe->notifications()->count())->toBe(0)
+        ->and(BranchClosure::query()->count())->toBe(0)
+        ->and(trans_choice('notifications.branch_reopened.body', 2, $reopened->data['details']))
+        ->toBe('Main Branch at Demo Gym is open as usual from 2026-10-26 to 2026-10-27 after all.');
+});
+
+it('says nothing when a closure that already ended is taken back', function () {
+    $ended = BranchClosure::factory()->for($this->main)->create(['starts_on' => '2026-10-20', 'ends_on' => '2026-10-21', 'members_told_at' => now()->subDays(5)]);
+    actingAsOrganization($this->gym);
+
+    $ended->takeBack();
+
+    expect($this->hana->notifications()->count())->toBe(0);
+});

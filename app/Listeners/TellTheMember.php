@@ -11,6 +11,8 @@ use App\Domains\Billing\Events\PaymentRecorded;
 use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Events\MembershipFrozen as MembershipWasFrozen;
 use App\Domains\Organizations\Events\BranchClosureScheduled;
+use App\Domains\Organizations\Events\BranchClosureTakenBack;
+use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\BranchClosure;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
@@ -130,6 +132,21 @@ final class TellTheMember
 
             foreach ($closures as $closure) {
                 BranchClosureMessages::tellMembersOf($closure);
+            }
+        });
+    }
+
+    /**
+     * Members told of a closure hear the branch is open as usual when it is
+     * taken back before it ends (ADR 0039).
+     */
+    public function handleBranchClosureTakenBack(BranchClosureTakenBack $event): void
+    {
+        $this->atTheGym($event->organizationId, function () use ($event): void {
+            $branch = Branch::query()->with('organization')->find($event->branchId);
+
+            if ($branch !== null) {
+                BranchClosureMessages::tellMembersOfReopening($branch, $event->startsOn, $event->endsOn);
             }
         });
     }

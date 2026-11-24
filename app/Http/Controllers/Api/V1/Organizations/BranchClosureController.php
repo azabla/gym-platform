@@ -59,12 +59,14 @@ class BranchClosureController extends Controller
 
     /**
      * Take a closure back: the branch keeps its weekly hours those days.
+     * Members who were told of it hear the branch is open as usual, if it
+     * hasn't ended (ADR 0039).
      */
     public function destroy(BranchClosure $branchClosure): Response
     {
         Gate::authorize('update', $branchClosure->branch);
 
-        $branchClosure->delete();
+        $branchClosure->takeBack();
 
         return response()->noContent();
     }

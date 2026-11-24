@@ -55,6 +55,11 @@ return [
         'body' => '{1} በ:gym የሚገኘው :branch :starts_on ላይ ከ:opens_at እስከ :closes_at ብቻ ክፍት ይሆናል፦ :reason።|[2,*] በ:gym የሚገኘው :branch ከ:starts_on እስከ :ends_on ከ:opens_at እስከ :closes_at ብቻ ክፍት ይሆናል፦ :reason።',
     ],
 
+    'branch_reopened' => [
+        'title' => ':branch እንደወትሮው ክፍት ነው',
+        'body' => '{1} በ:gym የሚገኘው :branch :starts_on ላይ እንደወትሮው ክፍት ይሆናል።|[2,*] በ:gym የሚገኘው :branch ከ:starts_on እስከ :ends_on እንደወትሮው ክፍት ይሆናል።',
+    ],
+
     // The gym's own words, the same in every language (ADR 0015).
     'announcement' => [
         'title' => ':title',
