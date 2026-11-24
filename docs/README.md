@@ -72,6 +72,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Announcement | A message from a gym to its members in its own words, to every branch or one, sent now or at a set time, in the inbox and by push (ADR 0015). |
 | Check-in | A member coming through the door, by scanning their QR code or at the desk. Every attempt is kept, allowed or denied, with the reason when denied. |
 | Member | A gym customer, registered at a home branch but welcome at every branch of the gym. May or may not have a User. |
+| Member photo | A 512 px square photo of the member, so the desk can see the person at the door is them. Taken at the desk or set from the members app, kept privately and shown through links that work for 10 minutes (ADR 0036). |
 | Staff | A User's role at one organization: Owner, Manager, Receptionist, Trainer or Accountant. Works at all branches or only at assigned ones. |
 | Plan | What a gym sells: a price and a length in days or months (e.g. Monthly, 2,500 ETB), valid at all branches or only some, with a number of days it can be frozen. |
 | Membership | A plan sold to a member for set dates, both included. A member has one membership at a time. |
@@ -130,6 +131,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0033](adr/0033-staff-panel-look-and-conventions.md) | The staff panel's look and conventions |
 | [0034](adr/0034-message-languages.md) | Message languages (English and Amharic) |
 | [0035](adr/0035-staff-push-and-sms.md) | Push and SMS to staff |
+| [0036](adr/0036-member-photos.md) | Member photos |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 

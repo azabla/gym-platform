@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Staff\Resources\Members\Pages;
 
+use App\Domains\Members\Models\Member;
+use App\Domains\Members\Photos\MemberPhoto;
 use App\Filament\Staff\Actions\CheckInAction;
 use App\Filament\Staff\Actions\DiscountGroupAction;
+use App\Filament\Staff\Actions\MemberPhotoAction;
 use App\Filament\Staff\Actions\SellMembershipAction;
 use App\Filament\Staff\Resources\CheckIns\CheckInResource;
 use App\Filament\Staff\Resources\Members\MemberResource;
@@ -14,8 +17,10 @@ use App\Filament\Staff\Resources\Payments\PaymentResource;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * A member, with links to their memberships, payments and check-ins: the
@@ -34,6 +39,20 @@ class ViewMember extends ViewRecord
             CheckInAction::make(),
             SellMembershipAction::make(),
             DiscountGroupAction::make(),
+            MemberPhotoAction::make(),
+            Action::make('removePhoto')
+                ->label('Remove photo')
+                ->icon(Heroicon::OutlinedTrash)
+                ->color('gray')
+                ->visible(fn (Member $record): bool => $record->photo_path !== null && Gate::allows('update', $record))
+                ->requiresConfirmation()
+                ->modalIcon(Heroicon::OutlinedCamera)
+                ->modalDescription('The member\'s photo is deleted. The desk can add another, or the member can from the app.')
+                ->action(function (Member $record): void {
+                    app(MemberPhoto::class)->remove($record);
+
+                    Notification::make()->success()->title('Photo removed.')->send();
+                }),
             Action::make('memberships')
                 ->icon(Heroicon::OutlinedIdentification)
                 ->color('gray')

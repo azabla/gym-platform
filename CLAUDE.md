@@ -187,7 +187,7 @@ This is how the project has been built so far; keep to it so any session, local 
 ### Where to look
 
 - `docs/README.md`: where things live, conventions and the glossary.
-- `docs/adr/`: why things are the way they are (0001 to 0035 so far).
+- `docs/adr/`: why things are the way they are (0001 to 0036 so far).
 - `docs/api/members-app.md`: the contract with the members app.
 - `/docs/api`: the API docs Scramble generates from the code, for staff signed in to the panel (ADR 0021).
-- Not built yet, and candidates for the next piece: an Amharic panel interface, member photos, the real server (always on, separate worker and scheduler, Redis, a domain; ADR 0028 has the accounts, Sentry and backups ready to switch on).
+- Not built yet, and candidates for the next piece: an Amharic panel interface, the real server (always on, separate worker and scheduler, Redis, a domain; ADR 0028 has the accounts, Sentry and backups ready to switch on).

@@ -6,6 +6,7 @@ use App\Domains\Attendance\Enums\CheckInResult;
 use App\Domains\Attendance\Models\CheckIn;
 use App\Domains\Billing\Balances\MembershipBalance;
 use App\Domains\Members\Models\Member;
+use App\Domains\Members\Photos\MemberPhoto;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Shared\Money\Money;
@@ -54,6 +55,7 @@ class CheckInResource extends JsonResource
                 'id' => $member->id,
                 'full_name' => $member->full_name,
                 'phone' => $member->phone,
+                'photo_url' => app(MemberPhoto::class)->urlFor($member),
             ]),
             'membership' => $this->whenLoaded('membership', fn (Membership $membership) => [
                 'id' => $membership->id,

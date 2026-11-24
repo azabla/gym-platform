@@ -3,6 +3,7 @@
 namespace App\Http\Resources\V1\Me;
 
 use App\Domains\Members\Models\Member;
+use App\Domains\Members\Photos\MemberPhoto;
 use App\Domains\Memberships\Models\Membership;
 use App\Http\Resources\V1\BranchResource;
 use Illuminate\Http\Request;
@@ -30,6 +31,7 @@ class MyGymResource extends JsonResource
             'member' => [
                 'id' => $this->id,
                 'full_name' => $this->full_name,
+                'photo_url' => app(MemberPhoto::class)->urlFor($this->resource),
                 'home_branch' => new BranchResource($this->whenLoaded('homeBranch')),
             ],
             'membership' => $this->whenLoaded('membershipAtAGlance', fn (Membership $membership) => [

@@ -29,6 +29,7 @@ use App\Filament\Staff\Resources\Members\Pages\ListMembers;
 use App\Filament\Staff\Resources\Members\Pages\ViewMember;
 use App\Filament\Staff\Support\Badges;
 use App\Filament\Staff\Support\Languages;
+use App\Filament\Staff\Support\Photos;
 use App\Filament\Staff\Support\Tables;
 use App\Rules\ValidPhoneNumber;
 use BackedEnum;
@@ -40,6 +41,7 @@ use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Resources\Resource;
@@ -48,6 +50,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
@@ -172,6 +175,11 @@ class MemberResource extends Resource
                 Section::make('At a glance')
                     ->icon(Heroicon::OutlinedSparkles)
                     ->schema([
+                        ImageEntry::make('photo')
+                            ->hiddenLabel()
+                            ->state(fn (Member $record): string => Photos::urlFor($record))
+                            ->circular()
+                            ->imageSize(112),
                         Grid::make(['default' => 2, 'lg' => 4])->schema([
                             TextEntry::make('membership_today')
                                 ->label('Membership today')
@@ -236,6 +244,11 @@ class MemberResource extends Resource
             ->splitSearchTerms(false)
             ->searchPlaceholder('Name or phone number')
             ->columns([
+                ImageColumn::make('photo')
+                    ->label('')
+                    ->state(fn (Member $record): string => Photos::urlFor($record))
+                    ->circular()
+                    ->imageSize(36),
                 TextColumn::make('full_name')
                     ->label('Name')
                     ->weight(FontWeight::SemiBold)

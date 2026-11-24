@@ -185,6 +185,22 @@ function recordingPushSender(array $answers = []): PushSender
 }
 
 /**
+ * An image of the given size, its left half red and its right half blue, as
+ * a phone or the desk would upload it (ADR 0036).
+ */
+function photoBytes(int $width, int $height, string $type = 'jpeg'): string
+{
+    $image = imagecreatetruecolor($width, $height);
+    imagefilledrectangle($image, 0, 0, intdiv($width, 2) - 1, $height - 1, (int) imagecolorallocate($image, 255, 0, 0));
+    imagefilledrectangle($image, intdiv($width, 2), 0, $width - 1, $height - 1, (int) imagecolorallocate($image, 0, 0, 255));
+
+    ob_start();
+    $type === 'png' ? imagepng($image) : imagejpeg($image, null, 95);
+
+    return (string) ob_get_clean();
+}
+
+/**
  * Record pushes instead of writing them to the log, and give the recorder,
  * whose $sent lists each push as [phone token, message].
  */
