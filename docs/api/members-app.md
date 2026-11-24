@@ -65,7 +65,7 @@ The membership has `visits_remaining` for a visit pack (ADR 0016). Volt's `grace
 
 **A branch:** `id`, `code`, `name`, `address`, and in the branch list `opening_hours`: a list of `weekday` (1 is Monday, 7 is Sunday), `opens_at` and `closes_at` (`"06:00"`, in the gym's time zone). An empty list means always open; once a branch has hours, a weekday not listed is closed. A `closes_at` earlier than `opens_at` means after midnight: Friday `18:00`–`02:00` is open until 02:00 on Saturday, so show it as "18:00–02:00 (next day)".
 
-**A branch's `closures`** are the days, from today to 60 days ahead, when it is closed or keeps other hours (ADR 0037): a list of `id`, `branch_id`, `starts_on`, `ends_on` (both included), `reason` (such as "Timket"), `opens_at` and `closes_at`. When `opens_at` and `closes_at` are `null` the branch is closed all day; otherwise it is open only those hours on those days, whatever its weekly hours say. Show them with the branch, soonest first.
+**A branch's `closures`** are the days, from today to 60 days ahead, when it is closed or keeps other hours (ADR 0037): a list of `id`, `branch_id`, `starts_on`, `ends_on` (both included), `reason` (such as "Timket"), `opens_at`, `closes_at`, `repeats_yearly` (it comes back every year on the same Ethiopian date) and `ethiopian_date` (the Ethiopian day and month it starts on, such as "Tir 11"). When `opens_at` and `closes_at` are `null` the branch is closed all day; otherwise it is open only those hours on those days, whatever its weekly hours say. Show them with the branch, soonest first.
 
 ### My photo
 
@@ -172,8 +172,9 @@ A push has a `title` and `body`, safe for a lock screen, and `data`, every value
 | `payment_succeeded` | a payment is recorded | `payment_id`, `membership_id` | that receipt |
 | `visit_denied` | a check-in is turned away | `check_in_id`, `reason_code` | visits |
 | `visits_running_low` | a visit pack has one visit left | `membership_id` | that membership |
-| `branch_closed` | the member's home branch will be closed all day, within 14 days | `branch_id` | the branches, with its closures |
-| `branch_hours_changed` | the member's home branch will open other hours, within 14 days | `branch_id` | the branches, with its closures |
+| `branch_closed` | the member's home branch will be closed all day: when a closure within 14 days is added, and at 09:00 the day before | `branch_id` | the branches, with its closures |
+| `branch_hours_changed` | the member's home branch will open other hours, at the same times | `branch_id` | the branches, with its closures |
+| `branch_reopened` | a closure the member was told about was taken back before it ended | `branch_id` | the branches |
 | `announcement` | the gym sends an announcement | `announcement_id` | that announcement |
 
 Every push also has `notification_id` (mark it read when tapped), and `gym`, the gym's slug, to switch to the right gym first (ADR 0022). `organization_id`, the gym's number, is there too.
