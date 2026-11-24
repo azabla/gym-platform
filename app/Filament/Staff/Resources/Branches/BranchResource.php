@@ -8,6 +8,7 @@ use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\BranchOpeningHour;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Filament\Staff\NavigationGroup;
+use App\Filament\Staff\Resources\BranchClosures\BranchClosureResource;
 use App\Filament\Staff\Resources\Branches\Pages\CreateBranch;
 use App\Filament\Staff\Resources\Branches\Pages\EditBranch;
 use App\Filament\Staff\Resources\Branches\Pages\ListBranches;
@@ -108,7 +109,7 @@ class BranchResource extends Resource
     {
         return Tables::standard($table, Heroicon::OutlinedBuildingStorefront, 'No branches', 'Add the gym\'s branches, each with its opening hours.')
             ->defaultSort('name')
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('openingHours'))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(Branch::withHoursAndClosuresFrom(app(CurrentStaff::class)->get()->organization->today())))
             ->columns([
                 TextColumn::make('name')
                     ->weight(FontWeight::SemiBold)
@@ -120,6 +121,14 @@ class BranchResource extends Resource
                     ->state(fn (Branch $record): array => self::hoursOf($record))
                     ->listWithLineBreaks()
                     ->color('gray'),
+                TextColumn::make('next_closure')
+                    ->label('Next closure')
+                    ->state(fn (Branch $record): ?string => self::nextClosureOf($record))
+                    ->badge()
+                    ->color('warning')
+                    ->icon(Heroicon::OutlinedCalendarDays)
+                    ->placeholder('None soon')
+                    ->url(fn (Branch $record): string => BranchClosureResource::getUrl('index', ['filters' => ['branch' => ['value' => $record->id]]])),
             ])
             ->recordActions([
                 EditAction::make(),
@@ -198,6 +207,17 @@ class BranchResource extends Resource
             fn (array $day): string => self::WEEKDAYS[$day['weekday']]." {$day['opens_at']}–{$day['closes_at']}".($day['closes_at'] < $day['opens_at'] ? ' (next day)' : ''),
             self::weekOf($branch),
         );
+    }
+
+    /**
+     * The branch's next closure in the coming 60 days, such as "Mon 26 Oct:
+     * Repairs", or null.
+     */
+    private static function nextClosureOf(Branch $branch): ?string
+    {
+        $closure = $branch->closures->first();
+
+        return $closure === null ? null : BranchClosureResource::daysOf($closure).': '.$closure->reason;
     }
 
     private static function validCodeNoOtherBranchHas(?Branch $ignoring): Closure
