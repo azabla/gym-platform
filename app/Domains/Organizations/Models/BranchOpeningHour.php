@@ -29,12 +29,31 @@ class BranchOpeningHour extends Model
     }
 
     /**
-     * Whether the time of day, "HH:MM:SS", falls within these hours: from
-     * opening, until just before closing.
+     * Whether the time of day, "HH:MM:SS", falls within these hours on their
+     * own weekday: from opening until just before closing, or until midnight
+     * when they run past it.
      */
     public function covers(string $timeOfDay): bool
     {
-        return $timeOfDay >= $this->opens_at && $timeOfDay < $this->closes_at;
+        return $timeOfDay >= $this->opens_at && ($this->runsPastMidnight() || $timeOfDay < $this->closes_at);
+    }
+
+    /**
+     * Whether the time of day on the next day still falls within these
+     * hours: before closing, when they run past midnight.
+     */
+    public function coversTheNextMorning(string $timeOfDay): bool
+    {
+        return $this->runsPastMidnight() && $timeOfDay < $this->closes_at;
+    }
+
+    /**
+     * Whether the branch closes after midnight, on the next day: closing is
+     * given as earlier than opening, such as 18:00–02:00 (ADR 0037).
+     */
+    public function runsPastMidnight(): bool
+    {
+        return $this->closes_at < $this->opens_at;
     }
 
     /**

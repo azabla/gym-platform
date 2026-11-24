@@ -71,7 +71,7 @@ class BranchResource extends Resource
                             ->maxLength(255),
                     ]),
                 Section::make('Opening hours')
-                    ->description('In the gym\'s time zone. With no hours the branch is always open; once it has some, a day without hours is closed, and check-ins outside them are turned away.')
+                    ->description('In the gym\'s time zone. With no hours the branch is always open; once it has some, a day without hours is closed, and check-ins outside them are turned away. Holidays go under Closures.')
                     ->icon(Heroicon::OutlinedClock)
                     ->schema([
                         Repeater::make('hours')
@@ -96,8 +96,9 @@ class BranchResource extends Resource
                                     ->seconds(false)
                                     ->required()
                                     ->prefixIcon(Heroicon::OutlinedMoon)
-                                    ->after('opens_at')
-                                    ->validationMessages(['after' => 'Closing must be after opening, on the same day.']),
+                                    ->different('opens_at')
+                                    ->helperText('Earlier than opening means after midnight, such as 18:00–02:00.')
+                                    ->validationMessages(['different' => 'Closing must be a different time from opening.']),
                             ]),
                     ]),
             ]);
@@ -194,7 +195,7 @@ class BranchResource extends Resource
         }
 
         return array_map(
-            fn (array $day): string => self::WEEKDAYS[$day['weekday']]." {$day['opens_at']}–{$day['closes_at']}",
+            fn (array $day): string => self::WEEKDAYS[$day['weekday']]." {$day['opens_at']}–{$day['closes_at']}".($day['closes_at'] < $day['opens_at'] ? ' (next day)' : ''),
             self::weekOf($branch),
         );
     }

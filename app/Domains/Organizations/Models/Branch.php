@@ -78,7 +78,9 @@ class Branch extends Model
     /**
      * Whether the branch is open at the moment, in the gym's time zone. A
      * branch without opening hours is always open; once it has some, a
-     * weekday without hours is closed. See ADR 0016.
+     * weekday without hours is closed. See ADR 0016. Hours that run past
+     * midnight, such as Monday 18:00–02:00, keep it open into Tuesday
+     * morning (ADR 0037).
      */
     public function isOpenAt(CarbonImmutable $moment, string $timezone): bool
     {
@@ -87,9 +89,12 @@ class Branch extends Model
         }
 
         $local = $moment->setTimezone($timezone);
-        $hours = $this->openingHours->firstWhere('weekday', $local->isoWeekday());
+        $timeOfDay = $local->format('H:i:s');
+        $today = $this->openingHours->firstWhere('weekday', $local->isoWeekday());
+        $yesterday = $this->openingHours->firstWhere('weekday', $local->subDay()->isoWeekday());
 
-        return $hours !== null && $hours->covers($local->format('H:i:s'));
+        return ($today !== null && $today->covers($timeOfDay))
+            || ($yesterday !== null && $yesterday->coversTheNextMorning($timeOfDay));
     }
 
     /**

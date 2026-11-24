@@ -108,7 +108,7 @@ it('checks the week sent', function (array $hours, string $field) {
 })->with([
     'no such weekday' => [[['weekday' => 8, 'opens_at' => '06:00', 'closes_at' => '21:00']], 'hours.0.weekday'],
     'a weekday twice' => [[['weekday' => 1, 'opens_at' => '06:00', 'closes_at' => '12:00'], ['weekday' => 1, 'opens_at' => '14:00', 'closes_at' => '21:00']], 'hours.1.weekday'],
-    'closing before opening' => [[['weekday' => 1, 'opens_at' => '21:00', 'closes_at' => '06:00']], 'hours.0.closes_at'],
+    'closing when opening' => [[['weekday' => 1, 'opens_at' => '06:00', 'closes_at' => '06:00']], 'hours.0.closes_at'],
     'not a time' => [[['weekday' => 1, 'opens_at' => '6am', 'closes_at' => '21:00']], 'hours.0.opens_at'],
     'no week at all' => [['nothing'], 'hours.0.weekday'],
 ]);
@@ -142,4 +142,29 @@ it('shows the members app every branch with its hours', function () {
         ->assertJsonPath('data.*.name', ['Bole Branch', 'Main Branch'])
         ->assertJsonPath('data.0.opening_hours', [])
         ->assertJsonCount(6, 'data.1.opening_hours');
+});
+
+it('keeps a branch open past midnight when closing is earlier than opening', function () {
+    $this->membership->forceFill(['starts_on' => '2026-10-01', 'ends_on' => '2026-11-30'])->save();
+    actingAsStaff($this->gym, StaffRole::Owner);
+
+    $this->putJson(openingHoursUrl($this->mainBranch), ['hours' => [['weekday' => 5, 'opens_at' => '18:00', 'closes_at' => '02:00']]])
+        ->assertOk()
+        ->assertJsonPath('data.0', ['weekday' => 5, 'opens_at' => '18:00', 'closes_at' => '02:00']);
+
+    // Friday 23 October 18:00 until Saturday 24 October 02:00.
+    checkInAt($this->hana, $this->mainBranch, '2026-10-23 17:59')->assertJsonPath('data.reason_code', 'OUTSIDE_HOURS');
+    checkInAt($this->hana, $this->mainBranch, '2026-10-23 23:30')->assertJsonPath('data.decision', 'allow');
+    checkInAt($this->hana, $this->mainBranch, '2026-10-24 01:59')->assertJsonPath('data.decision', 'allow');
+    checkInAt($this->hana, $this->mainBranch, '2026-10-24 02:00')->assertJsonPath('data.reason_code', 'OUTSIDE_HOURS');
+    checkInAt($this->hana, $this->mainBranch, '2026-10-24 19:00')->assertJsonPath('data.reason_code', 'OUTSIDE_HOURS');
+});
+
+it('counts a visit after midnight on its own calendar day', function () {
+    BranchOpeningHour::factory()->for($this->mainBranch)->create(['weekday' => 5, 'opens_at' => '18:00:00', 'closes_at' => '02:00:00']);
+    $this->membership->forceFill(['visit_limit' => 1, 'starts_on' => '2026-10-01', 'ends_on' => '2026-11-30'])->save();
+    actingAsStaff($this->gym, StaffRole::Receptionist);
+
+    checkInAt($this->hana, $this->mainBranch, '2026-10-23 23:00')->assertJsonPath('data.decision', 'allow');
+    checkInAt($this->hana, $this->mainBranch, '2026-10-24 01:00')->assertJsonPath('data.reason_code', 'VISITS_USED_UP');
 });

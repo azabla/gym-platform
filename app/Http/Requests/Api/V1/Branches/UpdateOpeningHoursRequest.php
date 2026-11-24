@@ -18,8 +18,9 @@ class UpdateOpeningHoursRequest extends FormRequest
 
     /**
      * The whole week at once: each open weekday once, 1 for Monday to 7 for
-     * Sunday, opening before closing on the same day. An empty list makes
-     * the branch always open.
+     * Sunday, closing at a different time from opening: earlier means after
+     * midnight, so 18:00–02:00 runs into the next day (ADR 0037). An empty
+     * list makes the branch always open.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -29,7 +30,7 @@ class UpdateOpeningHoursRequest extends FormRequest
             'hours' => ['present', 'array', 'max:7'],
             'hours.*.weekday' => ['required', 'integer', 'between:1,7', 'distinct'],
             'hours.*.opens_at' => ['required', 'date_format:H:i'],
-            'hours.*.closes_at' => ['required', 'date_format:H:i', 'after:hours.*.opens_at'],
+            'hours.*.closes_at' => ['required', 'date_format:H:i', 'different:hours.*.opens_at'],
         ];
     }
 
@@ -42,7 +43,7 @@ class UpdateOpeningHoursRequest extends FormRequest
     {
         return [
             'hours.*.weekday.distinct' => 'Give each weekday once.',
-            'hours.*.closes_at.after' => 'Closing must be after opening, on the same day.',
+            'hours.*.closes_at.different' => 'Closing must be a different time from opening.',
         ];
     }
 
