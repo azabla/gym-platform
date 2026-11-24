@@ -172,3 +172,20 @@ it('refuses a scan at a branch the staff member doesn\'t work at, and a deny wit
         ->assertUnprocessable()
         ->assertJsonValidationErrors('scans.0.reason_code');
 });
+
+it('lists offline check-ins and the ones that need review in the staff API', function () {
+    actingAsStaff($this->gym, StaffRole::Manager);
+    $this->membership->forceFill(['ends_on' => '2026-10-23'])->save();
+    sendOfflineScans(offlineScan(codeShownAt($this->credential, '2026-10-24 08:30'), $this->main, '2026-10-24 08:30'));
+    $this->postJson(route('api.v1.organizations.members.check-ins.store', ['organization' => 'demo-gym', 'member' => $this->hana]), ['branch_id' => $this->main->id]);
+
+    $url = route('api.v1.organizations.check-ins.index', ['organization' => 'demo-gym']);
+
+    $this->getJson($url)->assertJsonCount(2, 'data');
+    $this->getJson($url.'?needs_review=1')
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.offline', true)
+        ->assertJsonPath('data.0.server_disagrees', true)
+        ->assertJsonPath('data.0.server_reason_code', 'MEMBERSHIP_EXPIRED');
+    $this->getJson($url.'?offline=1')->assertJsonCount(1, 'data');
+});

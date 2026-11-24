@@ -36,6 +36,8 @@ class CheckInController extends Controller
             ->madeAtAnyOf($request->branchIds())
             ->when($request->filled('result'), fn ($query) => $query->where('result', $request->string('result')->toString()))
             ->when($request->filled('member_id'), fn ($query) => $query->where('member_id', $request->integer('member_id')))
+            ->when($request->boolean('offline'), fn ($query) => $query->where('offline', true))
+            ->when($request->boolean('needs_review'), fn ($query) => $query->where('server_disagrees', true))
             ->orderByDesc('checked_in_at')
             ->orderByDesc('id')
             ->paginate(25)

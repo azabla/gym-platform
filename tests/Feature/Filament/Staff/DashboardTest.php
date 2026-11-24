@@ -111,3 +111,13 @@ it('draws the last week of takings and check-ins as sparklines', function () {
     expect($taken)->toHaveCount(7)
         ->and($checkIns)->toHaveCount(7);
 });
+
+it('links to offline check-ins that need review, only when there are some', function () {
+    actingAsStaffInPanel($this->gym, StaffRole::Manager);
+
+    Livewire::test(GymOverview::class)->assertDontSee('Check-ins to review');
+
+    CheckIn::factory()->for(Member::factory()->for($this->mainBranch, 'homeBranch'))->for($this->mainBranch)->create(['offline' => true, 'server_disagrees' => true]);
+
+    Livewire::test(GymOverview::class)->assertSee('Check-ins to review');
+});

@@ -50,6 +50,9 @@ class CheckInResource extends JsonResource
             'reason_code' => $this->reason_code,
             'method' => $this->method,
             'checked_in_at' => $this->checked_in_at->toIso8601String(),
+            'offline' => $this->offline,
+            'server_disagrees' => $this->server_disagrees,
+            'server_reason_code' => $this->server_reason_code,
             'branch' => new BranchResource($this->whenLoaded('branch')),
             'member' => $this->whenLoaded('member', fn (Member $member) => [
                 'id' => $member->id,

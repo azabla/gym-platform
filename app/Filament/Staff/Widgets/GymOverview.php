@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Filament\Staff\Widgets;
 
 use App\Dashboards\StaffDashboard;
+use App\Domains\Attendance\Models\CheckIn;
+use App\Filament\Staff\Resources\CheckIns\CheckInResource;
 use App\Filament\Staff\Widgets\Concerns\ReadsDashboardFilters;
 use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\StatsOverviewWidget;
@@ -28,8 +30,9 @@ class GymOverview extends StatsOverviewWidget
         $checkIns = $dashboard->checkIns($this->gym(), $this->from(), $this->to(), $this->branchIds());
         $members = $dashboard->members($this->gym(), $this->from(), $this->to(), $this->branchIds());
         $sold = $members['memberships_sold'];
+        $toReview = CheckIn::query()->madeAtAnyOf($this->branchIds())->where('server_disagrees', true)->count();
 
-        return [
+        $stats = [
             Stat::make('Check-ins', (string) $checkIns['allowed'])
                 ->description("{$checkIns['denied']} turned away")
                 ->descriptionIcon(Heroicon::OutlinedArrowRightEndOnRectangle)
@@ -48,6 +51,17 @@ class GymOverview extends StatsOverviewWidget
                 ->descriptionIcon(Heroicon::OutlinedShoppingCart)
                 ->color('success'),
         ];
+
+        // Offline scans the server would have decided otherwise (ADR 0038).
+        if ($toReview > 0) {
+            $stats[] = Stat::make('Check-ins to review', (string) $toReview)
+                ->description('Made offline; the server disagrees')
+                ->descriptionIcon(Heroicon::OutlinedExclamationTriangle)
+                ->color('warning')
+                ->url(CheckInResource::getUrl('index', ['filters' => ['needs_review' => ['isActive' => true]]]));
+        }
+
+        return $stats;
     }
 
     /**
