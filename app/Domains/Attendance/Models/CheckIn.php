@@ -84,7 +84,7 @@ class CheckIn extends Model
             return $deny(CheckInDenial::CodeAlreadyUsed, $credential->member);
         }
 
-        return self::admit(CheckInMethod::Qr, $credential->member, $branch, $scannedBy, $credential, $idempotencyKey);
+        return self::admit(CheckInMethod::Qr, $credential->member, $branch, $scannedBy, $credential, $idempotencyKey, $scanned->step);
     }
 
     /**
@@ -127,14 +127,14 @@ class CheckIn extends Model
     /**
      * Let the member in if the membership rules allow it, and record either way.
      */
-    private static function admit(CheckInMethod $method, Member $member, Branch $branch, Staff $staff, ?AccessCredential $credential, ?string $idempotencyKey): self
+    private static function admit(CheckInMethod $method, Member $member, Branch $branch, Staff $staff, ?AccessCredential $credential, ?string $idempotencyKey, ?int $codeStep = null): self
     {
         $decision = app(AccessEvaluator::class)->evaluate($member, $branch);
 
-        return self::record($method, $member, $branch, $staff, $decision->membership, $decision->denial, $credential, $idempotencyKey);
+        return self::record($method, $member, $branch, $staff, $decision->membership, $decision->denial, $credential, $idempotencyKey, $codeStep);
     }
 
-    private static function record(CheckInMethod $method, ?Member $member, Branch $branch, Staff $staff, ?Membership $membership, ?CheckInDenial $denial, ?AccessCredential $credential, ?string $idempotencyKey): self
+    private static function record(CheckInMethod $method, ?Member $member, Branch $branch, Staff $staff, ?Membership $membership, ?CheckInDenial $denial, ?AccessCredential $credential, ?string $idempotencyKey, ?int $codeStep = null): self
     {
         $checkIn = new self;
         $checkIn->organization()->associate($branch->organization_id);
@@ -148,6 +148,7 @@ class CheckIn extends Model
         $checkIn->checkedInBy()->associate($staff);
         $checkIn->checked_in_at = CarbonImmutable::now();
         $checkIn->idempotency_key = $idempotencyKey;
+        $checkIn->code_step = $codeStep;
         $checkIn->save();
 
         if ($denial !== null && $member !== null) {
@@ -188,6 +189,9 @@ class CheckIn extends Model
             'result' => CheckInResult::class,
             'reason_code' => CheckInDenial::class,
             'checked_in_at' => 'immutable_datetime',
+            'offline' => 'boolean',
+            'server_disagrees' => 'boolean',
+            'server_reason_code' => CheckInDenial::class,
         ];
     }
 }
