@@ -63,7 +63,10 @@ class BranchClosureResource extends Resource
                     ->badge()
                     ->color(fn (BranchClosure $record): string => $record->isClosedAllDay() ? 'danger' : 'warning')
                     ->icon(fn (BranchClosure $record): Heroicon => $record->isClosedAllDay() ? Heroicon::OutlinedLockClosed : Heroicon::OutlinedClock),
-                TextColumn::make('reason')->searchable()->wrap(),
+                TextColumn::make('reason')
+                    ->searchable()
+                    ->wrap()
+                    ->description(fn (BranchClosure $record): ?string => $record->repeats_yearly ? 'Yearly, on '.$record->ethiopianStart() : null),
                 TextColumn::make('createdBy.user.name')->label('Added by')->toggleable(isToggledHiddenByDefault: true),
             ])
             ->searchPlaceholder('Reason')

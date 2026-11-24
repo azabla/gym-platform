@@ -31,6 +31,8 @@ class BranchClosureResource extends JsonResource
             'reason' => $this->reason,
             'opens_at' => $this->opens_at === null ? null : substr((string) $this->opens_at, 0, 5),
             'closes_at' => $this->closes_at === null ? null : substr((string) $this->closes_at, 0, 5),
+            'repeats_yearly' => $this->repeats_yearly,
+            'ethiopian_date' => $this->ethiopianStart(),
         ];
     }
 }

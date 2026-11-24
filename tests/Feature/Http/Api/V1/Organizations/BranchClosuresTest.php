@@ -49,6 +49,8 @@ it('lets an owner close several branches at once, or open them other hours', fun
             'reason' => 'Timket',
             'opens_at' => '08:00',
             'closes_at' => '12:00',
+            'repeats_yearly' => false,
+            'ethiopian_date' => 'Tikimt 16',
         ]);
 
     $this->getJson(closuresUrl())->assertOk()->assertJsonCount(2, 'data');

@@ -46,6 +46,7 @@ class StoreBranchClosureRequest extends FormRequest
             'reason' => ['required', 'string', 'max:100'],
             'opens_at' => ['nullable', 'date_format:H:i', 'required_with:closes_at'],
             'closes_at' => ['nullable', 'date_format:H:i', 'required_with:opens_at', 'different:opens_at'],
+            'repeats_yearly' => ['sometimes', 'boolean'],
         ];
     }
 

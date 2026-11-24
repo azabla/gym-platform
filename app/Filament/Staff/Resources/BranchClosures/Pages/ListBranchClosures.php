@@ -9,6 +9,7 @@ use App\Domains\Organizations\Exceptions\BranchClosureRefused;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\BranchClosure;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
+use App\Domains\Shared\EthiopianCalendar\EthiopianDate;
 use App\Filament\Staff\Actions\Refusals;
 use App\Filament\Staff\Resources\BranchClosures\BranchClosureResource;
 use App\Listeners\TellTheMember;
@@ -77,6 +78,11 @@ class ListBranchClosures extends ListRecords
                                 ->required()
                                 ->columnSpanFull()
                                 ->live(onBlur: true),
+                            Toggle::make('repeats_yearly')
+                                ->label('Every year, on the same Ethiopian date')
+                                ->helperText('For Genna, Timket, Meskel and other fixed holidays. Fasika and Eid move, so add those each year.')
+                                ->columnSpanFull()
+                                ->live(),
                         ]),
                     Section::make('Hours')
                         ->icon(Heroicon::OutlinedClock)
@@ -121,6 +127,7 @@ class ListBranchClosures extends ListRecords
                             (string) $data['reason'],
                             $specialHours ? (string) $data['opens_at'] : null,
                             $specialHours ? (string) $data['closes_at'] : null,
+                            (bool) ($data['repeats_yearly'] ?? false),
                         );
                     } catch (BranchClosureRefused $refusal) {
                         Refusals::halt($action, $refusal);
@@ -156,7 +163,11 @@ class ListBranchClosures extends ListRecords
             ? trans_choice('{0} No members to tell.|{1} 1 member will get a push.|[2,*] :count members will get a push.', Member::query()->homeAtAnyOf($branchIds)->count())
             : 'It is more than 14 days away, so members aren\'t told now; they see it in the app.';
 
-        return implode(', ', $names)." {$hours} {$days}. {$told}";
+        $yearly = $get('repeats_yearly')
+            ? ' Repeats every year on '.EthiopianDate::fromGregorian($from->toDateString())->dayAndMonth().'.'
+            : '';
+
+        return implode(', ', $names)." {$hours} {$days}.{$yearly} {$told}";
     }
 
     private static function today(): CarbonImmutable

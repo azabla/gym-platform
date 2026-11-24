@@ -9,6 +9,7 @@ use App\Domains\Organizations\Events\BranchClosureTakenBack;
 use App\Domains\Organizations\Exceptions\BranchClosureRefused;
 use App\Domains\Organizations\Hours\OpeningWindow;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
+use App\Domains\Shared\EthiopianCalendar\EthiopianDate;
 use Carbon\CarbonImmutable;
 use Database\Factories\BranchClosureFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -102,6 +103,7 @@ class BranchClosure extends Model
         string $reason,
         ?string $opensAt = null,
         ?string $closesAt = null,
+        bool $repeatsYearly = false,
     ): Collection {
         $refusal = self::refusalToSchedule($by, $branches, $startsOn, $endsOn);
 
@@ -109,7 +111,7 @@ class BranchClosure extends Model
             throw $refusal;
         }
 
-        return DB::transaction(function () use ($by, $branches, $startsOn, $endsOn, $reason, $opensAt, $closesAt): Collection {
+        return DB::transaction(function () use ($by, $branches, $startsOn, $endsOn, $reason, $opensAt, $closesAt, $repeatsYearly): Collection {
             $closures = new Collection;
 
             foreach ($branches as $branch) {
@@ -123,6 +125,7 @@ class BranchClosure extends Model
                     'opens_at' => self::timeOrNull($opensAt),
                     'closes_at' => self::timeOrNull($closesAt),
                     'created_by_staff_id' => $by->id,
+                    'repeats_yearly' => $repeatsYearly,
                 ])->save();
                 $closures->push($closure);
             }
@@ -134,6 +137,44 @@ class BranchClosure extends Model
 
             return $closures;
         });
+    }
+
+    /**
+     * For a closure that comes back every year, once it has ended: the same
+     * closure next year, on the same Ethiopian date (Timket stays on Tir 11,
+     * whether that is 19 or 20 January), as many days long, and coming back
+     * again. None when it would overlap a closure the branch already has.
+     * Made once; members hear of it the day before (ADR 0039).
+     */
+    public function repeatNextYear(): ?self
+    {
+        if (! $this->repeats_yearly || $this->repeated_at !== null) {
+            return null;
+        }
+
+        $startsOn = CarbonImmutable::parse(EthiopianDate::fromGregorian($this->starts_on->toDateString())->addYears(1)->toGregorian());
+        $endsOn = $startsOn->addDays((int) $this->starts_on->diffInDays($this->ends_on));
+
+        return DB::transaction(function () use ($startsOn, $endsOn): ?self {
+            $this->forceFill(['repeated_at' => CarbonImmutable::now()])->save();
+
+            if (self::query()->where('branch_id', $this->branch_id)->overlapping($startsOn, $endsOn)->exists()) {
+                return null;
+            }
+
+            $next = $this->replicate(['members_told_at', 'reminded_at', 'repeated_at']);
+            $next->forceFill(['starts_on' => $startsOn->toDateString(), 'ends_on' => $endsOn->toDateString()])->save();
+
+            return $next;
+        });
+    }
+
+    /**
+     * The Ethiopian day and month the closure starts on, such as "Tir 11".
+     */
+    public function ethiopianStart(): string
+    {
+        return EthiopianDate::fromGregorian($this->starts_on->toDateString())->dayAndMonth();
     }
 
     /**
