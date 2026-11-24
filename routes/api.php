@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\Me\MyNotificationController;
 use App\Http\Controllers\Api\V1\Me\MyNotificationPreferenceController;
 use App\Http\Controllers\Api\V1\Me\MyPaymentController;
 use App\Http\Controllers\Api\V1\Me\MyPaymentLinkController;
+use App\Http\Controllers\Api\V1\Me\MyPhotoController;
 use App\Http\Controllers\Api\V1\Me\MyPlanController;
 use App\Http\Controllers\Api\V1\Me\MyPlanPurchaseController;
 use App\Http\Controllers\Api\V1\Me\MyPushTokenController;
@@ -78,6 +79,12 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::put('me/language', [MyLanguageController::class, 'update'])
             ->middleware('throttle:30,1')
             ->name('me.language.update');
+
+        // My photo, at every gym where my phone is registered (ADR 0036).
+        Route::put('me/photo', [MyPhotoController::class, 'update'])
+            ->middleware('throttle:10,1')
+            ->name('me.photo.update');
+        Route::delete('me/photo', [MyPhotoController::class, 'destroy'])->name('me.photo.destroy');
 
         // The members app: the gyms where my phone number is registered, and my records at each (ADR 0010).
         Route::get('me/gyms', [MyGymController::class, 'index'])->name('me.gyms.index');
