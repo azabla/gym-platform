@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace App\Domains\Organizations\Models;
 
+use App\Domains\Organizations\Hours\OpeningWindow;
 use App\Domains\Organizations\Policies\BranchPolicy;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
 use Carbon\CarbonImmutable;
+use Closure;
 use Database\Factories\BranchFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -76,20 +79,72 @@ class Branch extends Model
     }
 
     /**
-     * Whether the branch is open at the moment, in the gym's time zone. A
-     * branch without opening hours is always open; once it has some, a
-     * weekday without hours is closed. See ADR 0016.
+     * Days the branch is closed or keeps other hours, such as holidays
+     * (ADR 0037).
+     *
+     * @return HasMany<BranchClosure, $this>
+     */
+    public function closures(): HasMany
+    {
+        return $this->hasMany(BranchClosure::class)->orderBy('starts_on');
+    }
+
+    /**
+     * What the apps load with a branch: its weekly hours, and its closures
+     * from the gym's today to 60 days ahead.
+     *
+     * @return array<int|string, string|Closure>
+     */
+    public static function withHoursAndClosuresFrom(CarbonImmutable $today): array
+    {
+        return [
+            'openingHours',
+            'closures' => fn ($query) => $query->upcomingFrom($today),
+        ];
+    }
+
+    /**
+     * Whether the branch is open at the moment, in the gym's time zone (ADR
+     * 0016). Hours that run past midnight, such as Monday 18:00–02:00, keep
+     * it open into Tuesday morning, and a closure overrides the weekly hours
+     * on its days (ADR 0037).
      */
     public function isOpenAt(CarbonImmutable $moment, string $timezone): bool
     {
-        if ($this->openingHours->isEmpty()) {
-            return true;
+        $local = $moment->setTimezone($timezone);
+        $timeOfDay = $local->format('H:i:s');
+        $date = $local->startOfDay();
+        $closures = $this->closures()->overlapping($date->subDay(), $date)->get();
+
+        $today = $this->windowOn($date, $closures);
+        $yesterday = $this->windowOn($date->subDay(), $closures);
+
+        return ($today !== null && $today->covers($timeOfDay))
+            || ($yesterday !== null && $yesterday->coversTheNextMorning($timeOfDay));
+    }
+
+    /**
+     * The branch's hours on a date, or null when it is closed all day: a
+     * closure on the date wins; otherwise the weekday's hours. A branch
+     * without weekly hours is open all day; once it has some, a weekday
+     * without hours is closed.
+     *
+     * @param  Collection<int, BranchClosure>|null  $closures  the branch's closures, if already loaded
+     */
+    public function windowOn(CarbonImmutable $date, ?Collection $closures = null): ?OpeningWindow
+    {
+        $closures ??= $this->closures()->overlapping($date, $date)->get();
+        $closure = $closures->first(fn (BranchClosure $closure): bool => $closure->covers($date));
+
+        if ($closure !== null) {
+            return $closure->window();
         }
 
-        $local = $moment->setTimezone($timezone);
-        $hours = $this->openingHours->firstWhere('weekday', $local->isoWeekday());
+        if ($this->openingHours->isEmpty()) {
+            return OpeningWindow::allDay();
+        }
 
-        return $hours !== null && $hours->covers($local->format('H:i:s'));
+        return $this->openingHours->firstWhere('weekday', $date->isoWeekday())?->window();
     }
 
     /**

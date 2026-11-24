@@ -6,6 +6,7 @@ use App\Domains\Billing\Exceptions\PaymentRefused;
 use App\Domains\Members\Exceptions\MemberPhotoRefused;
 use App\Domains\Memberships\Exceptions\MembershipRefused;
 use App\Domains\Memberships\Exceptions\PromoCodeRefused;
+use App\Domains\Organizations\Exceptions\BranchClosureRefused;
 use App\Domains\Organizations\Exceptions\StaffRefused;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Http\Middleware\ActAsMember;
@@ -80,6 +81,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // A staff change that would leave the gym without an owner (ADR 0019).
         $exceptions->map(fn (StaffRefused $exception) => ValidationException::withMessages([
+            $exception->field => $exception->getMessage(),
+        ]));
+
+        // A closure in the past, too long, or over another (ADR 0037).
+        $exceptions->map(fn (BranchClosureRefused $exception) => ValidationException::withMessages([
             $exception->field => $exception->getMessage(),
         ]));
 

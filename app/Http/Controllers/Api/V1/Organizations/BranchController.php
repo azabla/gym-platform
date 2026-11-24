@@ -14,11 +14,14 @@ use Illuminate\Support\Facades\Gate;
 class BranchController extends Controller
 {
     /**
-     * The branches the signed-in staff member works at, with their opening hours.
+     * The branches the signed-in staff member works at, with their opening
+     * hours and closures from today to 60 days ahead.
      */
     public function index(CurrentStaff $currentStaff): AnonymousResourceCollection
     {
-        return BranchResource::collection($currentStaff->get()->branchesWorkedAt()->load('openingHours'));
+        $staff = $currentStaff->get();
+
+        return BranchResource::collection($staff->branchesWorkedAt()->load(Branch::withHoursAndClosuresFrom($staff->organization->today())));
     }
 
     /**
@@ -49,6 +52,6 @@ class BranchController extends Controller
     {
         Gate::authorize('view', $branch);
 
-        return new BranchResource($branch->load('openingHours'));
+        return new BranchResource($branch->load(Branch::withHoursAndClosuresFrom($branch->organization->today())));
     }
 }

@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\V1\Me\MyPlanPurchaseController;
 use App\Http\Controllers\Api\V1\Me\MyPushTokenController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\Organizations\AnnouncementController;
+use App\Http\Controllers\Api\V1\Organizations\BranchClosureController;
 use App\Http\Controllers\Api\V1\Organizations\BranchController;
 use App\Http\Controllers\Api\V1\Organizations\BranchOpeningHoursController;
 use App\Http\Controllers\Api\V1\Organizations\ChapaAccountController;
@@ -166,6 +167,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 Route::apiResource('branches', BranchController::class)->only(['index', 'store', 'show', 'update']);
                 Route::get('branches/{branch}/opening-hours', [BranchOpeningHoursController::class, 'show'])
                     ->name('branches.opening-hours.show');
+                Route::apiResource('branch-closures', BranchClosureController::class)->only(['index', 'store', 'destroy']);
                 Route::put('branches/{branch}/opening-hours', [BranchOpeningHoursController::class, 'update'])
                     ->name('branches.opening-hours.update');
                 Route::apiResource('members', MemberController::class);

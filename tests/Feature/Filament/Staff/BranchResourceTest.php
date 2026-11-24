@@ -39,17 +39,32 @@ it('lets an owner add a branch with its opening hours', function () {
         ->toBe([[1, '06:00:00', '21:00:00'], [6, '08:00:00', '14:00:00']]);
 });
 
-it('refuses a code another branch has, and closing before opening', function () {
+it('refuses a code another branch has, and closing when it opens', function () {
     actingAsStaffInPanel($this->gym, StaffRole::Owner);
 
     Livewire::test(CreateBranch::class)
         ->fillForm([
             'name' => 'Bole 2',
             'code' => 'bole',
-            'hours' => [['weekday' => 1, 'opens_at' => '21:00', 'closes_at' => '06:00']],
+            'hours' => [['weekday' => 1, 'opens_at' => '06:00', 'closes_at' => '06:00']],
         ])
         ->call('create')
         ->assertHasFormErrors(['code', 'hours.0.closes_at']);
+});
+
+it('keeps hours that run past midnight, and says so in the list', function () {
+    actingAsStaffInPanel($this->gym, StaffRole::Owner);
+
+    Livewire::test(CreateBranch::class)
+        ->fillForm([
+            'name' => 'Night Branch',
+            'code' => 'night',
+            'hours' => [['weekday' => 5, 'opens_at' => '18:00', 'closes_at' => '02:00']],
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    Livewire::test(ListBranches::class)->assertSee('Friday 18:00–02:00 (next day)');
 });
 
 it('lets a manager change the hours of their branch, but not see another', function () {

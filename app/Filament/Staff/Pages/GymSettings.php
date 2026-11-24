@@ -33,7 +33,7 @@ class GymSettings extends Page
 
     protected static string|UnitEnum|null $navigationGroup = NavigationGroup::GymSetup;
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 7;
 
     protected static ?string $title = 'Gym settings';
 

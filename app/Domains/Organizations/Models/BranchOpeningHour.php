@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Organizations\Models;
 
+use App\Domains\Organizations\Hours\OpeningWindow;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
 use Database\Factories\BranchOpeningHourFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -29,12 +30,12 @@ class BranchOpeningHour extends Model
     }
 
     /**
-     * Whether the time of day, "HH:MM:SS", falls within these hours: from
-     * opening, until just before closing.
+     * These hours as a window; closing earlier than opening runs past
+     * midnight (ADR 0037).
      */
-    public function covers(string $timeOfDay): bool
+    public function window(): OpeningWindow
     {
-        return $timeOfDay >= $this->opens_at && $timeOfDay < $this->closes_at;
+        return new OpeningWindow((string) $this->opens_at, (string) $this->closes_at);
     }
 
     /**

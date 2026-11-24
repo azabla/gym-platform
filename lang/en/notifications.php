@@ -47,6 +47,17 @@ return [
         'body' => 'You have one visit left on your :plan membership at :gym. Renew it to keep training.',
     ],
 
+    // The member's home branch closes, or opens other hours, soon (ADR 0037).
+    'branch_closed' => [
+        'title' => ':branch closed',
+        'body' => '{1} :branch at :gym is closed on :starts_on: :reason.|[2,*] :branch at :gym is closed from :starts_on to :ends_on: :reason.',
+    ],
+
+    'branch_hours_changed' => [
+        'title' => ':branch opens other hours',
+        'body' => '{1} :branch at :gym is open only :opens_at–:closes_at on :starts_on: :reason.|[2,*] :branch at :gym is open only :opens_at–:closes_at from :starts_on to :ends_on: :reason.',
+    ],
+
     // The gym's own words, the same in every language (ADR 0015).
     'announcement' => [
         'title' => ':title',
