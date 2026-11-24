@@ -9,6 +9,7 @@ use App\Domains\Members\Models\Member;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Filament\Staff\Resources\Members\MemberResource;
+use App\Filament\Staff\Support\Photos;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
@@ -51,7 +52,11 @@ class CheckInAction extends Action
                 );
 
                 if ($checkIn->reason_code === null) {
-                    Notification::make()->success()->title("{$record->full_name} is let in.")->send();
+                    Notification::make()
+                        ->success()
+                        ->title("{$record->full_name} is let in.")
+                        ->body(self::photoOf($record))
+                        ->send();
 
                     return;
                 }
@@ -62,5 +67,23 @@ class CheckInAction extends Action
                     ->body($checkIn->reason_code->label())
                     ->send();
             });
+    }
+
+    /**
+     * The member's photo, so the desk sees it is them (ADR 0036), or nothing
+     * when they have none. Filament shows a notification's body as cleaned
+     * HTML.
+     */
+    private static function photoOf(Member $member): ?string
+    {
+        if ($member->photo_path === null) {
+            return null;
+        }
+
+        return sprintf(
+            '<img src="%s" alt="%s" width="96" height="96">',
+            e(Photos::urlFor($member)),
+            e((string) $member->full_name),
+        );
     }
 }

@@ -15,6 +15,7 @@ use App\Filament\Staff\Resources\CheckIns\Pages\ListCheckIns;
 use App\Filament\Staff\Resources\Concerns\LimitsToTheStaffMembersBranches;
 use App\Filament\Staff\Resources\Members\MemberResource;
 use App\Filament\Staff\Support\Badges;
+use App\Filament\Staff\Support\Photos;
 use App\Filament\Staff\Support\Tables;
 use BackedEnum;
 use Carbon\CarbonImmutable;
@@ -22,6 +23,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Resources\Resource;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\Indicator;
@@ -60,6 +62,11 @@ class CheckInResource extends Resource
                     ->timezone(self::gym()->timezone)
                     ->description(fn (CheckIn $record): string => $record->checked_in_at->diffForHumans())
                     ->sortable(),
+                ImageColumn::make('photo')
+                    ->label('')
+                    ->state(fn (CheckIn $record): string => Photos::urlFor($record->member))
+                    ->circular()
+                    ->imageSize(32),
                 TextColumn::make('member.full_name')
                     ->label('Member')
                     ->weight(FontWeight::SemiBold)
