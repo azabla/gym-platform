@@ -55,7 +55,7 @@ The membership has `visits_remaining` for a visit pack (ADR 0016). Volt's `grace
 | `GET /me/gyms/{gym}/memberships/{id}` | One membership |
 | `POST /me/gyms/{gym}/memberships/{id}/freezes` | Freeze it: `starts_on` (optional, today when left out, never in the past), `ends_on` and an optional `reason`. `201` with the membership as it is now (new `ends_on`, `freeze_days_left`, `freezes`). `422` on `starts_on` or `ends_on` with the reason, for example "A freeze can start today at the earliest." or "This membership can be frozen for 4 more days."; a plan without freeze days answers "This membership has no freeze days left." (ADR 0026) |
 | `POST /me/gyms/{gym}/memberships/{id}/freezes/{freeze}/end` | End a freeze going on or still to come, early. `200` with the membership as it is now. `422` on `freeze` when it has already ended. |
-| `GET /me/gyms/{gym}/branches` | The gym's branches, by name, each with its `opening_hours` |
+| `GET /me/gyms/{gym}/branches` | The gym's branches, by name, each with its `opening_hours` and `closures` |
 | `GET /me/gyms/{gym}/payments` | Receipts, newest first |
 | `GET /me/gyms/{gym}/payments/{id}` | One receipt |
 
@@ -63,7 +63,9 @@ The membership has `visits_remaining` for a visit pack (ADR 0016). Volt's `grace
 
 **A receipt:** `id`, `receipt_number`, `type` (`payment` or `refund`), `amount`, `method` (`cash`, `telebirr`, `cbe_birr`, `bank_transfer` or `chapa`), `reference`, `paid_on`, `branch`, `membership` (`id`, `plan`), `voided`.
 
-**A branch:** `id`, `code`, `name`, `address`, and in the branch list `opening_hours`: a list of `weekday` (1 is Monday, 7 is Sunday), `opens_at` and `closes_at` (`"06:00"`, in the gym's time zone). An empty list means always open; once a branch has hours, a weekday not listed is closed.
+**A branch:** `id`, `code`, `name`, `address`, and in the branch list `opening_hours`: a list of `weekday` (1 is Monday, 7 is Sunday), `opens_at` and `closes_at` (`"06:00"`, in the gym's time zone). An empty list means always open; once a branch has hours, a weekday not listed is closed. A `closes_at` earlier than `opens_at` means after midnight: Friday `18:00`–`02:00` is open until 02:00 on Saturday, so show it as "18:00–02:00 (next day)".
+
+**A branch's `closures`** are the days, from today to 60 days ahead, when it is closed or keeps other hours (ADR 0037): a list of `id`, `branch_id`, `starts_on`, `ends_on` (both included), `reason` (such as "Timket"), `opens_at` and `closes_at`. When `opens_at` and `closes_at` are `null` the branch is closed all day; otherwise it is open only those hours on those days, whatever its weekly hours say. Show them with the branch, soonest first.
 
 ### My photo
 
@@ -170,6 +172,8 @@ A push has a `title` and `body`, safe for a lock screen, and `data`, every value
 | `payment_succeeded` | a payment is recorded | `payment_id`, `membership_id` | that receipt |
 | `visit_denied` | a check-in is turned away | `check_in_id`, `reason_code` | visits |
 | `visits_running_low` | a visit pack has one visit left | `membership_id` | that membership |
+| `branch_closed` | the member's home branch will be closed all day, within 14 days | `branch_id` | the branches, with its closures |
+| `branch_hours_changed` | the member's home branch will open other hours, within 14 days | `branch_id` | the branches, with its closures |
 | `announcement` | the gym sends an announcement | `announcement_id` | that announcement |
 
 Every push also has `notification_id` (mark it read when tapped), and `gym`, the gym's slug, to switch to the right gym first (ADR 0022). `organization_id`, the gym's number, is there too.
@@ -236,7 +240,7 @@ Checked in this order; the first that applies is the answer.
 | `CREDENTIAL_REVOKED` | The credential was replaced by another phone, or its phone signed out |
 | `CODE_EXPIRED` | The code is more than one 30-second step away from the server's time |
 | `CODE_ALREADY_USED` | This code, or a later one, was already scanned |
-| `OUTSIDE_HOURS` | The branch is closed now, by its opening hours |
+| `OUTSIDE_HOURS` | The branch is closed now, by its opening hours or a closure such as a holiday |
 | `MEMBERSHIP_NONE` | No membership today: none, not started yet, or cancelled |
 | `MEMBERSHIP_EXPIRED` | The membership ended |
 | `MEMBERSHIP_FROZEN` | The membership is frozen today |
@@ -247,5 +251,3 @@ Checked in this order; the first that applies is the answer.
 ## Not built yet
 
 - Offline scanning (Volt's phase 7).
-- Discounts in the app.
-- Opening hours past midnight, and holiday closures.

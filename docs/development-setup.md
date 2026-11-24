@@ -574,6 +574,8 @@ A member's own language (on their form) wins over the gym's. **My notifications*
 
 Member photos (ADR 0036): open a member, choose **Add photo** and pick any picture; it is kept as a small square. It shows on the member's page, in the members and check-ins lists, and when you check the member in. In development photos go to `storage/app/private/member-photos` (`PHOTOS_DISK=local`), and their links work for 10 minutes.
 
+Closures and late hours (ADR 0037): give a branch late hours such as Friday 18:00–02:00 (closing earlier than opening means after midnight). Then open **Gym setup > Closures**, choose **Add closure**, and close Main Branch tomorrow for "Timket". A desk check-in there that day is turned away, its members get an inbox message (and a push once the queue worker runs), and `GET /api/v1/me/gyms/demo-gym/branches` lists the closure.
+
 ### Demo activity
 
 The base seed is small on purpose, so the examples in this guide keep their ids. To see the gym busy, run `make demo` after `make fresh` (it adds nothing a second time). It adds:
