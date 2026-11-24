@@ -8,6 +8,7 @@ use App\Domains\Organizations\Hours\OpeningWindow;
 use App\Domains\Organizations\Policies\BranchPolicy;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
 use Carbon\CarbonImmutable;
+use Closure;
 use Database\Factories\BranchFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -86,6 +87,20 @@ class Branch extends Model
     public function closures(): HasMany
     {
         return $this->hasMany(BranchClosure::class)->orderBy('starts_on');
+    }
+
+    /**
+     * What the apps load with a branch: its weekly hours, and its closures
+     * from the gym's today to 60 days ahead.
+     *
+     * @return array<int|string, string|Closure>
+     */
+    public static function withHoursAndClosuresFrom(CarbonImmutable $today): array
+    {
+        return [
+            'openingHours',
+            'closures' => fn ($query) => $query->upcomingFrom($today),
+        ];
     }
 
     /**

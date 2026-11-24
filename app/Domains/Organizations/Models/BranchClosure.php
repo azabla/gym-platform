@@ -35,6 +35,9 @@ class BranchClosure extends Model
     /** The most days one closure may cover. */
     public const MAXIMUM_DAYS = 31;
 
+    /** How far ahead the apps show a branch's closures, in days. */
+    public const SHOWN_DAYS_AHEAD = 60;
+
     /** @return BelongsTo<Branch, $this> */
     public function branch(): BelongsTo
     {
@@ -179,6 +182,19 @@ class BranchClosure extends Model
     protected function notEndedBy(Builder $query, CarbonImmutable $date): void
     {
         $query->whereDate('ends_on', '>=', $date->toDateString());
+    }
+
+    /**
+     * Closures going on or starting within the coming days, as the apps show
+     * them with a branch.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function upcomingFrom(Builder $query, CarbonImmutable $today): void
+    {
+        $query->whereDate('ends_on', '>=', $today->toDateString())
+            ->whereDate('starts_on', '<=', $today->addDays(self::SHOWN_DAYS_AHEAD)->toDateString());
     }
 
     private static function timeOrNull(?string $time): ?string
