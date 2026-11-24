@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Domains\Attendance\DoorList\DoorListSigner;
 use App\Domains\Identity\Models\User;
 use App\Domains\Members\Models\Member;
 use App\Domains\Notifications\Push\FcmPushSender;
@@ -34,6 +35,18 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->sendTextMessagesWithTheConfiguredDriver();
         $this->sendPushesWithTheConfiguredDriver();
+        $this->signDoorListsWithTheConfiguredKey();
+    }
+
+    /**
+     * Door lists for offline scanning are signed with DOOR_LIST_SIGNING_KEY.
+     * See ADR 0038.
+     */
+    private function signDoorListsWithTheConfiguredKey(): void
+    {
+        $this->app->bind(DoorListSigner::class, fn (): DoorListSigner => new DoorListSigner(
+            is_string(config('services.door_list.signing_key')) ? config('services.door_list.signing_key') : null,
+        ));
     }
 
     /**

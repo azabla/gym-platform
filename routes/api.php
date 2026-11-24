@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\V1\Organizations\ChapaAccountController;
 use App\Http\Controllers\Api\V1\Organizations\CheckInController;
 use App\Http\Controllers\Api\V1\Organizations\DashboardController;
 use App\Http\Controllers\Api\V1\Organizations\DiscountGroupController;
+use App\Http\Controllers\Api\V1\Organizations\DoorListController;
 use App\Http\Controllers\Api\V1\Organizations\MemberController;
 use App\Http\Controllers\Api\V1\Organizations\MemberDiscountGroupController;
 use App\Http\Controllers\Api\V1\Organizations\MemberPhotoController;
@@ -231,6 +232,12 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     ->name('check-ins.index');
                 Route::post('check-ins/scan', [CheckInController::class, 'scan'])
                     ->name('check-ins.scan');
+                // Offline scanning in the staff app (ADR 0038).
+                Route::get('door-list', [DoorListController::class, 'show'])
+                    ->middleware('throttle:30,1')
+                    ->name('door-list.show');
+                Route::get('door-list/public-key', [DoorListController::class, 'publicKey'])
+                    ->name('door-list.public-key');
                 Route::post('members/{member}/check-ins', [CheckInController::class, 'store'])
                     ->name('members.check-ins.store');
                 Route::apiResource('staff', StaffController::class)->parameters(['staff' => 'staff']);

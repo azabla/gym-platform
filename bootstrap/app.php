@@ -1,6 +1,7 @@
 <?php
 
 use App\Domains\Announcements\Exceptions\AnnouncementRefused;
+use App\Domains\Attendance\DoorList\Exceptions\DoorListNotSetUp;
 use App\Domains\Billing\Chapa\Exceptions\ChapaRequestFailed;
 use App\Domains\Billing\Exceptions\PaymentRefused;
 use App\Domains\Members\Exceptions\MemberPhotoRefused;
@@ -93,6 +94,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->map(fn (MemberPhotoRefused $exception) => ValidationException::withMessages([
             $exception->field => $exception->getMessage(),
         ]));
+
+        // Offline scanning without a signing key: not available, with how to set it up (ADR 0038).
+        $exceptions->render(function (DoorListNotSetUp $exception, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json(['message' => $exception->getMessage()], 503);
+            }
+        });
 
         // Chapa refused a request or didn't answer: a bad gateway, with Chapa's reason.
         $exceptions->render(function (ChapaRequestFailed $exception, Request $request) {
