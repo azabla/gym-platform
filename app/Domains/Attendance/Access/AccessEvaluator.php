@@ -33,7 +33,7 @@ final class AccessEvaluator
      */
     public function evaluate(Member $member, Branch $branch, ?CarbonImmutable $at = null): AccessDecision
     {
-        $at ??= CarbonImmutable::now();
+        $at = ($at ?? CarbonImmutable::now())->utc();
         $timezone = $member->organization->timezone;
         $day = CarbonImmutable::parse($at->setTimezone($timezone)->toDateString());
         $membership = Membership::atAGlanceFor([$member->id], $day)->get($member->id);

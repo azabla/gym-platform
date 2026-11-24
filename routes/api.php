@@ -37,6 +37,7 @@ use App\Http\Controllers\Api\V1\Organizations\MemberPhotoController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipCancellationController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipController;
 use App\Http\Controllers\Api\V1\Organizations\MembershipFreezeController;
+use App\Http\Controllers\Api\V1\Organizations\OfflineCheckInController;
 use App\Http\Controllers\Api\V1\Organizations\OrganizationSettingsController;
 use App\Http\Controllers\Api\V1\Organizations\PaymentController;
 use App\Http\Controllers\Api\V1\Organizations\PaymentLinkController;
@@ -238,6 +239,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                     ->name('door-list.show');
                 Route::get('door-list/public-key', [DoorListController::class, 'publicKey'])
                     ->name('door-list.public-key');
+                Route::post('check-ins/offline', [OfflineCheckInController::class, 'store'])
+                    ->middleware('throttle:30,1')
+                    ->name('check-ins.offline.store');
                 Route::post('members/{member}/check-ins', [CheckInController::class, 'store'])
                     ->name('members.check-ins.store');
                 Route::apiResource('staff', StaffController::class)->parameters(['staff' => 'staff']);
