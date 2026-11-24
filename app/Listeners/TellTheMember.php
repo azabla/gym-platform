@@ -64,9 +64,18 @@ final class TellTheMember
         $this->atTheGym($freeze->organization_id, fn () => $freeze->membership->member->notify(MembershipFrozen::for($freeze)));
     }
 
+    /**
+     * A member turned away at the door. Not for a scan the staff app made
+     * offline and sent later: the member was told at the door, maybe hours
+     * ago (ADR 0038).
+     */
     public function handleCheckInDenied(CheckInDenied $event): void
     {
         $checkIn = $event->checkIn;
+
+        if ($checkIn->offline) {
+            return;
+        }
 
         $this->atTheGym($checkIn->organization_id, fn () => $checkIn->member?->notify(VisitDenied::for($checkIn)));
     }

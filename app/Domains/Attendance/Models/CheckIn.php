@@ -39,6 +39,12 @@ class CheckIn extends Model
     /** @use HasFactory<CheckInFactory> */
     use BelongsToOrganization, HasFactory;
 
+    /** How far in the future an offline scan may be dated, for a scanner clock a little ahead. */
+    public const OFFLINE_CLOCK_TOLERANCE_MINUTES = 2;
+
+    /** How old an offline scan may be when it is sent: a door list lasts 2 days. */
+    public const OFFLINE_MAXIMUM_AGE_DAYS = 3;
+
     /**
      * Check in whoever shows the scanned QR code at the branch. The code must
      * be a fresh GQ1 code of an active credential of this gym, never scanned
@@ -84,7 +90,7 @@ class CheckIn extends Model
             return $deny(CheckInDenial::CodeAlreadyUsed, $credential->member);
         }
 
-        return self::admit(CheckInMethod::Qr, $credential->member, $branch, $scannedBy, $credential, $idempotencyKey);
+        return self::admit(CheckInMethod::Qr, $credential->member, $branch, $scannedBy, $credential, $idempotencyKey, $scanned->step);
     }
 
     /**
@@ -94,6 +100,83 @@ class CheckIn extends Model
     public static function atDesk(Member $member, Branch $branch, Staff $checkedInBy): self
     {
         return self::admit(CheckInMethod::Desk, $member, $branch, $checkedInBy, null, null);
+    }
+
+    /**
+     * Record a scan the staff app made offline, at the time it happened, with
+     * what the door decided (ADR 0038). The code must be a real GQ1 code of
+     * this gym for that time, so a forged or made-up scan is refused rather
+     * than recorded. The server then decides again for that moment, and flags
+     * the check-in with its reason when it would have decided otherwise. A
+     * retry with the same scan id changes nothing.
+     *
+     * @param  CheckInDenial|null  $doorDenial  why the door turned the member away, or null when it let them in
+     * @return array{status: 'recorded'|'already_recorded'|'refused', check_in: self|null, message: string|null}
+     */
+    public static function recordOffline(
+        string $scanId,
+        string $payload,
+        Branch $branch,
+        Staff $uploadedBy,
+        CarbonImmutable $scannedAt,
+        ?CheckInDenial $doorDenial,
+    ): array {
+        $earlier = static::query()->where('idempotency_key', $scanId)->first();
+
+        if ($earlier !== null) {
+            return ['status' => 'already_recorded', 'check_in' => $earlier, 'message' => null];
+        }
+
+        $now = CarbonImmutable::now();
+
+        if ($scannedAt->gt($now->addMinutes(self::OFFLINE_CLOCK_TOLERANCE_MINUTES))) {
+            return self::refusedOffline('The scan is dated in the future. Check the scanner\'s clock.');
+        }
+
+        if ($scannedAt->lt($now->subDays(self::OFFLINE_MAXIMUM_AGE_DAYS))) {
+            return self::refusedOffline('The scan is more than '.self::OFFLINE_MAXIMUM_AGE_DAYS.' days old.');
+        }
+
+        $scanned = Gq1::parse($payload);
+        $credential = $scanned === null ? null : AccessCredential::query()->find(strtolower($scanned->credentialId));
+
+        if ($scanned === null || $credential === null) {
+            return self::refusedOffline('This isn\'t a QR code of this gym.');
+        }
+
+        if (abs($scanned->step - Gq1::stepAt($scannedAt->getTimestamp())) > 1 || ! hash_equals($credential->codeAt($scanned->step), $scanned->code)) {
+            return self::refusedOffline('The code doesn\'t match the time of the scan.');
+        }
+
+        $member = $credential->member;
+        $decision = app(AccessEvaluator::class)->evaluate($member, $branch, $scannedAt);
+        $serverDenial = match (true) {
+            $credential->revoked_at !== null && $credential->revoked_at->lte($scannedAt) => CheckInDenial::CredentialRevoked,
+            static::query()->where('access_credential_id', $credential->id)->where('code_step', $scanned->step)->exists() => CheckInDenial::CodeAlreadyUsed,
+            default => $decision->denial,
+        };
+
+        AccessCredential::query()
+            ->whereKey($credential->id)
+            ->where(fn ($query) => $query->whereNull('last_used_step')->orWhere('last_used_step', '<', $scanned->step))
+            ->update(['last_used_step' => $scanned->step]);
+
+        $checkIn = self::record(CheckInMethod::Qr, $member, $branch, $uploadedBy, $decision->membership, $doorDenial, $credential, $scanId, $scanned->step, [
+            'checked_in_at' => $scannedAt->utc(),
+            'offline' => true,
+            'server_disagrees' => $serverDenial !== $doorDenial,
+            'server_reason_code' => $serverDenial,
+        ]);
+
+        return ['status' => 'recorded', 'check_in' => $checkIn, 'message' => null];
+    }
+
+    /**
+     * @return array{status: 'refused', check_in: null, message: string}
+     */
+    private static function refusedOffline(string $message): array
+    {
+        return ['status' => 'refused', 'check_in' => null, 'message' => $message];
     }
 
     /** @return BelongsTo<Member, $this> */
@@ -127,14 +210,17 @@ class CheckIn extends Model
     /**
      * Let the member in if the membership rules allow it, and record either way.
      */
-    private static function admit(CheckInMethod $method, Member $member, Branch $branch, Staff $staff, ?AccessCredential $credential, ?string $idempotencyKey): self
+    private static function admit(CheckInMethod $method, Member $member, Branch $branch, Staff $staff, ?AccessCredential $credential, ?string $idempotencyKey, ?int $codeStep = null): self
     {
         $decision = app(AccessEvaluator::class)->evaluate($member, $branch);
 
-        return self::record($method, $member, $branch, $staff, $decision->membership, $decision->denial, $credential, $idempotencyKey);
+        return self::record($method, $member, $branch, $staff, $decision->membership, $decision->denial, $credential, $idempotencyKey, $codeStep);
     }
 
-    private static function record(CheckInMethod $method, ?Member $member, Branch $branch, Staff $staff, ?Membership $membership, ?CheckInDenial $denial, ?AccessCredential $credential, ?string $idempotencyKey): self
+    /**
+     * @param  array<string, mixed>  $attributes  more to keep, such as an offline scan's time
+     */
+    private static function record(CheckInMethod $method, ?Member $member, Branch $branch, Staff $staff, ?Membership $membership, ?CheckInDenial $denial, ?AccessCredential $credential, ?string $idempotencyKey, ?int $codeStep = null, array $attributes = []): self
     {
         $checkIn = new self;
         $checkIn->organization()->associate($branch->organization_id);
@@ -148,6 +234,8 @@ class CheckIn extends Model
         $checkIn->checkedInBy()->associate($staff);
         $checkIn->checked_in_at = CarbonImmutable::now();
         $checkIn->idempotency_key = $idempotencyKey;
+        $checkIn->code_step = $codeStep;
+        $checkIn->forceFill($attributes);
         $checkIn->save();
 
         if ($denial !== null && $member !== null) {
@@ -188,6 +276,9 @@ class CheckIn extends Model
             'result' => CheckInResult::class,
             'reason_code' => CheckInDenial::class,
             'checked_in_at' => 'immutable_datetime',
+            'offline' => 'boolean',
+            'server_disagrees' => 'boolean',
+            'server_reason_code' => CheckInDenial::class,
         ];
     }
 }

@@ -35,7 +35,9 @@ use UnitEnum;
 /**
  * Who came in, and who was turned away and why, newest first, with times
  * where the gym is. Members are checked in from their page or the list of
- * members. See ADR 0011, ADR 0017 and ADR 0033.
+ * members. See ADR 0011, ADR 0017 and ADR 0033. Scans the staff app made
+ * offline say so, and those the server would have decided otherwise need
+ * review (ADR 0038).
  */
 class CheckInResource extends Resource
 {
@@ -76,7 +78,18 @@ class CheckInResource extends Resource
                 Tables::badge('result')
                     ->description(fn (CheckIn $record): ?string => $record->reason_code?->label()),
                 TextColumn::make('branch.name')->label('Branch')->badge()->color('gray'),
-                Tables::badge('method'),
+                Tables::badge('method')
+                    ->description(fn (CheckIn $record): ?string => $record->offline ? 'Offline' : null),
+                TextColumn::make('review')
+                    ->label('Review')
+                    ->state(fn (CheckIn $record): ?string => $record->server_disagrees ? 'Needs review' : null)
+                    ->badge()
+                    ->color('warning')
+                    ->icon(Heroicon::OutlinedExclamationTriangle)
+                    ->description(fn (CheckIn $record): ?string => $record->server_disagrees
+                        ? 'The server says: '.($record->server_reason_code?->label() ?? 'let in')
+                        : null)
+                    ->placeholder('—'),
                 TextColumn::make('reason_code')
                     ->label('Reason')
                     ->formatStateUsing(fn (CheckInDenial $state): string => $state->label())
@@ -107,6 +120,14 @@ class CheckInResource extends Resource
                         fn (CheckInDenial $denial): array => [$denial->value => $denial->label()],
                     )->all()),
                 SelectFilter::make('method')->native(false)->options(Badges::options(CheckInMethod::class)),
+                Filter::make('offline')
+                    ->label('Made offline')
+                    ->toggle()
+                    ->query(fn (Builder $query): Builder => $query->where('offline', true)),
+                Filter::make('needs_review')
+                    ->label('Needs review')
+                    ->toggle()
+                    ->query(fn (Builder $query): Builder => $query->where('server_disagrees', true)),
                 SelectFilter::make('member')
                     ->native(false)
                     ->relationship('member', 'full_name')

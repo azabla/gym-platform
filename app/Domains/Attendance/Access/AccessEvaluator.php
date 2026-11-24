@@ -26,29 +26,48 @@ final class AccessEvaluator
 
     public function __construct(private Visits $visits) {}
 
-    public function evaluate(Member $member, Branch $branch): AccessDecision
+    /**
+     * Decide for the member at the branch, now, or at an earlier moment for a
+     * scan the staff app made offline (ADR 0038): the day, the hours, the
+     * membership and the 5-minute rule all follow that moment.
+     */
+    public function evaluate(Member $member, Branch $branch, ?CarbonImmutable $at = null): AccessDecision
     {
-        $today = $member->organization->today();
-        $membership = Membership::atAGlanceFor([$member->id], $today)->get($member->id);
+        $at = ($at ?? CarbonImmutable::now())->utc();
+        $timezone = $member->organization->timezone;
+        $day = CarbonImmutable::parse($at->setTimezone($timezone)->toDateString());
+        $membership = Membership::atAGlanceFor([$member->id], $day)->get($member->id);
 
         $denial = match (true) {
-            ! $branch->isOpenAt(CarbonImmutable::now(), $member->organization->timezone) => CheckInDenial::OutsideHours,
+            ! $branch->isOpenAt($at, $timezone) => CheckInDenial::OutsideHours,
             $membership === null => CheckInDenial::MembershipNone,
-            default => $this->denialFor($membership, $membership->statusOn($today), $branch) ?? $this->denialForVisits($membership, $today),
+            default => self::denialForStatus($membership->statusOn($day))
+                ?? self::denialForBranch($membership, $branch)
+                ?? $this->denialForVisits($membership, $day),
         };
 
-        return new AccessDecision($membership, $denial ?? $this->denialForAnotherCheckIn($member));
+        return new AccessDecision($membership, $denial ?? $this->denialForAnotherCheckIn($member, $at));
     }
 
-    private function denialFor(Membership $membership, MembershipStatus $status, Branch $branch): ?CheckInDenial
+    /**
+     * Why a membership in this state lets nobody in, or null when it does.
+     * The door list uses it for each day it covers.
+     */
+    public static function denialForStatus(MembershipStatus $status): ?CheckInDenial
     {
-        return match (true) {
-            $status === MembershipStatus::Upcoming, $status === MembershipStatus::Cancelled => CheckInDenial::MembershipNone,
-            $status === MembershipStatus::Expired => CheckInDenial::MembershipExpired,
-            $status === MembershipStatus::Frozen => CheckInDenial::MembershipFrozen,
-            ! $membership->valid_at_all_branches && ! $membership->branches->contains($branch) => CheckInDenial::BranchNotAllowed,
+        return match ($status) {
+            MembershipStatus::Upcoming, MembershipStatus::Cancelled => CheckInDenial::MembershipNone,
+            MembershipStatus::Expired => CheckInDenial::MembershipExpired,
+            MembershipStatus::Frozen => CheckInDenial::MembershipFrozen,
             default => null,
         };
+    }
+
+    private static function denialForBranch(Membership $membership, Branch $branch): ?CheckInDenial
+    {
+        return ! $membership->valid_at_all_branches && ! $membership->branches->contains($branch)
+            ? CheckInDenial::BranchNotAllowed
+            : null;
     }
 
     /**
@@ -71,12 +90,13 @@ final class AccessEvaluator
         return CheckInDenial::VisitsUsedUp;
     }
 
-    private function denialForAnotherCheckIn(Member $member): ?CheckInDenial
+    private function denialForAnotherCheckIn(Member $member, CarbonImmutable $at): ?CheckInDenial
     {
         $recentlyLetIn = CheckIn::query()
             ->whereBelongsTo($member)
             ->where('result', CheckInResult::Allowed)
-            ->where('checked_in_at', '>', CarbonImmutable::now()->subMinutes(self::MINUTES_BEFORE_ANOTHER_CHECK_IN))
+            ->where('checked_in_at', '>', $at->subMinutes(self::MINUTES_BEFORE_ANOTHER_CHECK_IN))
+            ->where('checked_in_at', '<=', $at)
             ->exists();
 
         return $recentlyLetIn ? CheckInDenial::AlreadyCheckedIn : null;

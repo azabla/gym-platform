@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domains\Attendance\Access\AccessEvaluator;
 use App\Domains\Attendance\Credentials\Gq1;
 use App\Domains\Attendance\Enums\CheckInDenial;
 use App\Domains\Attendance\Enums\CheckInResult;
@@ -80,7 +81,20 @@ it('lets the member in with a fresh code, showing the membership and what is sti
     $checkIn = CheckIn::query()->sole();
     expect($checkIn->result)->toBe(CheckInResult::Allowed)
         ->and($checkIn->member_id)->toBe($this->member->id)
-        ->and($checkIn->access_credential_id)->toBe($this->credential->id);
+        ->and($checkIn->access_credential_id)->toBe($this->credential->id)
+        ->and($checkIn->code_step)->toBe(Gq1::stepAt(CarbonImmutable::now()->getTimestamp()))
+        ->and($checkIn->offline)->toBeFalse();
+});
+
+it('decides as at an earlier moment, for a scan made offline', function () {
+    actingAsOrganization($this->gym);
+    $evaluator = app(AccessEvaluator::class);
+    $this->membership->forceFill(['starts_on' => '2026-10-01', 'ends_on' => '2026-10-20'])->save();
+
+    // The membership ended on 20 October; today is 24 October.
+    expect($evaluator->evaluate($this->member, $this->mainBranch)->denial)->toBe(CheckInDenial::MembershipExpired)
+        ->and($evaluator->evaluate($this->member, $this->mainBranch, CarbonImmutable::parse('2026-10-20 18:00', 'Africa/Addis_Ababa'))->denial)->toBeNull()
+        ->and($evaluator->evaluate($this->member, $this->mainBranch, CarbonImmutable::parse('2026-09-30 18:00', 'Africa/Addis_Ababa'))->denial)->toBe(CheckInDenial::MembershipNone);
 });
 
 it('lets every staff role scan at the door', function (StaffRole $role) {

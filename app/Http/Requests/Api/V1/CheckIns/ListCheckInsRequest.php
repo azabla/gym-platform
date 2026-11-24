@@ -37,6 +37,8 @@ class ListCheckInsRequest extends FormRequest
             'branch_id' => $this->branchRules(),
             'result' => ['nullable', Rule::enum(CheckInResult::class)],
             'member_id' => ['nullable', 'integer'],
+            'offline' => ['nullable', 'boolean'],
+            'needs_review' => ['nullable', 'boolean'],
         ];
     }
 }

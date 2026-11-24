@@ -576,6 +576,8 @@ Member photos (ADR 0036): open a member, choose **Add photo** and pick any pictu
 
 Closures and late hours (ADR 0037): give a branch late hours such as Friday 18:00–02:00 (closing earlier than opening means after midnight). Then open **Gym setup > Closures**, choose **Add closure**, and close Main Branch tomorrow for "Timket". A desk check-in there that day is turned away, its members get an inbox message (and a push once the queue worker runs), and `GET /api/v1/me/gyms/demo-gym/branches` lists the closure.
 
+Offline scanning (ADR 0038): run `php artisan door-list:generate-key` and put the `DOOR_LIST_SIGNING_KEY=…` line in `.env`. Then, signed in as staff, `GET /api/v1/organizations/demo-gym/door-list` gives the signed list, and `POST /api/v1/organizations/demo-gym/check-ins/offline` takes scans made offline (the format is in `docs/api/members-app.md`). In the panel, check-ins made offline say "Offline", and those the server would have decided otherwise show **Needs review**, with a filter and a link on the dashboard.
+
 ### Demo activity
 
 The base seed is small on purpose, so the examples in this guide keep their ids. To see the gym busy, run `make demo` after `make fresh` (it adds nothing a second time). It adds:
@@ -666,6 +668,7 @@ Staging runs on Render's free plan from the `deployment` branch: one web service
    | `AWS_URL` | The bucket's public `r2.dev` address |
    | `BACKUP_AWS_BUCKET` | The private backups bucket's name |
    | `PHOTOS_DISK`, `PHOTOS_AWS_BUCKET` | `photos`, and the private photos bucket's name |
+   | `DOOR_LIST_SIGNING_KEY` | The secret key from `php artisan door-list:generate-key`; give its public key to the staff app |
    | AfroMessage, Firebase and Sentry settings | Leave empty until going live (below) |
 
 3. Choose **Apply**. The first build takes several minutes. Each start runs the migrations, then the app answers at `https://gym-platform.onrender.com/up` (or the address Render shows). The panel is at `/staff`.

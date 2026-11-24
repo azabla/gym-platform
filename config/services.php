@@ -18,6 +18,12 @@ return [
         'key' => env('POSTMARK_API_KEY'),
     ],
 
+    // The staff app's offline door lists are signed with this Ed25519 key
+    // (php artisan door-list:generate-key). See ADR 0038.
+    'door_list' => [
+        'signing_key' => env('DOOR_LIST_SIGNING_KEY'),
+    ],
+
     'resend' => [
         'key' => env('RESEND_API_KEY'),
     ],

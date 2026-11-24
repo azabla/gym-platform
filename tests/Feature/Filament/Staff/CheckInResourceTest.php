@@ -42,3 +42,22 @@ it('shows who was turned away, and why', function () {
         ->assertCanNotSeeTableRecords([$this->earlyOn24th, $this->on23rd])
         ->assertSee('Membership expired');
 });
+
+it('marks scans made offline, and lists the ones the server would have decided otherwise', function () {
+    $this->on23rd->forceFill(['offline' => true])->save();
+    $this->earlyOn24th->forceFill(['offline' => true, 'server_disagrees' => true, 'server_reason_code' => CheckInDenial::MembershipExpired])->save();
+    actingAsStaffInPanel($this->gym, StaffRole::Manager);
+
+    Livewire::test(ListCheckIns::class)
+        ->filterTable('offline', true)
+        ->assertCanSeeTableRecords([$this->on23rd, $this->earlyOn24th])
+        ->assertCanNotSeeTableRecords([$this->denied])
+        ->assertSee('Offline');
+
+    Livewire::test(ListCheckIns::class)
+        ->filterTable('needs_review', true)
+        ->assertCanSeeTableRecords([$this->earlyOn24th])
+        ->assertCanNotSeeTableRecords([$this->on23rd, $this->denied])
+        ->assertSee('Needs review')
+        ->assertSee('The server says: Membership expired');
+});
