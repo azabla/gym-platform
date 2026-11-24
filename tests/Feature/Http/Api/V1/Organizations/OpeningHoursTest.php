@@ -6,6 +6,7 @@ use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Branch;
+use App\Domains\Organizations\Models\BranchClosure;
 use App\Domains\Organizations\Models\BranchOpeningHour;
 use App\Domains\Organizations\Models\Organization;
 use Carbon\CarbonImmutable;
@@ -167,4 +168,13 @@ it('counts a visit after midnight on its own calendar day', function () {
 
     checkInAt($this->hana, $this->mainBranch, '2026-10-23 23:00')->assertJsonPath('data.decision', 'allow');
     checkInAt($this->hana, $this->mainBranch, '2026-10-24 01:00')->assertJsonPath('data.reason_code', 'VISITS_USED_UP');
+});
+
+it('turns members away on a day the branch is closed', function () {
+    $this->membership->forceFill(['starts_on' => '2026-10-01', 'ends_on' => '2026-11-30'])->save();
+    BranchClosure::factory()->for($this->mainBranch)->create(['starts_on' => '2026-10-26', 'ends_on' => '2026-10-26', 'reason' => 'Holiday']);
+    actingAsStaff($this->gym, StaffRole::Receptionist);
+
+    checkInAt($this->hana, $this->mainBranch, '2026-10-26 10:00')->assertJsonPath('data.reason_code', 'OUTSIDE_HOURS');
+    checkInAt($this->hana, $this->boleBranch, '2026-10-26 10:05')->assertJsonPath('data.decision', 'allow');
 });

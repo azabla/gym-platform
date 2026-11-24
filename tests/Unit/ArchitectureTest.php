@@ -32,6 +32,7 @@ arch('value objects are final and readonly')
         'App\Domains\Attendance\Access\AccessDecision',
         'App\Domains\Notifications\Push\PushMessage',
         'App\Domains\Attendance\Credentials\Gq1Payload',
+        'App\Domains\Organizations\Hours\OpeningWindow',
     ])
     ->toBeFinal()
     ->toBeReadonly();
