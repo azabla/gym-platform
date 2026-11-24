@@ -11,17 +11,18 @@ use App\Domains\Billing\Events\PaymentRecorded;
 use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Events\MembershipFrozen as MembershipWasFrozen;
 use App\Domains\Organizations\Events\BranchClosureScheduled;
+use App\Domains\Organizations\Events\BranchClosureTakenBack;
+use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\BranchClosure;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
-use App\Notifications\BranchClosing;
+use App\Notifications\BranchClosureMessages;
 use App\Notifications\MembershipFrozen;
 use App\Notifications\PaymentLinkSent;
 use App\Notifications\PaymentSucceeded;
 use App\Notifications\VisitDenied;
 use App\Notifications\VisitsRunningLow;
 use Closure;
-use Illuminate\Support\Facades\Notification;
 
 /**
  * Tells members what happened to them at a gym (ADR 0012): a payment
@@ -130,10 +131,22 @@ final class TellTheMember
                 ->get();
 
             foreach ($closures as $closure) {
-                Notification::send(
-                    Member::query()->homeAtAnyOf([(int) $closure->branch_id])->get(),
-                    BranchClosing::for($closure),
-                );
+                BranchClosureMessages::tellMembersOf($closure);
+            }
+        });
+    }
+
+    /**
+     * Members told of a closure hear the branch is open as usual when it is
+     * taken back before it ends (ADR 0039).
+     */
+    public function handleBranchClosureTakenBack(BranchClosureTakenBack $event): void
+    {
+        $this->atTheGym($event->organizationId, function () use ($event): void {
+            $branch = Branch::query()->with('organization')->find($event->branchId);
+
+            if ($branch !== null) {
+                BranchClosureMessages::tellMembersOfReopening($branch, $event->startsOn, $event->endsOn);
             }
         });
     }

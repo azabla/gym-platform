@@ -63,7 +63,10 @@ class BranchClosureResource extends Resource
                     ->badge()
                     ->color(fn (BranchClosure $record): string => $record->isClosedAllDay() ? 'danger' : 'warning')
                     ->icon(fn (BranchClosure $record): Heroicon => $record->isClosedAllDay() ? Heroicon::OutlinedLockClosed : Heroicon::OutlinedClock),
-                TextColumn::make('reason')->searchable()->wrap(),
+                TextColumn::make('reason')
+                    ->searchable()
+                    ->wrap()
+                    ->description(fn (BranchClosure $record): ?string => $record->repeats_yearly ? 'Yearly, on '.$record->ethiopianStart() : null),
                 TextColumn::make('createdBy.user.name')->label('Added by')->toggleable(isToggledHiddenByDefault: true),
             ])
             ->searchPlaceholder('Reason')
@@ -89,9 +92,10 @@ class BranchClosureResource extends Resource
                     ->visible(fn (BranchClosure $record): bool => Gate::allows('update', $record->branch))
                     ->requiresConfirmation()
                     ->modalHeading('Take this closure back?')
-                    ->modalDescription(fn (BranchClosure $record): string => "{$record->branch->name} keeps its weekly hours on ".self::daysOf($record).'. Members already told are not told again.')
+                    ->modalDescription(fn (BranchClosure $record): string => "{$record->branch->name} keeps its weekly hours on ".self::daysOf($record).'.'
+                        .($record->members_told_at === null ? '' : ' Members who were told of the closure hear it is open as usual.'))
                     ->action(function (BranchClosure $record): void {
-                        $record->delete();
+                        $record->takeBack();
 
                         Notification::make()->success()->title('Closure taken back.')->send();
                     }),

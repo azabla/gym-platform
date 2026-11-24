@@ -40,7 +40,9 @@ class BranchClosureController extends Controller
     /**
      * Close one or more branches from one day to another, or open them other
      * hours, with a reason: one closure for each branch. Members of the
-     * branches hear of it when it starts within 14 days.
+     * branches hear of it when it starts within 14 days, and the day before.
+     * With repeats_yearly, it comes back every year on the same Ethiopian
+     * date (ADR 0039).
      */
     public function store(StoreBranchClosureRequest $request, CurrentStaff $currentStaff): JsonResponse
     {
@@ -52,6 +54,7 @@ class BranchClosureController extends Controller
             $request->string('reason')->toString(),
             $request->input('opens_at'),
             $request->input('closes_at'),
+            $request->boolean('repeats_yearly'),
         );
 
         return BranchClosureResource::collection($closures->load('branch'))->response()->setStatusCode(Response::HTTP_CREATED);
@@ -59,12 +62,14 @@ class BranchClosureController extends Controller
 
     /**
      * Take a closure back: the branch keeps its weekly hours those days.
+     * Members who were told of it hear the branch is open as usual, if it
+     * hasn't ended (ADR 0039).
      */
     public function destroy(BranchClosure $branchClosure): Response
     {
         Gate::authorize('update', $branchClosure->branch);
 
-        $branchClosure->delete();
+        $branchClosure->takeBack();
 
         return response()->noContent();
     }

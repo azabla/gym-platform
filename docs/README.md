@@ -80,7 +80,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Membership | A plan sold to a member for set dates, both included. A member has one membership at a time. |
 | Visit pack | A plan that allows a number of visits within its dates, such as 10 visits in 60 days. A visit is a day with a check-in that let the member in (ADR 0016). |
 | Opening hours | When a branch is open, by weekday, in the gym's time zone. A branch without any is always open. Check-ins outside them are turned away. A closing time earlier than the opening time means after midnight, such as Friday 18:00–02:00 (ADR 0037). |
-| Closure | Days a branch is closed, or open other hours, such as a holiday or repairs, with a reason. It overrides the weekly hours on those days, and members of the branch are told by push when it starts within 14 days (ADR 0037). |
+| Closure | Days a branch is closed, or open other hours, such as a holiday or repairs, with a reason. It overrides the weekly hours on those days, and members of the branch are told by push when it starts within 14 days (ADR 0037), again at 09:00 the day before, and when it is taken back. A closure marked every year comes back on the same Ethiopian date (ADR 0039). |
 | Freeze | A pause in a membership. The membership's end date moves later by the number of frozen days. Staff freeze at the desk; members freeze their own in the app, from today, within the freeze days left (ADR 0026). |
 | Discount | A reduction of a plan's price at sale, as an amount or a percentage, with a reason. Only owners and managers can type one; anyone who sells can use a promo code. |
 | Discount group | A group of members the gym prices lower, such as Student 10%, until a day if given. Its members pay its price in the app and at the desk, or a promo code's when lower, never both (ADR 0032). |
@@ -137,6 +137,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0036](adr/0036-member-photos.md) | Member photos |
 | [0037](adr/0037-closures-and-late-hours.md) | Holiday closures and late hours |
 | [0038](adr/0038-offline-scanning.md) | Offline scanning |
+| [0039](adr/0039-closure-reminders-and-yearly-holidays.md) | Closure reminders and yearly holidays |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 

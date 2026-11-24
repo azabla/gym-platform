@@ -578,6 +578,8 @@ Closures and late hours (ADR 0037): give a branch late hours such as Friday 18:0
 
 Offline scanning (ADR 0038): run `php artisan door-list:generate-key` and put the `DOOR_LIST_SIGNING_KEY=…` line in `.env`. Then, signed in as staff, `GET /api/v1/organizations/demo-gym/door-list` gives the signed list, and `POST /api/v1/organizations/demo-gym/check-ins/offline` takes scans made offline (the format is in `docs/api/members-app.md`). In the panel, check-ins made offline say "Offline", and those the server would have decided otherwise show **Needs review**, with a filter and a link on the dashboard.
 
+Closure reminders and yearly holidays (ADR 0039): add a closure for tomorrow, then run `php artisan notifications:send-closure-reminders` after 09:00 gym time; members who weren't told in the last 2 days get the reminder. **Remove** a closure members were told about and they get "open as usual". Mark a closure **Every year** in **Add closure** and, once it ends, `php artisan branch-closures:repeat-yearly` adds next year's on the same Ethiopian date (both commands run hourly with the scheduler).
+
 ### Demo activity
 
 The base seed is small on purpose, so the examples in this guide keep their ids. To see the gym busy, run `make demo` after `make fresh` (it adds nothing a second time). It adds:

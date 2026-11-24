@@ -58,6 +58,12 @@ return [
         'body' => '{1} :branch at :gym is open only :opens_at–:closes_at on :starts_on: :reason.|[2,*] :branch at :gym is open only :opens_at–:closes_at from :starts_on to :ends_on: :reason.',
     ],
 
+    // A closure the member was told about was taken back (ADR 0039).
+    'branch_reopened' => [
+        'title' => ':branch open as usual',
+        'body' => '{1} :branch at :gym is open as usual on :starts_on after all.|[2,*] :branch at :gym is open as usual from :starts_on to :ends_on after all.',
+    ],
+
     // The gym's own words, the same in every language (ADR 0015).
     'announcement' => [
         'title' => ':title',

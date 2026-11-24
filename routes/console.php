@@ -22,6 +22,12 @@ Schedule::command('notifications:send-membership-reminders')->hourly()->withoutO
 // Staff hear how many members to call, once a day from 08:00 each gym's time (ADR 0027).
 Schedule::command('notifications:send-staff-morning-list')->hourly()->withoutOverlapping();
 
+// Members hear of a closure the day before, from 09:00 where each gym is (ADR 0039).
+Schedule::command('notifications:send-closure-reminders')->hourly()->withoutOverlapping();
+
+// Yearly holidays come back on the same Ethiopian date once they end (ADR 0039).
+Schedule::command('branch-closures:repeat-yearly')->hourly()->withoutOverlapping();
+
 // Scheduled announcements go out within a minute of their time (ADR 0015).
 Schedule::command('announcements:send-due')->everyMinute()->withoutOverlapping();
 
