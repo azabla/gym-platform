@@ -50,7 +50,7 @@ The membership has `visits_remaining` for a visit pack (ADR 0016). Volt's `grace
 
 | Request | Answer |
 |---|---|
-| `GET /me/gyms` | Every gym where the phone number is a member: `slug`, `name`, `member` (`id`, `full_name`, `home_branch`), `membership` at a glance (`id`, `plan`, `status`, `starts_on`, `ends_on`) or `null`, and `balance_due` there |
+| `GET /me/gyms` | Every gym where the phone number is a member: `slug`, `name`, `member` (`id`, `full_name`, `photo_url`, `home_branch`), `membership` at a glance (`id`, `plan`, `status`, `starts_on`, `ends_on`) or `null`, and `balance_due` there |
 | `GET /me/gyms/{gym}/memberships` | The member's memberships, newest first |
 | `GET /me/gyms/{gym}/memberships/{id}` | One membership |
 | `POST /me/gyms/{gym}/memberships/{id}/freezes` | Freeze it: `starts_on` (optional, today when left out, never in the past), `ends_on` and an optional `reason`. `201` with the membership as it is now (new `ends_on`, `freeze_days_left`, `freezes`). `422` on `starts_on` or `ends_on` with the reason, for example "A freeze can start today at the earliest." or "This membership can be frozen for 4 more days."; a plan without freeze days answers "This membership has no freeze days left." (ADR 0026) |
@@ -64,6 +64,17 @@ The membership has `visits_remaining` for a visit pack (ADR 0016). Volt's `grace
 **A receipt:** `id`, `receipt_number`, `type` (`payment` or `refund`), `amount`, `method` (`cash`, `telebirr`, `cbe_birr`, `bank_transfer` or `chapa`), `reference`, `paid_on`, `branch`, `membership` (`id`, `plan`), `voided`.
 
 **A branch:** `id`, `code`, `name`, `address`, and in the branch list `opening_hours`: a list of `weekday` (1 is Monday, 7 is Sunday), `opens_at` and `closes_at` (`"06:00"`, in the gym's time zone). An empty list means always open; once a branch has hours, a weekday not listed is closed.
+
+### My photo
+
+| Request | Answer |
+|---|---|
+| `PUT /me/photo` (multipart, the file as `photo`) | `204`. The photo is kept at every gym where the phone is registered. JPEG, PNG or WebP, up to 5 MB, at least 200 px wide and high; otherwise a `422` on `photo`. |
+| `DELETE /me/photo` | `204`. The photo is taken away at every gym. |
+
+- **What is kept.** The server keeps a 512 px square cut from the centre, upright, without the photo's location. Send the picture as taken; there is no need to crop it.
+- **`photo_url`** (on `member` in `GET /me/gyms`) is a link that works for **10 minutes**, or `null`. Load it when showing the screen; never store it.
+- **The desk can also take or replace the photo** (ADR 0036).
 
 **A visit pack** allows a number of visits within its dates. A visit is a day, where the gym is, with a check-in that let the member in: coming back the same day, at any branch, uses nothing.
 
@@ -187,13 +198,14 @@ The scanner is the staff app, signed in as staff (ADR 0004), under `/organizatio
 
 | Request | Answer |
 |---|---|
-| `POST check-ins/scan` `{"payload": "GQ1:…", "branch_id": 1}` | Always `200` when the request is valid: `id`, `decision`, `reason_code`, `method`, `checked_in_at`, `branch`, `member` (`id`, `full_name`, `phone`) or `null`, `membership` (`id`, `plan`, `starts_on`, `ends_on`, `balance_due`) or `null`, `checked_in_by` (`id`, `name`) |
+| `POST check-ins/scan` `{"payload": "GQ1:…", "branch_id": 1}` | Always `200` when the request is valid: `id`, `decision`, `reason_code`, `method`, `checked_in_at`, `branch`, `member` (`id`, `full_name`, `phone`, `photo_url`) or `null`, `membership` (`id`, `plan`, `starts_on`, `ends_on`, `balance_due`) or `null`, `checked_in_by` (`id`, `name`) |
 | `POST members/{id}/check-ins` `{"branch_id": 1}` | A desk check-in, for a member without their phone. The same answer and rules. |
 | `GET check-ins` | The gym's check-ins, newest first. Filters: `?on=YYYY-MM-DD`, `?branch_id=`, `?result=allowed` or `denied`, `?member_id=` |
 
 - `branch_id` can be left out by staff who work at only one branch.
 - Send an `Idempotency-Key` header (any text up to 100 characters, new for each scan) so a retry after a lost answer gets the first answer back, instead of `CODE_ALREADY_USED`.
 - Money owed doesn't stop entry: show `membership.balance_due` so the desk can ask for it.
+- Show `member.photo_url` large on the scan result, so the desk sees that the person is the member. It works for 10 minutes, or is `null` without a photo. Staff take photos with `PUT members/{id}/photo` (multipart `photo`) and remove them with `DELETE members/{id}/photo` (ADR 0036).
 
 ### Staff messages and pushes
 
@@ -235,6 +247,5 @@ Checked in this order; the first that applies is the answer.
 ## Not built yet
 
 - Offline scanning (Volt's phase 7).
-- Member photos.
 - Discounts in the app.
 - Opening hours past midnight, and holiday closures.

@@ -572,6 +572,8 @@ grep 'SMS to' storage/logs/laravel.log | tail -3
 
 A member's own language (on their form) wins over the gym's. **My notifications** in the user menu changes the language of your own Inbox, and turns push and SMS on or off for each kind of staff message at this gym (ADR 0035). Turn SMS on for Members to call, then run `make artisan c=notifications:send-staff-morning-list` (from 08:00 gym time) and read the text in the log; staff get no texts from 21:00 to 07:00. Ask for a sign-in code with `-H 'Accept-Language: am'` to get it in Amharic.
 
+Member photos (ADR 0036): open a member, choose **Add photo** and pick any picture; it is kept as a small square. It shows on the member's page, in the members and check-ins lists, and when you check the member in. In development photos go to `storage/app/private/member-photos` (`PHOTOS_DISK=local`), and their links work for 10 minutes.
+
 ### Demo activity
 
 The base seed is small on purpose, so the examples in this guide keep their ids. To see the gym busy, run `make demo` after `make fresh` (it adds nothing a second time). It adds:
@@ -643,7 +645,8 @@ Staging runs on Render's free plan from the `deployment` branch: one web service
 
 1. In Cloudflare, open **R2**, create a bucket (for example `gym-staging`), and under its **Settings** allow public access through the `r2.dev` address. Keep that address.
 2. Create a second bucket for the nightly database dumps (for example `gym-staging-backups`), and leave its public access **off**. A dump holds every member's phone number (ADR 0028).
-3. In **R2 > Manage API tokens**, create a token with **Object Read & Write** on both buckets. Keep the access key ID, the secret access key, and the S3 endpoint `https://<account id>.r2.cloudflarestorage.com`.
+3. Create a third bucket for member photos (for example `gym-staging-photos`), and leave its public access **off** too. The app shows photos through links that work for 10 minutes (ADR 0036).
+4. In **R2 > Manage API tokens**, create a token with **Object Read & Write** on all three buckets. Keep the access key ID, the secret access key, and the S3 endpoint `https://<account id>.r2.cloudflarestorage.com`.
 
 ### Once: the Blueprint
 
@@ -660,6 +663,7 @@ Staging runs on Render's free plan from the `deployment` branch: one web service
    | `AWS_ENDPOINT` | `https://<account id>.r2.cloudflarestorage.com` |
    | `AWS_URL` | The bucket's public `r2.dev` address |
    | `BACKUP_AWS_BUCKET` | The private backups bucket's name |
+   | `PHOTOS_DISK`, `PHOTOS_AWS_BUCKET` | `photos`, and the private photos bucket's name |
    | AfroMessage, Firebase and Sentry settings | Leave empty until going live (below) |
 
 3. Choose **Apply**. The first build takes several minutes. Each start runs the migrations, then the app answers at `https://gym-platform.onrender.com/up` (or the address Render shows). The panel is at `/staff`.
