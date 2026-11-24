@@ -212,6 +212,10 @@ class BranchClosure extends Model
         return [
             'starts_on' => 'immutable_date',
             'ends_on' => 'immutable_date',
+            'members_told_at' => 'immutable_datetime',
+            'reminded_at' => 'immutable_datetime',
+            'repeats_yearly' => 'boolean',
+            'repeated_at' => 'immutable_datetime',
         ];
     }
 }

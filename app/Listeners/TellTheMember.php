@@ -14,14 +14,13 @@ use App\Domains\Organizations\Events\BranchClosureScheduled;
 use App\Domains\Organizations\Models\BranchClosure;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
-use App\Notifications\BranchClosing;
+use App\Notifications\BranchClosureMessages;
 use App\Notifications\MembershipFrozen;
 use App\Notifications\PaymentLinkSent;
 use App\Notifications\PaymentSucceeded;
 use App\Notifications\VisitDenied;
 use App\Notifications\VisitsRunningLow;
 use Closure;
-use Illuminate\Support\Facades\Notification;
 
 /**
  * Tells members what happened to them at a gym (ADR 0012): a payment
@@ -130,10 +129,7 @@ final class TellTheMember
                 ->get();
 
             foreach ($closures as $closure) {
-                Notification::send(
-                    Member::query()->homeAtAnyOf([(int) $closure->branch_id])->get(),
-                    BranchClosing::for($closure),
-                );
+                BranchClosureMessages::tellMembersOf($closure);
             }
         });
     }
