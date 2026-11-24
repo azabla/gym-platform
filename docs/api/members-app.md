@@ -204,12 +204,51 @@ The scanner is the staff app, signed in as staff (ADR 0004), under `/organizatio
 |---|---|
 | `POST check-ins/scan` `{"payload": "GQ1:…", "branch_id": 1}` | Always `200` when the request is valid: `id`, `decision`, `reason_code`, `method`, `checked_in_at`, `branch`, `member` (`id`, `full_name`, `phone`, `photo_url`) or `null`, `membership` (`id`, `plan`, `starts_on`, `ends_on`, `balance_due`) or `null`, `checked_in_by` (`id`, `name`) |
 | `POST members/{id}/check-ins` `{"branch_id": 1}` | A desk check-in, for a member without their phone. The same answer and rules. |
-| `GET check-ins` | The gym's check-ins, newest first. Filters: `?on=YYYY-MM-DD`, `?branch_id=`, `?result=allowed` or `denied`, `?member_id=` |
+| `GET check-ins` | The gym's check-ins, newest first, each also with `offline`, `server_disagrees` and `server_reason_code`. Filters: `?on=YYYY-MM-DD`, `?branch_id=`, `?result=allowed` or `denied`, `?member_id=`, `?offline=1`, `?needs_review=1` |
 
 - `branch_id` can be left out by staff who work at only one branch.
 - Send an `Idempotency-Key` header (any text up to 100 characters, new for each scan) so a retry after a lost answer gets the first answer back, instead of `CODE_ALREADY_USED`.
 - Money owed doesn't stop entry: show `membership.balance_due` so the desk can ask for it.
 - Show `member.photo_url` large on the scan result, so the desk sees that the person is the member. It works for 10 minutes, or is `null` without a photo. Staff take photos with `PUT members/{id}/photo` (multipart `photo`) and remove them with `DELETE members/{id}/photo` (ADR 0036).
+
+### Offline scanning
+
+When the internet drops, the staff app keeps letting members in from a **door list** it downloaded, and sends the scans once it is back (ADR 0038).
+
+**The door list.** `GET door-list` (optionally `?branch_id=`) answers `{"data": {"list": "<JSON text>", "signature": "<base64>", "key_id": "…"}}`.
+- **Signature.** Check the Ed25519 `signature` on the exact bytes of `list` with the gym platform's public key before using it. Refuse a list that fails.
+- **The public key** is at `GET door-list/public-key` (`algorithm`, `public_key`, `key_id`). Keep it in the app, and fetch it again only when `key_id` changes.
+- **Refreshing.** Download a new list whenever online, every 15 minutes or so, and after a sale or freeze at the desk.
+- **Lifetime.** A list is good until `valid_until`, the end of tomorrow in UTC.
+- **Not set up.** `503` means the server has no signing key yet.
+
+**Inside `list`:**
+- `gym`, `generated_at`, `valid_until`, `utc_days` (the two UTC day numbers it holds keys for), and `dates` (the gym's own dates it covers).
+- `branches`: `id`, `name`, and `hours`, by date: `opens_at` and `closes_at`, or `null` when closed that day. `"00:00"`–`"24:00"` is open all day, and closing earlier than opening runs past midnight into the next date.
+- `credentials`, one per active QR credential:
+  - `id` (as in the code) and `last_used_step`;
+  - `day_keys` by UTC day (base64);
+  - `member` (`id`, `full_name`, `photo_url`; save the photo, since its link expires);
+  - `days` by date: `allowed`, `reason_code` (`MEMBERSHIP_NONE`, `MEMBERSHIP_EXPIRED` or `MEMBERSHIP_FROZEN` when not allowed), `membership` (`id`, `plan`), `branch_ids` (`null` for every branch), `visits_left` (`null` without a limit).
+
+**Checking a scan offline**, in the order of the reason codes below:
+1. The text reads as `GQ1:<id>:<step>:<code>`, and `id` is in `credentials`; otherwise `CREDENTIAL_INVALID`.
+2. `step` is within one of the scanner's own step (`floor(unix time / 30)`); otherwise `CODE_EXPIRED`.
+3. `code` equals the first 8 bytes, uppercase hex, of `HMAC-SHA256(day_keys[floor(step / 2880)], "GQ1|" + id + "|" + step)`; otherwise `CREDENTIAL_INVALID`.
+4. `step` is above `last_used_step` (raise it after); otherwise `CODE_ALREADY_USED`.
+5. The branch's hours cover the time, counting the previous date's hours past midnight; otherwise `OUTSIDE_HOURS`.
+6. The date's `days` entry allows it, the branch is in `branch_ids`, and `visits_left` is above 0 (or the member already came in that date); otherwise its reason, `BRANCH_NOT_ALLOWED` or `VISITS_USED_UP`. Count a visit down on the first allowed scan of a date.
+7. No allowed scan of the member in the last 5 minutes; otherwise `ALREADY_CHECKED_IN`.
+
+**Sending the scans.** `POST check-ins/offline` `{"scans": [{"id": "<uuid>", "payload": "GQ1:…", "branch_id": 1, "scanned_at": "2026-10-24T08:30:00+03:00", "decision": "allow"|"deny", "reason_code": "…"}]}`:
+- **Batches.** Up to 200 scans a request, each with an `id` the app made. Keep scans until the server answers for them, and send the same `id`s again after a lost answer.
+- **The answer** is `200`, one row per scan, in order: `id`, `status`, `check_in_id`, `server_disagrees`, `server_reason_code` and `message`.
+- **`status`:**
+  - `recorded`: kept at `scanned_at` with the door's decision;
+  - `already_recorded`: a retry;
+  - `refused`: not kept, with why. That happens when the code doesn't match its time or isn't this gym's, or the scan is dated in the future, is over 3 days old, or is at a branch the staff member doesn't work at.
+- **`server_disagrees`** means the server, deciding again for that moment, would have answered `server_reason_code` (or let them in). Examples: the membership changed after the list was downloaded, or two scanners let the same code in. Staff review these in the panel; the member stays checked in as the door decided.
+- **Messages.** A recorded scan may still push "one visit left" to the member, but never "check-in refused".
 
 ### Staff messages and pushes
 
@@ -250,4 +289,4 @@ Checked in this order; the first that applies is the answer.
 
 ## Not built yet
 
-- Offline scanning (Volt's phase 7).
+- The member's photo on the members app's QR screen.
