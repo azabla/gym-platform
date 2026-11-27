@@ -72,6 +72,29 @@ class Organization extends Model
     ];
 
     /**
+     * Change what the platform set when it opened the gym. The slug stays:
+     * it is the gym's address in links, the apps and printed QR codes.
+     * See ADR 0042.
+     */
+    public function changeDetails(string $name, string $timezone, Language $messageLanguage): void
+    {
+        $this->forceFill(['name' => $name, 'timezone' => $timezone, 'message_language' => $messageLanguage])->save();
+    }
+
+    /**
+     * The owner the platform added when it opened the gym: the first owner,
+     * if one is still there.
+     */
+    public function firstOwner(): ?Staff
+    {
+        return Staff::query()->acrossOrganizations()
+            ->where('organization_id', $this->getKey())
+            ->where('role', StaffRole::Owner)
+            ->orderBy('id')
+            ->first();
+    }
+
+    /**
      * The language the gym's members get messages in, unless a member has
      * chosen their own. See ADR 0034.
      */

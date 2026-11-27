@@ -9,16 +9,23 @@ use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Models\Staff;
+use App\Domains\Organizations\Onboarding\NewGym;
 use App\Domains\Shared\Money\Money;
+use App\Filament\Admin\Resources\Gyms\Pages\CreateGym;
+use App\Filament\Admin\Resources\Gyms\Pages\EditGym;
 use App\Filament\Admin\Resources\Gyms\Pages\ListGyms;
 use App\Filament\Admin\Resources\Gyms\Pages\ViewGym;
 use App\Filament\Staff\Support\Tables;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
@@ -26,6 +33,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 /**
  * Every gym on the platform, for platform admins: who owns it, its branches
@@ -81,6 +89,85 @@ class GymResource extends Resource
             ]);
     }
 
+    /**
+     * Opening a gym, or changing it. The rules are NewGym's, the same as
+     * gyms:create's; the slug is set once, and the branch and owner only
+     * when the gym is opened (the owner adds the rest in the staff panel).
+     */
+    public static function form(Schema $schema): Schema
+    {
+        $rules = NewGym::rules();
+
+        return $schema->components([
+            Section::make('The gym')
+                ->description('Its name, and its address in the staff panel and the apps.')
+                ->icon(Heroicon::OutlinedBuildingStorefront)
+                ->columns(['default' => 1, 'md' => 2])
+                ->schema([
+                    TextInput::make('name')
+                        ->placeholder('Bole Fitness')
+                        ->required()
+                        ->maxLength(255)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(function (Get $get, Set $set, ?string $state, string $operation): void {
+                            if ($operation === 'create' && blank($get('slug'))) {
+                                $set('slug', Str::slug((string) $state));
+                            }
+                        }),
+                    TextInput::make('slug')
+                        ->label('Address')
+                        ->prefix('/staff/')
+                        ->placeholder('bole-fitness')
+                        ->helperText(fn (string $operation): string => $operation === 'create'
+                            ? 'Small letters, digits and hyphens. It can\'t be changed later: links, the apps and printed QR codes use it.'
+                            : 'Set when the gym was opened; links, the apps and printed QR codes use it.')
+                        ->rules($rules['slug'])
+                        ->required()
+                        ->disabledOn('edit')
+                        ->dehydrated(fn (string $operation): bool => $operation === 'create'),
+                    Select::make('timezone')
+                        ->label('Time zone')
+                        ->options(fn (): array => array_combine(timezone_identifiers_list(), timezone_identifiers_list()))
+                        ->default('Africa/Addis_Ababa')
+                        ->searchable()
+                        ->native(false)
+                        ->required()
+                        ->helperText('"Today", opening hours and reminders follow it.'),
+                    Select::make('message_language')
+                        ->label('Members\' message language')
+                        ->options(['en' => 'English', 'am' => 'Amharic (አማርኛ)'])
+                        ->default('en')
+                        ->native(false)
+                        ->required()
+                        ->helperText('The owner can change it later in Gym settings.'),
+                ]),
+            Section::make('First branch and owner')
+                ->description('The owner gets an SMS with a link to set their password, then adds the rest of the staff.')
+                ->icon(Heroicon::OutlinedUserCircle)
+                ->columns(['default' => 1, 'md' => 3])
+                ->visibleOn('create')
+                ->schema([
+                    TextInput::make('branch')
+                        ->label('First branch')
+                        ->default('Main Branch')
+                        ->required()
+                        ->maxLength(255),
+                    TextInput::make('owner_name')
+                        ->label('Owner\'s name')
+                        ->placeholder('Meron Assefa')
+                        ->required()
+                        ->maxLength(255),
+                    TextInput::make('owner_phone')
+                        ->label('Owner\'s phone')
+                        ->placeholder('0911 22 33 44')
+                        ->tel()
+                        ->rules($rules['owner_phone'])
+                        ->required()
+                        ->helperText('They sign in with it.'),
+                ]),
+        ]);
+    }
+
     public static function infolist(Schema $schema): Schema
     {
         return $schema->components([
@@ -126,7 +213,9 @@ class GymResource extends Resource
     {
         return [
             'index' => ListGyms::route('/'),
+            'create' => CreateGym::route('/new'),
             'view' => ViewGym::route('/{record}'),
+            'edit' => EditGym::route('/{record}/edit'),
         ];
     }
 
