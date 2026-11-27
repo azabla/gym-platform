@@ -267,7 +267,7 @@ final class StaffDashboard
     private function takingsByDay(CarbonImmutable $from, CarbonImmutable $to, ?array $branchIds, array $days): array
     {
         $sums = Payment::query()
-            ->counted()
+            ->moneyTaken()
             ->where('paid_on', '>=', $from->toDateString())
             ->where('paid_on', '<=', $to->toDateString())
             ->takenAtAnyOf($branchIds)

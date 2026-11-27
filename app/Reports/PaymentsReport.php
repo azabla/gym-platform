@@ -83,6 +83,8 @@ final class PaymentsReport extends Report
             ->where('paid_on', '<=', $this->period->to->toDateString())
             ->takenAtAnyOf($branchIds)
             ->when($this->method !== null, fn (Builder $query) => $query->where('method', $this->method))
+            // Money brought in by an import isn't money taken in the period; ask for it by its method (ADR 0044).
+            ->when($this->method === null, fn (Builder $query) => $query->where('method', '<>', PaymentMethod::BroughtIn))
             ->when($this->memberId !== null, fn (Builder $query) => $query->whereRelation('membership', 'member_id', $this->memberId))
             ->with(['member', 'membership.plan', 'branch', 'receivedBy.user'])
             ->orderBy('paid_on')

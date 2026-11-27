@@ -223,7 +223,11 @@ class PaymentResource extends Resource
         $refunded = $totals['refunded'];
         /** @var Money $net */
         $net = $totals['net'];
+        $line = __('Received :received, refunded :refunded, net :net', ['received' => $received->format(), 'refunded' => $refunded->format(), 'net' => $net->format()]);
 
-        return __('Received :received, refunded :refunded, net :net', ['received' => $received->format(), 'refunded' => $refunded->format(), 'net' => $net->format()]);
+        // Money brought in by an import counts for balances, not as money taken (ADR 0044).
+        return $totals['brought_in']->isZero()
+            ? $line
+            : $line.' · '.__('brought in :amount, not counted as money taken', ['amount' => $totals['brought_in']->format()]);
     }
 }

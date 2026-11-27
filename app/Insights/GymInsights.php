@@ -63,7 +63,7 @@ final class GymInsights
         $covered = $this->months($gym, $months);
 
         $sums = Payment::query()
-            ->counted()
+            ->moneyTaken()
             ->takenAtAnyOf($branchIds)
             ->where('paid_on', '>=', $covered[0]->toDateString())
             ->where('paid_on', '<=', $gym->today()->toDateString())
@@ -94,7 +94,7 @@ final class GymInsights
             $key = $month->format('Y-m');
             $methods = [];
 
-            foreach (PaymentMethod::cases() as $method) {
+            foreach (PaymentMethod::moneyTaken() as $method) {
                 $methods[$method->value] = $byMethod[$key][$method->value] ?? Money::zero();
             }
 

@@ -120,6 +120,7 @@
     "branches": "ቅርንጫፎች",
     "Branches": "ቅርንጫፎች",
     "Brought in": "ከቀድሞ መዝገብ",
+    "brought in :amount, not counted as money taken": "ከቀድሞ መዝገብ :amount፣ እንደ ተሰበሰበ ገንዘብ አይቆጠርም",
     "Busiest hours": "በጣም የሚጨናነቅባቸው ሰዓታት",
     "Busiest hours, weekday by hour": "በጣም የሚጨናነቅባቸው ሰዓታት፣ በየቀኑና በየሰዓቱ",
     "Busy hours": "የሚጨናነቅባቸው ሰዓታት",

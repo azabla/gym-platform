@@ -182,10 +182,12 @@ class Payment extends Model
     /**
      * What the payments the query finds add up to, leaving out voided ones:
      * the total received, the total refunded, the net, and the net for each
-     * method. Every method is listed, even with nothing taken.
+     * method. Every method that counts as money taken is listed, even with
+     * nothing taken. Money brought in by an import is no money taken: it is
+     * left out of all of these and totalled on its own (ADR 0044).
      *
      * @param  Builder<self>  $payments
-     * @return array{received: Money, refunded: Money, net: Money, by_method: array<string, Money>}
+     * @return array{received: Money, refunded: Money, net: Money, by_method: array<string, Money>, brought_in: Money}
      */
     public static function totalsOf(Builder $payments): array
     {
@@ -198,14 +200,21 @@ class Payment extends Model
 
         $received = Money::zero();
         $refunded = Money::zero();
+        $broughtIn = Money::zero();
         $netByMethod = [];
 
-        foreach (PaymentMethod::cases() as $method) {
+        foreach (PaymentMethod::moneyTaken() as $method) {
             $netByMethod[$method->value] = Money::zero();
         }
 
         foreach ($sums as $sum) {
             $total = Money::ofMinor((int) $sum->total_minor, Currency::from($sum->currency));
+
+            if ($sum->method === PaymentMethod::BroughtIn->value) {
+                $broughtIn = $sum->type === PaymentType::Refund->value ? $broughtIn->subtract($total) : $broughtIn->add($total);
+
+                continue;
+            }
 
             if ($sum->type === PaymentType::Refund->value) {
                 $refunded = $refunded->add($total);
@@ -221,6 +230,7 @@ class Payment extends Model
             'refunded' => $refunded,
             'net' => $received->subtract($refunded),
             'by_method' => $netByMethod,
+            'brought_in' => $broughtIn,
         ];
     }
 
@@ -347,6 +357,18 @@ class Payment extends Model
     protected function counted(Builder $query): void
     {
         $query->whereNull('voided_at');
+    }
+
+    /**
+     * Payments that count as money taken: not voided, and not money brought
+     * in by an import, which was paid before the gym joined (ADR 0044).
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function moneyTaken(Builder $query): void
+    {
+        $query->whereNull('voided_at')->where('method', '<>', PaymentMethod::BroughtIn);
     }
 
     /**

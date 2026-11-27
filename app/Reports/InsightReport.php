@@ -37,7 +37,7 @@ final class InsightReport extends Report
     public function headings(): array
     {
         return match ($this->insight) {
-            Insight::Revenue => ['Month', 'Net', ...array_map(fn (PaymentMethod $method): string => $method->label(), PaymentMethod::cases()), ...$this->plans()],
+            Insight::Revenue => ['Month', 'Net', ...array_map(fn (PaymentMethod $method): string => $method->label(), PaymentMethod::moneyTaken()), ...$this->plans()],
             Insight::Renewals => ['Month', 'Ended', 'Renewed', 'Lapsed', 'Waiting', 'Renewal rate'],
             Insight::BusyHours => ['Weekday', ...array_map(fn (int $hour): string => sprintf('%02d:00', $hour), range(0, 23))],
             Insight::Members => ['Month', 'Active members', 'New members', 'Visit packs ended', 'Visits bought', 'Visits used', 'Packs with visits left'],
