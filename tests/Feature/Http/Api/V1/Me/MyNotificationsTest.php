@@ -44,10 +44,10 @@ it('lists my messages at the gym, newest first, written in my language, with the
         ->assertJsonPath('data.*.id', [$newer->id, $older->id])
         ->assertJsonPath('data.0.type', 'visit_denied')
         ->assertJsonPath('data.0.title', 'መግባት አልተፈቀደም')
-        ->assertJsonPath('data.0.body', 'Main Branch ላይ መግባት አልቻሉም፦ አባልነትዎ አብቅቷል።')
+        ->assertJsonPath('data.0.body', 'በMain Branch መግባት አልቻሉም፦ አባልነትዎ አብቅቷል።')
         ->assertJsonPath('data.0.data', ['check_in_id' => '41'])
         ->assertJsonPath('data.0.read_at', null)
-        ->assertJsonPath('data.1.body', 'በDemo Gym ያለዎት የMonthly አባልነት በ3 ቀናት ውስጥ፣ 2026-10-27 ላይ ያበቃል።')
+        ->assertJsonPath('data.1.body', 'በDemo Gym ያለዎት የMonthly አባልነት በ3 ቀን ውስጥ፣ ጥቅምት 17 ቀን 2019 ዓ.ም. (ኦክቶበር 27, 2026)፣ ያበቃል።')
         ->assertJsonPath('data.1.read_at', fn ($readAt) => $readAt !== null)
         ->assertJsonPath('meta.unread_count', 1);
 });
@@ -57,7 +57,7 @@ it('says "tomorrow" when one day is left', function () {
     actingAsMember($this->tigist);
 
     $this->getJson(route('api.v1.me.gyms.notifications.index', ['organization' => 'demo-gym']))
-        ->assertJsonPath('data.0.body', 'Your Monthly membership at Demo Gym ends tomorrow, 2026-10-25.');
+        ->assertJsonPath('data.0.body', 'Your Monthly membership at Demo Gym ends tomorrow, 25 October 2026.');
 });
 
 it('marks one message read, and all of this gym\'s, safely more than once', function () {
