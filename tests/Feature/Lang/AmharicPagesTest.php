@@ -8,6 +8,7 @@ use App\Domains\Billing\Models\ChapaAccount;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Billing\Models\PaymentLink;
 use App\Domains\Identity\Models\User;
+use App\Domains\Imports\Models\MemberImport;
 use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Models\DiscountGroup;
 use App\Domains\Memberships\Models\Membership;
@@ -48,6 +49,10 @@ beforeEach(function () {
     BranchClosure::factory()->for($this->branch)->create(['starts_on' => '2026-12-01', 'ends_on' => '2026-12-01']);
     ChapaAccount::factory()->for($this->gym)->create();
     PaymentLink::factory()->for($membership)->create();
+    MemberImport::check($this->staff, 'members.csv', "full_name,phone,home_branch
+ሀና ግርማ,0911223399,{$this->branch->name}
+ዳዊት,12,{$this->branch->name}
+", CarbonImmutable::parse('2026-11-24'));
 
     app()->setLocale('am');
     CarbonImmutable::setLocale('am');
@@ -88,7 +93,7 @@ function dataOfTheGym(): array
 {
     $values = [];
 
-    foreach ([Organization::class, Branch::class, Plan::class, Member::class, Announcement::class, PromoCode::class, DiscountGroup::class, BranchClosure::class, Payment::class, PaymentLink::class, ChapaAccount::class, User::class] as $model) {
+    foreach ([Organization::class, Branch::class, Plan::class, Member::class, Announcement::class, PromoCode::class, DiscountGroup::class, BranchClosure::class, Payment::class, PaymentLink::class, ChapaAccount::class, MemberImport::class, User::class] as $model) {
         $records = method_exists($model, 'acrossOrganizations') ? $model::acrossOrganizations()->get() : $model::query()->get();
 
         foreach ($records as $record) {

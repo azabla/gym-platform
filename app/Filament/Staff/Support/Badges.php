@@ -11,6 +11,8 @@ use App\Domains\Billing\Enums\ChapaMode;
 use App\Domains\Billing\Enums\PaymentLinkStatus;
 use App\Domains\Billing\Enums\PaymentMethod;
 use App\Domains\Billing\Enums\PaymentType;
+use App\Domains\Imports\Enums\MemberImportRowOutcome;
+use App\Domains\Imports\Enums\MemberImportStatus;
 use App\Domains\Memberships\Enums\MembershipStatus;
 use App\Domains\Organizations\Enums\StaffRole;
 use BackedEnum;
@@ -93,6 +95,18 @@ final class Badges
             },
             $value instanceof ChapaMode => $value === ChapaMode::Live ? 'success' : 'warning',
             $value instanceof CheckInMethod => $value === CheckInMethod::Qr ? 'info' : 'gray',
+            $value instanceof MemberImportStatus => match ($value) {
+                MemberImportStatus::Checked => 'warning',
+                MemberImportStatus::Importing => 'info',
+                MemberImportStatus::Imported => 'success',
+                MemberImportStatus::Discarded => 'gray',
+            },
+            $value instanceof MemberImportRowOutcome => match ($value) {
+                MemberImportRowOutcome::Ready => 'info',
+                MemberImportRowOutcome::Added => 'success',
+                MemberImportRowOutcome::Duplicate => 'gray',
+                MemberImportRowOutcome::Error, MemberImportRowOutcome::Failed => 'danger',
+            },
             default => 'gray',
         };
     }
@@ -122,6 +136,18 @@ final class Badges
                 AnnouncementStatus::Cancelled => Heroicon::OutlinedXCircle,
             },
             $value instanceof CheckInMethod => $value === CheckInMethod::Qr ? Heroicon::OutlinedQrCode : Heroicon::OutlinedComputerDesktop,
+            $value instanceof MemberImportStatus => match ($value) {
+                MemberImportStatus::Checked => Heroicon::OutlinedEye,
+                MemberImportStatus::Importing => Heroicon::OutlinedArrowPath,
+                MemberImportStatus::Imported => Heroicon::OutlinedCheckCircle,
+                MemberImportStatus::Discarded => Heroicon::OutlinedXCircle,
+            },
+            $value instanceof MemberImportRowOutcome => match ($value) {
+                MemberImportRowOutcome::Ready => Heroicon::OutlinedClock,
+                MemberImportRowOutcome::Added => Heroicon::OutlinedCheckCircle,
+                MemberImportRowOutcome::Duplicate => Heroicon::OutlinedDocumentDuplicate,
+                MemberImportRowOutcome::Error, MemberImportRowOutcome::Failed => Heroicon::OutlinedExclamationTriangle,
+            },
             default => null,
         };
     }

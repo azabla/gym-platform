@@ -10,6 +10,8 @@ use App\Domains\Billing\Enums\ChapaMode;
 use App\Domains\Billing\Enums\PaymentLinkStatus;
 use App\Domains\Billing\Enums\PaymentMethod;
 use App\Domains\Billing\Enums\PaymentType;
+use App\Domains\Imports\Enums\MemberImportRowOutcome;
+use App\Domains\Imports\Enums\MemberImportStatus;
 use App\Domains\Imports\Exceptions\RowRefused;
 use App\Domains\Memberships\Discount\Exceptions\InvalidDiscount;
 use App\Domains\Memberships\Enums\MembershipStatus;
@@ -108,7 +110,7 @@ it('has Amharic for the labels the panel works out as it runs', function () {
     $panel = Filament::getPanel('staff');
     $labels = [GymInsights::NO_PLAN, ...BusyHoursByWeekdayChart::WEEKDAYS];
 
-    foreach ([AnnouncementStatus::class, CheckInMethod::class, CheckInResult::class, ChapaMode::class, PaymentLinkStatus::class, PaymentMethod::class, PaymentType::class, MembershipStatus::class, StaffRole::class] as $enum) {
+    foreach ([AnnouncementStatus::class, CheckInMethod::class, CheckInResult::class, ChapaMode::class, PaymentLinkStatus::class, PaymentMethod::class, PaymentType::class, MembershipStatus::class, StaffRole::class, MemberImportStatus::class, MemberImportRowOutcome::class] as $enum) {
         foreach ($enum::cases() as $case) {
             $labels[] = Badges::label($case);
         }
