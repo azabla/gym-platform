@@ -32,7 +32,7 @@ class SendPaymentLinkAction extends Action
     {
         parent::setUp();
 
-        $this->label('Send by SMS')
+        $this->label(__('Send by SMS'))
             ->icon('heroicon-o-chat-bubble-left-ellipsis')
             ->visible(function (Model $record): bool {
                 $paymentLink = self::linkOf($record);
@@ -40,7 +40,7 @@ class SendPaymentLinkAction extends Action
                 return $paymentLink !== null && Gate::allows('send', $paymentLink);
             })
             ->requiresConfirmation()
-            ->modalDescription(fn (Model $record): string => 'The link and amount go by SMS to '.self::linkOf($record)?->member?->phone.'.')
+            ->modalDescription(fn (Model $record): string => __('The link and amount go by SMS to :phone.', ['phone' => self::linkOf($record)?->member?->phone]))
             ->action(function (Model $record, Action $action): void {
                 $paymentLink = self::linkOf($record);
 
@@ -54,7 +54,7 @@ class SendPaymentLinkAction extends Action
                     Refusals::halt($action, $refusal);
                 }
 
-                Notification::make()->success()->title('The link is on its way to the member by SMS.')->send();
+                Notification::make()->success()->title(__('The link is on its way to the member by SMS.'))->send();
             });
     }
 

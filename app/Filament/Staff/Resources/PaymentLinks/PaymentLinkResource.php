@@ -58,85 +58,85 @@ class PaymentLinkResource extends Resource
     {
         return $schema
             ->components([
-                Section::make('At a glance')
+                Section::make(__('At a glance'))
                     ->icon(Heroicon::OutlinedSparkles)
                     ->schema([
                         Grid::make(['default' => 2, 'lg' => 4])->schema([
-                            TextEntry::make('amount')
+                            TextEntry::make('amount')->label(__('Amount'))
                                 ->state(fn (PaymentLink $record): string => $record->amount->format())
                                 ->size('lg')
                                 ->weight(FontWeight::Bold),
-                            TextEntry::make('status')
+                            TextEntry::make('status')->label(__('Status'))
                                 ->badge()
                                 ->formatStateUsing(fn (PaymentLinkStatus $state): string => Badges::label($state))
                                 ->color(fn (PaymentLinkStatus $state): string => Badges::color($state))
                                 ->icon(fn (PaymentLinkStatus $state): ?Heroicon => Badges::icon($state)),
                             TextEntry::make('member.full_name')
-                                ->label('Member')
+                                ->label(__('Member'))
                                 ->weight(FontWeight::SemiBold)
                                 ->url(fn (PaymentLink $record): string => MemberResource::getUrl('view', ['record' => $record->member_id])),
-                            TextEntry::make('for')->state(fn (PaymentLink $record): string => self::whatItIsFor($record))->badge()->color('primary'),
+                            TextEntry::make('for')->label(__('For'))->state(fn (PaymentLink $record): string => self::whatItIsFor($record))->badge()->color('primary'),
                         ]),
                         TextEntry::make('checkout_url')
-                            ->label('Link to send the member')
+                            ->label(__('Link to send the member'))
                             ->copyable()
-                            ->copyMessage('Copied')
+                            ->copyMessage(__('Copied'))
                             ->icon(Heroicon::OutlinedLink)
                             ->visible(fn (PaymentLink $record): bool => $record->status === PaymentLinkStatus::Pending),
                     ]),
-                Section::make('Details')
+                Section::make(__('Details'))
                     ->icon(Heroicon::OutlinedInformationCircle)
                     ->columns(['default' => 1, 'md' => 3])
                     ->schema([
-                        TextEntry::make('branch.name')->label('Branch')->badge()->color('gray'),
-                        TextEntry::make('createdBy.user.name')->label('Created by')->placeholder('The member, in the app'),
-                        TextEntry::make('created_at')->label('Created')->dateTime('j M Y, H:i')->timezone(self::gymTimezone()),
+                        TextEntry::make('branch.name')->label(__('Branch'))->badge()->color('gray'),
+                        TextEntry::make('createdBy.user.name')->label(__('Created by'))->placeholder(__('The member, in the app')),
+                        TextEntry::make('created_at')->label(__('Created'))->dateTime('j M Y, H:i')->timezone(self::gymTimezone()),
                         TextEntry::make('payment.receipt_number')
-                            ->label('Receipt')
-                            ->placeholder('None')
+                            ->label(__('Receipt'))
+                            ->placeholder(__('None'))
                             ->url(fn (PaymentLink $record): ?string => $record->payment_id === null ? null : PaymentResource::getUrl('view', ['record' => $record->payment_id])),
-                        TextEntry::make('chapa_reference')->label('Chapa reference')->copyable()->placeholder('None'),
-                        TextEntry::make('sms_sent_at')->label('Texted to the member')->dateTime('j M Y, H:i')->timezone(self::gymTimezone())->placeholder('Not yet'),
+                        TextEntry::make('chapa_reference')->label(__('Chapa reference'))->copyable()->placeholder(__('None')),
+                        TextEntry::make('sms_sent_at')->label(__('Texted to the member'))->dateTime('j M Y, H:i')->timezone(self::gymTimezone())->placeholder(__('Not yet')),
                         TextEntry::make('cancelled_at')
-                            ->label('Cancelled')
+                            ->label(__('Cancelled'))
                             ->dateTime('j M Y, H:i')
                             ->timezone(self::gymTimezone())
                             ->visible(fn (PaymentLink $record): bool => $record->cancelled_at !== null),
                     ]),
-                Section::make('Refund')
+                Section::make(__('Refund'))
                     ->icon(Heroicon::OutlinedArrowUturnLeft)
                     ->columns(['default' => 1, 'md' => 3])
                     ->visible(fn (PaymentLink $record): bool => $record->refunded_at !== null)
                     ->schema([
-                        TextEntry::make('refunded_at')->label('Refunded')->dateTime('j M Y, H:i')->timezone(self::gymTimezone()),
-                        TextEntry::make('refundedBy.user.name')->label('Refunded by'),
-                        TextEntry::make('refund_note')->label('Refund note')->placeholder('None'),
+                        TextEntry::make('refunded_at')->label(__('Refunded'))->dateTime('j M Y, H:i')->timezone(self::gymTimezone()),
+                        TextEntry::make('refundedBy.user.name')->label(__('Refunded by')),
+                        TextEntry::make('refund_note')->label(__('Refund note'))->placeholder(__('None')),
                     ]),
             ]);
     }
 
     public static function table(Table $table): Table
     {
-        return Tables::standard($table, Heroicon::OutlinedLink, 'No payment links here', 'Create one from a membership\'s page to let the member pay online, or change the filters.')
+        return Tables::standard($table, Heroicon::OutlinedLink, __('No payment links here'), __('Create one from a membership\'s page to let the member pay online, or change the filters.'))
             ->defaultSort('created_at', 'desc')
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['member', 'plan', 'membership.plan', 'branch', 'createdBy.user']))
-            ->searchPlaceholder('Member name')
+            ->searchPlaceholder(__('Member name'))
             ->columns([
                 TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('Created'))
                     ->dateTime('j M Y, H:i')
                     ->timezone(self::gymTimezone())
                     ->description(fn (PaymentLink $record): string => (string) $record->created_at?->diffForHumans())
                     ->sortable(),
-                TextColumn::make('member.full_name')->label('Member')->weight(FontWeight::SemiBold)->searchable(),
-                TextColumn::make('for')
+                TextColumn::make('member.full_name')->label(__('Member'))->weight(FontWeight::SemiBold)->searchable(),
+                TextColumn::make('for')->label(__('For'))
                     ->state(fn (PaymentLink $record): string => self::whatItIsFor($record))
                     ->badge()
                     ->color(fn (PaymentLink $record): string => $record->isForAPlan() ? 'info' : 'primary'),
                 Tables::money('amount', fn (PaymentLink $record) => $record->amount),
                 Tables::badge('status'),
                 IconColumn::make('texted')
-                    ->label('Texted')
+                    ->label(__('Texted'))
                     ->state(fn (PaymentLink $record): bool => $record->sms_sent_at !== null)
                     ->boolean()
                     ->trueIcon(Heroicon::OutlinedChatBubbleLeftEllipsis)
@@ -144,29 +144,29 @@ class PaymentLinkResource extends Resource
                     ->trueColor('info')
                     ->falseColor('gray')
                     ->toggleable(),
-                TextColumn::make('branch.name')->label('Branch')->badge()->color('gray'),
-                TextColumn::make('createdBy.user.name')->label('Created by')->placeholder('In the app')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('branch.name')->label(__('Branch'))->badge()->color('gray'),
+                TextColumn::make('createdBy.user.name')->label(__('Created by'))->placeholder(__('In the app'))->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('status')->native(false)->options(Badges::options(PaymentLinkStatus::class)),
-                SelectFilter::make('branch')->native(false)->relationship('branch', 'name', self::onlyTheirBranches(...)),
-                SelectFilter::make('for')
+                SelectFilter::make('status')->label(__('Status'))->native(false)->options(Badges::options(PaymentLinkStatus::class)),
+                SelectFilter::make('branch')->label(__('Branch'))->native(false)->relationship('branch', 'name', self::onlyTheirBranches(...)),
+                SelectFilter::make('for')->label(__('For'))
                     ->native(false)
-                    ->options(['membership' => 'Paying a membership', 'plan' => 'Buying a plan in the app'])
+                    ->options(['membership' => __('Paying a membership'), 'plan' => __('Buying a plan in the app')])
                     ->query(fn (Builder $query, array $data): Builder => match ($data['value'] ?? null) {
                         'membership' => $query->whereNull('plan_id'),
                         'plan' => $query->whereNotNull('plan_id'),
                         default => $query,
                     }),
-                TernaryFilter::make('texted')
+                TernaryFilter::make('texted')->label(__('Texted'))
                     ->native(false)
                     ->attribute('sms_sent_at')
                     ->nullable()
-                    ->placeholder('Texted or not')
-                    ->trueLabel('Texted to the member')
-                    ->falseLabel('Not texted'),
-                Tables::dateRange('created', 'created_at', 'Created', isMoment: true),
-                SelectFilter::make('member')
+                    ->placeholder(__('Texted or not'))
+                    ->trueLabel(__('Texted to the member'))
+                    ->falseLabel(__('Not texted')),
+                Tables::dateRange('created', 'created_at', __('Created'), isMoment: true),
+                SelectFilter::make('member')->label(__('Member'))
                     ->native(false)
                     ->relationship('member', 'full_name')
                     ->searchable(),
@@ -201,6 +201,6 @@ class PaymentLinkResource extends Resource
      */
     private static function whatItIsFor(PaymentLink $paymentLink): string
     {
-        return $paymentLink->isForAPlan() ? "Buying {$paymentLink->planName()}" : $paymentLink->planName();
+        return $paymentLink->isForAPlan() ? __('Buying :plan', ['plan' => $paymentLink->planName()]) : $paymentLink->planName();
     }
 }

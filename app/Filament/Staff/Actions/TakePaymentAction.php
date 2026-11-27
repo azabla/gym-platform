@@ -29,7 +29,7 @@ class TakePaymentAction extends MoneyAction
     {
         parent::setUp();
 
-        $this->label('Take payment')
+        $this->label(__('Take payment'))
             ->icon(Heroicon::OutlinedBanknotes)
             ->modalIcon(Heroicon::OutlinedBanknotes)
             ->color('success')

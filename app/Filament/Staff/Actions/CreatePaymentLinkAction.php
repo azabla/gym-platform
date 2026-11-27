@@ -39,19 +39,19 @@ class CreatePaymentLinkAction extends Action
     {
         parent::setUp();
 
-        $this->label('Create payment link')
+        $this->label(__('Create payment link'))
             ->icon(Heroicon::OutlinedLink)
             ->modalIcon(Heroicon::OutlinedLink)
             ->color('gray')
             ->visible(fn (Membership $record): bool => Gate::allows('create', PaymentLink::class) && $record->cancelled_at === null)
-            ->modalDescription('A link to Chapa\'s payment page, to send the member. The money goes to the gym\'s Chapa account.')
+            ->modalDescription(__('A link to Chapa\'s payment page, to send the member. The money goes to the gym\'s Chapa account.'))
             ->schema(fn (Membership $record): array => [
-                TextInput::make('amount')
+                TextInput::make('amount')->label(__('Amount'))
                     ->required()
                     ->default(Payment::balanceOf($record)->balanceDue->toDecimal())
                     ->rules(fn (): array => [new ValidMoneyAmount]),
                 Select::make('branch_id')
-                    ->label('Branch')
+                    ->label(__('Branch'))
                     ->required()
                     ->options(fn (): array => app(CurrentStaff::class)->get()->branchesWorkedAt()->pluck('name', 'id')->all())
                     ->default(MemberResource::onlyBranchWorkedAt()),
@@ -80,7 +80,7 @@ class CreatePaymentLinkAction extends Action
                     return;
                 }
 
-                Notification::make()->success()->title('Payment link created. Copy it and send it to the member.')->send();
+                Notification::make()->success()->title(__('Payment link created. Copy it and send it to the member.'))->send();
                 $action->redirect(PaymentLinkResource::getUrl('view', ['record' => $paymentLink]));
             });
     }
