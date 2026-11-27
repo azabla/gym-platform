@@ -187,7 +187,7 @@ Every push also has `notification_id` (mark it read when tapped), and `gym`, the
 | `POST /me/gyms/{gym}/notifications/{id}/read` | `204`, safe to repeat |
 | `POST /me/gyms/{gym}/notifications/read-all` | `204`, this gym's only |
 
-`title` and `body` are written in the request's `Accept-Language` (`am` or `en`; anything else gets English), so send it. An announcement's are the gym's own words, the same in every language.
+`title` and `body` are written in the request's `Accept-Language` (`am` or `en`; anything else gets English), so send it. An announcement's are the gym's own words, the same in every language. Dates in them are written out: "27 November 2026" in English, and in Amharic the Ethiopian date with the Gregorian beside it, "ኅዳር 18 ቀን 2019 ዓ.ም. (ኖቬምበር 27, 2026)". Show them as they come.
 
 ### Preferences
 

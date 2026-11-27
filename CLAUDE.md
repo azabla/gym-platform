@@ -169,7 +169,7 @@ This is how the project has been built so far; keep to it so any session, local 
 - Domains announce events (dispatched after commit); messages to members live in `App\Notifications`, and listeners in `App\Listeners`, never inside `app/Domains`.
 - Store times in UTC (convert before saving an offset time). "Today" is the gym's date, `Organization::today()`, never the server's.
 - Message text lives in `lang/en` and `lang/am` under the same keys and placeholders, never in code; `AmharicMessagesTest` checks they match (ADR 0034).
-- Staff panel text is English inside `__()`/`trans_choice()` with placeholders, its Amharic in `lang/am.json`; `AmharicPanelTextTest` fails CI on a missing one. Dates with names use `translatedFormat()` (ADR 0041).
+- Staff panel text is English inside `__()`/`trans_choice()` with placeholders, its Amharic in `lang/am.json`; `AmharicPanelTextTest` fails CI on a missing one and `AmharicPagesTest` on English left on a page. All Amharic, panel and messages, uses the words in `docs/amharic-glossary.md`. Dates go through `Dates` (panel) or `ReadableDate`: Ethiopian with the Gregorian beside it in Amharic (ADR 0041).
 - Money is a `Money` value object, stored as minor units; phone numbers are `PhoneNumber`, stored as E.164.
 
 ### The staff panel standard (ADR 0033)

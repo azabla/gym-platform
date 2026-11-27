@@ -50,7 +50,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 12. Staff limited to some branches see records where they happened (payments, links and check-ins by branch) and members where they belong (by home branch), through the models' branch scopes such as `Payment::takenAtAnyOf()`; a search still finds any member of the gym. Every list, total, report and dashboard uses the same scopes. See ADR 0025.
 13. Every staff panel list starts from `Tables::standard()` and shows statuses through `Badges`, money aligned right, and a filter for each status, branch, date and owner; every form comes in sections with placeholders and help. See ADR 0033.
 14. Every message text lives in `lang/en` with its Amharic in `lang/am`, under the same key and placeholders (checked by `tests/Feature/Lang/AmharicMessagesTest.php`), never in code. New Amharic is reviewed by a fluent speaker. See ADR 0034.
-15. Every text the staff panel shows is written in English inside `__()` or `trans_choice()`, with values as placeholders, and its Amharic is in `lang/am.json` under the English (checked by `tests/Feature/Lang/AmharicPanelTextTest.php`). Dates with month or day names use `translatedFormat()`. See ADR 0041.
+15. Every text the staff panel shows is written in English inside `__()` or `trans_choice()`, with values as placeholders, and its Amharic is in `lang/am.json` under the English, in the words of [the Amharic glossary](amharic-glossary.md). `tests/Feature/Lang/AmharicPanelTextTest.php` and `AmharicPagesTest.php` check it. Dates go through `Dates` in the panel and `ReadableDate` elsewhere: Ethiopian with the Gregorian beside it in Amharic. See ADR 0041.
 
 ## Glossary
 
