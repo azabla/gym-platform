@@ -18,6 +18,7 @@ app/Domains/Memberships/   Plans a gym sells, and the memberships staff sell fro
 app/Domains/Billing/       Payments and refunds against memberships, receipts and balances; Chapa/ talks to each gym's Chapa account
 app/Domains/Notifications/ Sending messages: SMS through AfroMessage, or to the log in development
 app/Domains/Announcements/ Announcements from a gym to its members, now or scheduled
+app/Domains/Imports/       Bringing in the members a gym had before joining, from a CSV file, with their memberships and what they paid
 app/Http/                  The API: controllers, form requests, middleware and resources (v1); Me/ folders hold the members app's side
 app/Filament/Staff/        The staff panel at /staff (Filament): its user, tenant middleware, dashboard, widgets and lists
 app/Filament/Admin/        The admin panel at /admin, for platform admins: every gym, its figures, opening and pausing gyms (English)
@@ -66,6 +67,8 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Insight | A month-by-month figure owners look at: revenue by plan and method, renewals and churn (renewed within 14 days, lapsed or waiting), busiest hours, and members and visit packs. On the panel's Insights page as charts with tables, as CSV and in the staff API, each for the roles it is for (ADR 0040). |
 | Staff panel | The website at /staff where staff sign in with their phone and password, choose a gym, see its dashboard and lists, work the front desk (members, sales, freezes, payments and check-ins), and, as owners and managers, manage the staff and set up the gym: plans, branches, opening hours and announcements (ADRs 0017 to 0019 and 0023). |
 | Platform admin | Someone who runs the platform itself, made only by `php artisan platform:admins`. They open the admin panel at /admin to see every gym's figures, open gyms and pause them, but never see a gym's members or payments (ADR 0042). |
+| Member import | A CSV file of the members a gym had before joining, uploaded by an owner or manager: each row is checked and shown first, then the ready ones are imported with their memberships and what they paid; duplicates are skipped (ADR 0044). |
+| Money brought in | What a member paid before their gym joined, recorded by a member import as a payment of method `brought_in`. It counts towards what they owe, never as money taken (ADR 0044). |
 | Paused gym | A gym the platform has stopped for now, keeping everything: its staff can't sign in, its API and members app answer `403 GYM_PAUSED`, the door refuses and it sends nothing, until it is resumed (ADR 0043). |
 | Password link | A one-time link sent by SMS to set a staff member's first password (an invite, valid 7 days) or reset a forgotten one (valid 60 minutes). See ADR 0019. |
 | Archived staff | Staff who left: they can no longer act at the gym, what they recorded still names them, and they can be restored (ADR 0019). |
@@ -148,6 +151,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0041](adr/0041-amharic-panel.md) | The staff panel in Amharic |
 | [0042](adr/0042-platform-admin-panel.md) | The platform admin panel and opening gyms |
 | [0043](adr/0043-pausing-a-gym.md) | Pausing a gym |
+| [0044](adr/0044-importing-members.md) | Importing members and money brought in |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 

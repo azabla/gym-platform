@@ -62,7 +62,7 @@ The membership has `visits_remaining` for a visit pack (ADR 0016). Volt's `grace
 
 **A membership:** `id`, `plan` (`id`, `name`), `status` (`upcoming`, `active`, `frozen`, `expired` or `cancelled`), `starts_on`, `ends_on` (both included), `price`, `amount_paid`, `balance_due`, `valid_at_all_branches`, `branches`, `visits_remaining` (visits left on a visit pack, or `null` when there is no limit), `freeze_days_allowed`, `freeze_days_used`, `freeze_days_left`, `freezes` (`id`, `starts_on`, `ends_on`, `days`, `frozen_in_app`), `cancelled_at`, `open_payment_link`. Offer **Freeze** when `freeze_days_left` is above 0 and the membership isn't cancelled or expired, and **End freeze** on a freeze whose `ends_on` is today or later.
 
-**A receipt:** `id`, `receipt_number`, `type` (`payment` or `refund`), `amount`, `method` (`cash`, `telebirr`, `cbe_birr`, `bank_transfer` or `chapa`), `reference`, `paid_on`, `branch`, `membership` (`id`, `plan`), `voided`.
+**A receipt:** `id`, `receipt_number`, `type` (`payment` or `refund`), `amount`, `method` (`cash`, `telebirr`, `cbe_birr`, `bank_transfer`, `chapa`, or `brought_in` for money paid before the gym joined the platform, recorded when it imported its members: show it as "Paid before"), `reference`, `paid_on`, `branch`, `membership` (`id`, `plan`), `voided`.
 
 **A branch:** `id`, `code`, `name`, `address`, and in the branch list `opening_hours`: a list of `weekday` (1 is Monday, 7 is Sunday), `opens_at` and `closes_at` (`"06:00"`, in the gym's time zone). An empty list means always open; once a branch has hours, a weekday not listed is closed. A `closes_at` earlier than `opens_at` means after midnight: Friday `18:00`–`02:00` is open until 02:00 on Saturday, so show it as "18:00–02:00 (next day)".
 

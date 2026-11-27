@@ -122,6 +122,18 @@ Ethiopian date first, with the Gregorian date beside it.
 | (next day), past midnight | (በማግስቱ) | | |
 | time zone | የሰዓት ሰቅ | | never የሰዓት ዞን |
 
+### Importing members
+
+| English | Amharic | Button | Notes |
+|---|---|---|---|
+| import (members from a file) | ከፋይል ጫን | አባላትን ከፋይል ጫን | |
+| template | ናሙና ፋይል | ናሙና ፋይል አውርድ | |
+| upload a file | | ፋይል ጫን | |
+| discard (a checked file) | | ተው | |
+| row, column (of a file) | ረድፍ, ዓምድ | | |
+| ready / duplicate / added / failed (a row) | | | ዝግጁ / ተደጋጋሚ / የገቡ / ያልተሳካ |
+| money brought in (paid before the gym joined) | ከቀድሞ መዝገብ | | never "collected" (ተሰበሰበ): it isn't money taken |
+
 ### Messages and the panel
 
 | English | Amharic | Notes |
