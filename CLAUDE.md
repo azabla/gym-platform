@@ -171,6 +171,7 @@ This is how the project has been built so far; keep to it so any session, local 
 - Message text lives in `lang/en` and `lang/am` under the same keys and placeholders, never in code; `AmharicMessagesTest` checks they match (ADR 0034).
 - Staff panel text is English inside `__()`/`trans_choice()` with placeholders, its Amharic in `lang/am.json`; `AmharicPanelTextTest` fails CI on a missing one and `AmharicPagesTest` on English left on a page. All Amharic, panel and messages, uses the words in `docs/amharic-glossary.md`. Dates go through `Dates` (panel) or `ReadableDate`: Ethiopian with the Gregorian beside it in Amharic (ADR 0041).
 - Money is a `Money` value object, stored as minor units; phone numbers are `PhoneNumber`, stored as E.164.
+- Money-taken figures (takings, revenue, reports) use `Payment::moneyTaken()` or `PaymentMethod::moneyTaken()`: brought-in payments, recorded only by a member import, count towards balances but never as money taken; the desk offers `PaymentMethod::forTheDesk()` (ADR 0044).
 - There are two panels: staff at `/staff` (the default, tenant = gym) and admin at `/admin` (platform admins, English, no tenant; every gym-owned query there uses `acrossOrganizations()`). Inside a gym Filament also scopes resource models to it, so cross-gym lookups there use `withoutGlobalScopes()` (ADR 0042).
 - A paused gym (`Organization::isSuspended()`) refuses staff, the APIs (`403 GYM_PAUSED`) and the door, and sends nothing: new scheduled work loops over `Organization::query()->active()`, and new member or staff messages extend `MemberNotification`/`StaffNotification` or use `HeldWhileTheGymIsPaused` (ADR 0043).
 
@@ -190,7 +191,7 @@ This is how the project has been built so far; keep to it so any session, local 
 ### Where to look
 
 - `docs/README.md`: where things live, conventions and the glossary.
-- `docs/adr/`: why things are the way they are (0001 to 0043 so far).
+- `docs/adr/`: why things are the way they are (0001 to 0044 so far).
 - `docs/api/members-app.md`: the contract with the members app.
 - `/docs/api`: the API docs Scramble generates from the code, for staff signed in to the panel (ADR 0021).
 - Not built yet, and candidates for the next piece: the real server (always on, separate worker and scheduler, Redis, a domain; ADR 0028 has the accounts, Sentry and backups ready to switch on).

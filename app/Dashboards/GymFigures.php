@@ -73,7 +73,7 @@ final class GymFigures
             'COUNT(DISTINCT member_id)',
         );
         $taken = $this->countsBy(
-            Payment::query()->acrossOrganizations()->counted()
+            Payment::query()->acrossOrganizations()->moneyTaken()
                 ->where('paid_on', '>=', $today->startOfMonth()->toDateString())
                 ->where('paid_on', '<=', $today->toDateString()),
             $ids,

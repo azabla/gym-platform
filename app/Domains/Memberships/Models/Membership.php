@@ -101,9 +101,21 @@ class Membership extends Model
         return self::record($member, $plan, $startsOn, null, $listPrice, $pricePaid, $discountReason, $promoCode, $promoCode === null ? $discountGroup : null);
     }
 
-    private static function record(Member $member, Plan $plan, CarbonImmutable $startsOn, ?Staff $soldBy, Money $listPrice, Money $price, ?string $discountReason, ?PromoCode $promoCode = null, ?DiscountGroup $discountGroup = null): self
+    /**
+     * Record a membership the member had before their gym joined the
+     * platform, as the gym's import brings it in (ADR 0044): at the plan's
+     * price, from the given day, which may be in the past, to the given end,
+     * or the plan's length when none is given. The staff member who ran the
+     * import is its seller. See refusalToBringIn().
+     */
+    public static function bringIn(Member $member, Plan $plan, CarbonImmutable $startsOn, ?CarbonImmutable $endsOn, Staff $broughtInBy): self
     {
-        return DB::transaction(function () use ($member, $plan, $startsOn, $soldBy, $listPrice, $price, $discountReason, $promoCode, $discountGroup): self {
+        return self::record($member, $plan, $startsOn, $broughtInBy, $plan->price, $plan->price, null, endsOn: $endsOn);
+    }
+
+    private static function record(Member $member, Plan $plan, CarbonImmutable $startsOn, ?Staff $soldBy, Money $listPrice, Money $price, ?string $discountReason, ?PromoCode $promoCode = null, ?DiscountGroup $discountGroup = null, ?CarbonImmutable $endsOn = null): self
+    {
+        return DB::transaction(function () use ($member, $plan, $startsOn, $soldBy, $listPrice, $price, $discountReason, $promoCode, $discountGroup, $endsOn): self {
             $membership = new self;
             $membership->organization()->associate($member->organization_id);
             $membership->member()->associate($member);
@@ -111,7 +123,7 @@ class Membership extends Model
             $membership->soldBy()->associate($soldBy);
             $membership->sold_in_app = $soldBy === null;
             $membership->starts_on = $startsOn;
-            $membership->ends_on = $plan->endsOnFor($startsOn);
+            $membership->ends_on = $endsOn ?? $plan->endsOnFor($startsOn);
             $membership->list_price = $listPrice;
             $membership->price = $price;
             $membership->discount_reason = $discountReason;
@@ -156,10 +168,35 @@ class Membership extends Model
      */
     public static function refusalToSell(Member $member, Plan $plan, CarbonImmutable $startsOn, CarbonImmutable $today): ?MembershipRefused
     {
+        return self::refusalToCover($member, $startsOn, $plan->endsOnFor($startsOn), $today);
+    }
+
+    /**
+     * Why a membership the member had before the gym joined can't be brought
+     * in, or null when it can: it must end on or after its first day, and fit
+     * around the member's other memberships (ADR 0044).
+     */
+    public static function refusalToBringIn(Member $member, Plan $plan, CarbonImmutable $startsOn, ?CarbonImmutable $endsOn, CarbonImmutable $today): ?MembershipRefused
+    {
+        $endsOn ??= $plan->endsOnFor($startsOn);
+
+        if ($endsOn->lessThan($startsOn)) {
+            return MembershipRefused::endsBeforeItStarts();
+        }
+
+        return self::refusalToCover($member, $startsOn, $endsOn, $today);
+    }
+
+    /**
+     * Why the member can't have a membership from the first day to the last,
+     * or null when they can: no other membership of theirs may overlap it.
+     */
+    private static function refusalToCover(Member $member, CarbonImmutable $startsOn, CarbonImmutable $endsOn, CarbonImmutable $today): ?MembershipRefused
+    {
         $clash = static::query()
             ->whereBelongsTo($member)
             ->notCancelled()
-            ->overlapping($startsOn, $plan->endsOnFor($startsOn))
+            ->overlapping($startsOn, $endsOn)
             ->orderBy('starts_on')
             ->first();
 

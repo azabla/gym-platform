@@ -159,8 +159,12 @@ class StorePaymentRequest extends FormRequest
     private function notOnline(): Closure
     {
         return function (string $attribute, mixed $value, Closure $fail): void {
-            if (PaymentMethod::tryFrom((string) $value)?->isOnline()) {
+            $method = PaymentMethod::tryFrom((string) $value);
+
+            if ($method?->isOnline()) {
                 $fail('Chapa can\'t be chosen by hand. Chapa payments are recorded when Chapa confirms them.');
+            } elseif ($method?->isBroughtIn()) {
+                $fail('Money brought in is recorded only by importing members.');
             }
         };
     }

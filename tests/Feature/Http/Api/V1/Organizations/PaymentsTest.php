@@ -455,3 +455,13 @@ it('answers like a refused request when another desk took the last payment first
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['amount' => 'Only 500.00 ETB is still due on this membership.']);
 });
+
+it('never lets staff record money as brought in, which only an import does', function () {
+    actingAsStaff($this->gym, StaffRole::Manager, $this->mainBranch);
+
+    recordPayment($this->membership, ['amount' => '100', 'method' => 'brought_in'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['method' => 'Money brought in is recorded only by importing members.']);
+
+    expect(Payment::query()->acrossOrganizations()->count())->toBe(0);
+});

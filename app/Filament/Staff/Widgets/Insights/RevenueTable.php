@@ -38,14 +38,14 @@ class RevenueTable extends TableWidget
                 'month' => self::monthLabel($month['month']),
                 'net' => $month['net'],
                 ...array_combine(
-                    array_map(fn (PaymentMethod $method): string => $method->value, PaymentMethod::cases()),
+                    array_map(fn (PaymentMethod $method): string => $method->value, PaymentMethod::moneyTaken()),
                     array_values($month['by_method']),
                 ),
             ], $this->insights()->revenue($this->gym(), $this->months(), $this->branchIds()))))
             ->columns([
                 TextColumn::make('month')->label(__('Month'))->weight(FontWeight::SemiBold),
                 self::money('net', __('Net'))->weight(FontWeight::Bold),
-                ...array_map(fn (PaymentMethod $method): TextColumn => self::money($method->value, __($method->label()))->size(TextSize::Small)->color('gray'), PaymentMethod::cases()),
+                ...array_map(fn (PaymentMethod $method): TextColumn => self::money($method->value, __($method->label()))->size(TextSize::Small)->color('gray'), PaymentMethod::moneyTaken()),
             ])
             ->headerActions([DownloadInsightAction::for(self::insight())->chosen(['months' => $this->months()])])
             ->paginated(false);

@@ -59,6 +59,18 @@ class PaymentFactory extends Factory
     }
 
     /**
+     * Indicate that the money was paid before the gym joined the platform,
+     * and brought in by an import (ADR 0044).
+     */
+    public function broughtIn(): static
+    {
+        return $this->state([
+            'method' => PaymentMethod::BroughtIn,
+            'reference' => null,
+        ]);
+    }
+
+    /**
      * Indicate that the money was given back to the member.
      */
     public function refund(): static
