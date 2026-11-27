@@ -23,6 +23,11 @@ final readonly class EthiopianDate
         7 => 'Megabit', 8 => 'Miyazya', 9 => 'Ginbot', 10 => 'Sene', 11 => 'Hamle', 12 => 'Nehase', 13 => 'Pagume',
     ];
 
+    private const AMHARIC_MONTHS = [
+        1 => 'መስከረም', 2 => 'ጥቅምት', 3 => 'ኅዳር', 4 => 'ታኅሣሥ', 5 => 'ጥር', 6 => 'የካቲት',
+        7 => 'መጋቢት', 8 => 'ሚያዝያ', 9 => 'ግንቦት', 10 => 'ሰኔ', 11 => 'ሐምሌ', 12 => 'ነሐሴ', 13 => 'ጳጉሜን',
+    ];
+
     private function __construct(
         public int $year,
         public int $month,
@@ -112,6 +117,22 @@ final readonly class EthiopianDate
     public function monthName(): string
     {
         return self::MONTHS[$this->month];
+    }
+
+    /**
+     * The month's name in a language: "ጥር" in Amharic, "Tir" otherwise.
+     */
+    public function monthNameIn(string $language): string
+    {
+        return $language === 'am' ? self::AMHARIC_MONTHS[$this->month] : self::MONTHS[$this->month];
+    }
+
+    /**
+     * Such as "ጥር 11" in Amharic, "Tir 11" otherwise.
+     */
+    public function dayAndMonthIn(string $language): string
+    {
+        return $this->monthNameIn($language).' '.$this->day;
     }
 
     /**

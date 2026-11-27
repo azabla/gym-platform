@@ -28,6 +28,7 @@ use App\Filament\Staff\Resources\Members\Pages\EditMember;
 use App\Filament\Staff\Resources\Members\Pages\ListMembers;
 use App\Filament\Staff\Resources\Members\Pages\ViewMember;
 use App\Filament\Staff\Support\Badges;
+use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Languages;
 use App\Filament\Staff\Support\Photos;
 use App\Filament\Staff\Support\Tables;
@@ -134,7 +135,7 @@ class MemberResource extends Resource
                             ->native(false)
                             ->placeholder(__('Not given'))
                             ->options(Badges::options(Gender::class)),
-                        DatePicker::make('date_of_birth')
+                        DatePicker::make('date_of_birth')->hint(Dates::ethiopianHint())->live()
                             ->label(__('Date of birth'))
                             ->native(false)
                             ->displayFormat('j M Y')
@@ -219,8 +220,8 @@ class MemberResource extends Resource
                         TextEntry::make('gender')->label(__('Gender'))
                             ->formatStateUsing(fn (mixed $state): string => $state instanceof BackedEnum ? Badges::label($state) : (string) $state)
                             ->placeholder(__('Not given')),
-                        TextEntry::make('date_of_birth')->label(__('Date of birth'))->date('j M Y')->placeholder(__('Not given')),
-                        TextEntry::make('created_at')->label(__('Registered'))->date('j M Y')->timezone(self::gymTimezone()),
+                        TextEntry::make('date_of_birth')->label(__('Date of birth'))->formatStateUsing(Dates::asDate())->placeholder(__('Not given')),
+                        TextEntry::make('created_at')->label(__('Registered'))->formatStateUsing(Dates::asDate(self::gymTimezone())),
                         TextEntry::make('message_language')
                             ->label(__('Message language'))
                             ->state(fn (Member $record): string => $record->message_language === null ? Languages::gymDefault() : Languages::label($record->message_language))
@@ -284,8 +285,8 @@ class MemberResource extends Resource
                     ->formatStateUsing(fn (mixed $state): string => $state instanceof BackedEnum ? Badges::label($state) : (string) $state)
                     ->placeholder(__('Not given'))
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('date_of_birth')->label(__('Born'))->date('j M Y')->placeholder(__('Not given'))->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('created_at')->label(__('Registered'))->date('j M Y')->timezone(self::gymTimezone())->sortable()->toggleable(),
+                TextColumn::make('date_of_birth')->label(__('Born'))->formatStateUsing(Dates::asDate())->placeholder(__('Not given'))->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('created_at')->label(__('Registered'))->formatStateUsing(Dates::asDate(self::gymTimezone()))->sortable()->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('home_branch_id')
@@ -499,7 +500,9 @@ class MemberResource extends Resource
             return null;
         }
 
-        return "{$group->name}, {$group->discount} off".($memberDiscount->until === null ? '' : ', until '.$memberDiscount->until->translatedFormat('j M Y'));
+        return $memberDiscount->until === null
+            ? __(':group, :discount off', ['group' => $group->name, 'discount' => $group->discount])
+            : __(':group, :discount off, until :date', ['group' => $group->name, 'discount' => $group->discount, 'date' => Dates::short($memberDiscount->until)]);
     }
 
     /**

@@ -38,3 +38,9 @@ it('refuses a day the month doesn\'t have, and a date it can\'t read', function 
         ->and(fn () => EthiopianDate::of(2018, 5, 31))->toThrow(InvalidArgumentException::class)
         ->and(fn () => EthiopianDate::fromGregorian('2026-02-30'))->toThrow(InvalidArgumentException::class);
 });
+
+it('names the months in Amharic too', function () {
+    expect(EthiopianDate::fromGregorian('2026-01-19')->dayAndMonthIn('am'))->toBe('ጥር 11')
+        ->and(EthiopianDate::fromGregorian('2026-01-19')->dayAndMonthIn('en'))->toBe('Tir 11')
+        ->and(EthiopianDate::of(2018, 13, 5)->monthNameIn('am'))->toBe('ጳጉሜን');
+});

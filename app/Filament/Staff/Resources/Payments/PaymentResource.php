@@ -17,6 +17,7 @@ use App\Filament\Staff\Resources\Memberships\MembershipResource;
 use App\Filament\Staff\Resources\Payments\Pages\ListPayments;
 use App\Filament\Staff\Resources\Payments\Pages\ViewPayment;
 use App\Filament\Staff\Support\Badges;
+use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Tables;
 use App\Filament\Staff\Support\TranslatesItsLabels;
 use BackedEnum;
@@ -77,8 +78,7 @@ class PaymentResource extends Resource
                             TextEntry::make('receipt_number')->label(__('Receipt'))->copyable()->weight(FontWeight::SemiBold),
                             TextEntry::make('voided_at')
                                 ->label(__('Voided'))
-                                ->dateTime('j M Y, H:i')
-                                ->timezone(self::gymTimezone())
+                                ->formatStateUsing(Dates::asDateTime(self::gymTimezone()))
                                 ->badge()
                                 ->color('danger')
                                 ->placeholder(__('No')),
@@ -102,7 +102,7 @@ class PaymentResource extends Resource
                             ->formatStateUsing(fn (PaymentMethod $state): string => Badges::label($state))
                             ->color(fn (PaymentMethod $state): string => Badges::color($state)),
                         TextEntry::make('reference')->label(__('Transaction number'))->copyable()->placeholder(__('None')),
-                        TextEntry::make('paid_on')->label(__('Paid on'))->date('j M Y'),
+                        TextEntry::make('paid_on')->label(__('Paid on'))->formatStateUsing(Dates::asDate()),
                         TextEntry::make('branch.name')->label(__('Branch'))->badge()->color('gray'),
                         TextEntry::make('receivedBy.user.name')->label(__('Taken by'))->placeholder(__('Online, through Chapa')),
                         TextEntry::make('void_reason')
@@ -126,7 +126,7 @@ class PaymentResource extends Resource
                     ->weight(FontWeight::SemiBold)
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('paid_on')->label(__('Paid on'))->date('j M Y')->sortable(),
+                TextColumn::make('paid_on')->label(__('Paid on'))->formatStateUsing(Dates::asDate())->sortable(),
                 TextColumn::make('membership.member.full_name')
                     ->label(__('Member'))
                     ->description(fn (Payment $record): string => (string) $record->membership?->plan?->name)
@@ -145,8 +145,7 @@ class PaymentResource extends Resource
                 TextColumn::make('receivedBy.user.name')->label(__('Taken by'))->placeholder(__('Online'))->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('voided_at')
                     ->label(__('Voided'))
-                    ->date('j M Y')
-                    ->timezone(self::gymTimezone())
+                    ->formatStateUsing(Dates::asDate(self::gymTimezone()))
                     ->badge()
                     ->color('danger')
                     ->placeholder(__('No'))

@@ -9,6 +9,7 @@ use App\Domains\Organizations\Models\BranchClosure;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\BranchClosures\Pages\ListBranchClosures;
+use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Tables;
 use App\Filament\Staff\Support\TranslatesItsLabels;
 use BackedEnum;
@@ -69,7 +70,7 @@ class BranchClosureResource extends Resource
                 TextColumn::make('reason')->label(__('Reason'))
                     ->searchable()
                     ->wrap()
-                    ->description(fn (BranchClosure $record): ?string => $record->repeats_yearly ? __('Yearly, on :date', ['date' => $record->ethiopianStart()]) : null),
+                    ->description(fn (BranchClosure $record): ?string => $record->repeats_yearly ? __('Yearly, on :date', ['date' => $record->ethiopianStart(app()->getLocale())]) : null),
                 TextColumn::make('createdBy.user.name')->label(__('Added by'))->toggleable(isToggledHiddenByDefault: true),
             ])
             ->searchPlaceholder(__('Reason'))
@@ -132,9 +133,9 @@ class BranchClosureResource extends Resource
      */
     public static function daysOf(BranchClosure $closure): string
     {
-        $from = $closure->starts_on->translatedFormat('D j M');
+        $from = Dates::dayOfWeek($closure->starts_on);
 
-        return $closure->starts_on->equalTo($closure->ends_on) ? $from : $from.' – '.$closure->ends_on->translatedFormat('D j M');
+        return $closure->starts_on->equalTo($closure->ends_on) ? $from : $from.' – '.Dates::dayOfWeek($closure->ends_on);
     }
 
     /**

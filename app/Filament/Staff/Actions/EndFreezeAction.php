@@ -8,6 +8,7 @@ use App\Domains\Memberships\Models\Membership;
 use App\Domains\Memberships\Models\MembershipFreeze;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
+use App\Filament\Staff\Support\Dates;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
@@ -53,7 +54,7 @@ class EndFreezeAction extends Action
 
                 $record->endFreeze($freeze, $today, app(CurrentStaff::class)->get());
 
-                Notification::make()->success()->title(__('Freeze ended. It now ends on :date.', ['date' => $record->refresh()->ends_on->translatedFormat('j F Y')]))->send();
+                Notification::make()->success()->title(__('Freeze ended. It now ends on :date.', ['date' => Dates::long($record->refresh()->ends_on)]))->send();
             });
     }
 
@@ -71,7 +72,7 @@ class EndFreezeAction extends Action
             ->orderBy('starts_on')
             ->get()
             ->mapWithKeys(fn (MembershipFreeze $freeze): array => [
-                $freeze->id => "{$freeze->starts_on->translatedFormat('j M Y')} to {$freeze->ends_on->translatedFormat('j M Y')}",
+                $freeze->id => __(':from to :to', ['from' => Dates::short($freeze->starts_on), 'to' => Dates::short($freeze->ends_on)]),
             ])
             ->all();
     }

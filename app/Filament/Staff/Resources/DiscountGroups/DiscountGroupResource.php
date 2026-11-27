@@ -13,6 +13,7 @@ use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\DiscountGroups\Pages\CreateDiscountGroup;
 use App\Filament\Staff\Resources\DiscountGroups\Pages\EditDiscountGroup;
 use App\Filament\Staff\Resources\DiscountGroups\Pages\ListDiscountGroups;
+use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Tables;
 use App\Filament\Staff\Support\TranslatesItsLabels;
 use BackedEnum;
@@ -97,7 +98,7 @@ class DiscountGroupResource extends Resource
                     ->state(fn (DiscountGroup $record): string => self::exampleOf($record->discount, short: true))
                     ->color('gray')
                     ->toggleable(),
-                TextColumn::make('deleted_at')->label(__('Archived'))->date('j M Y')->badge()->color('gray')->placeholder(__('No')),
+                TextColumn::make('deleted_at')->label(__('Archived'))->formatStateUsing(Dates::asDate())->badge()->color('gray')->placeholder(__('No')),
             ])
             ->filters([
                 TrashedFilter::make()->label(__('Archived'))->native(false),

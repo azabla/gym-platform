@@ -16,6 +16,7 @@ use App\Filament\Staff\Resources\Announcements\Pages\EditAnnouncement;
 use App\Filament\Staff\Resources\Announcements\Pages\ListAnnouncements;
 use App\Filament\Staff\Resources\Concerns\ShowsGymTime;
 use App\Filament\Staff\Support\Badges;
+use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Tables;
 use App\Filament\Staff\Support\TranslatesItsLabels;
 use BackedEnum;
@@ -145,8 +146,7 @@ class AnnouncementResource extends Resource
                     ->state(fn (Announcement $record): AnnouncementStatus => $record->status()),
                 TextColumn::make('send_at')
                     ->label(__('Goes out'))
-                    ->dateTime('j M Y, H:i')
-                    ->timezone(self::gymTimezone())
+                    ->formatStateUsing(Dates::asDateTime(self::gymTimezone()))
                     ->description(fn (Announcement $record): string => $record->send_at->diffForHumans())
                     ->sortable(),
                 TextColumn::make('recipients_count')

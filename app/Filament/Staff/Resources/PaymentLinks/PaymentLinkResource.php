@@ -14,6 +14,7 @@ use App\Filament\Staff\Resources\PaymentLinks\Pages\ListPaymentLinks;
 use App\Filament\Staff\Resources\PaymentLinks\Pages\ViewPaymentLink;
 use App\Filament\Staff\Resources\Payments\PaymentResource;
 use App\Filament\Staff\Support\Badges;
+use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Tables;
 use App\Filament\Staff\Support\TranslatesItsLabels;
 use BackedEnum;
@@ -90,17 +91,16 @@ class PaymentLinkResource extends Resource
                     ->schema([
                         TextEntry::make('branch.name')->label(__('Branch'))->badge()->color('gray'),
                         TextEntry::make('createdBy.user.name')->label(__('Created by'))->placeholder(__('The member, in the app')),
-                        TextEntry::make('created_at')->label(__('Created'))->dateTime('j M Y, H:i')->timezone(self::gymTimezone()),
+                        TextEntry::make('created_at')->label(__('Created'))->formatStateUsing(Dates::asDateTime(self::gymTimezone())),
                         TextEntry::make('payment.receipt_number')
                             ->label(__('Receipt'))
                             ->placeholder(__('None'))
                             ->url(fn (PaymentLink $record): ?string => $record->payment_id === null ? null : PaymentResource::getUrl('view', ['record' => $record->payment_id])),
                         TextEntry::make('chapa_reference')->label(__('Chapa reference'))->copyable()->placeholder(__('None')),
-                        TextEntry::make('sms_sent_at')->label(__('Texted to the member'))->dateTime('j M Y, H:i')->timezone(self::gymTimezone())->placeholder(__('Not yet')),
+                        TextEntry::make('sms_sent_at')->label(__('Texted to the member'))->formatStateUsing(Dates::asDateTime(self::gymTimezone()))->placeholder(__('Not yet')),
                         TextEntry::make('cancelled_at')
                             ->label(__('Cancelled'))
-                            ->dateTime('j M Y, H:i')
-                            ->timezone(self::gymTimezone())
+                            ->formatStateUsing(Dates::asDateTime(self::gymTimezone()))
                             ->visible(fn (PaymentLink $record): bool => $record->cancelled_at !== null),
                     ]),
                 Section::make(__('Refund'))
@@ -108,7 +108,7 @@ class PaymentLinkResource extends Resource
                     ->columns(['default' => 1, 'md' => 3])
                     ->visible(fn (PaymentLink $record): bool => $record->refunded_at !== null)
                     ->schema([
-                        TextEntry::make('refunded_at')->label(__('Refunded'))->dateTime('j M Y, H:i')->timezone(self::gymTimezone()),
+                        TextEntry::make('refunded_at')->label(__('Refunded'))->formatStateUsing(Dates::asDateTime(self::gymTimezone())),
                         TextEntry::make('refundedBy.user.name')->label(__('Refunded by')),
                         TextEntry::make('refund_note')->label(__('Refund note'))->placeholder(__('None')),
                     ]),
@@ -124,8 +124,7 @@ class PaymentLinkResource extends Resource
             ->columns([
                 TextColumn::make('created_at')
                     ->label(__('Created'))
-                    ->dateTime('j M Y, H:i')
-                    ->timezone(self::gymTimezone())
+                    ->formatStateUsing(Dates::asDateTime(self::gymTimezone()))
                     ->description(fn (PaymentLink $record): string => (string) $record->created_at?->diffForHumans())
                     ->sortable(),
                 TextColumn::make('member.full_name')->label(__('Member'))->weight(FontWeight::SemiBold)->searchable(),

@@ -14,6 +14,7 @@ use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Domains\Shared\Money\Money;
 use App\Filament\Staff\Resources\Members\MemberResource;
+use App\Filament\Staff\Support\Dates;
 use App\Rules\ValidMoneyAmount;
 use Carbon\CarbonImmutable;
 use Closure;
@@ -93,7 +94,7 @@ abstract class MoneyAction extends Action
                         ->native(false)
                         ->options(fn (): array => app(CurrentStaff::class)->get()->branchesWorkedAt()->pluck('name', 'id')->all())
                         ->default(MemberResource::onlyBranchWorkedAt()),
-                    DatePicker::make('paid_on')
+                    DatePicker::make('paid_on')->hint(Dates::ethiopianHint())->live()
                         ->label(__('Paid on'))
                         ->required()
                         ->native(false)

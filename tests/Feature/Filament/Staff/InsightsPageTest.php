@@ -57,7 +57,7 @@ it('shows the insights in Amharic, with Amharic months and weekdays, to staff wh
     app()->setLocale('am');
     CarbonImmutable::setLocale('am');
 
-    Livewire::test(RevenueTable::class, ['pageFilters' => ['months' => 3]])->assertSee('ኦክተ 2026')->assertSee('የተጣራ');
+    Livewire::test(RevenueTable::class, ['pageFilters' => ['months' => 3]])->assertSee('ኦክቶበር 2026')->assertSee('የተጣራ');
     Livewire::test(BusyHoursGrid::class)->assertSee('ሰኞ');
     Livewire::test(RevenueChart::class)->assertOk();
 

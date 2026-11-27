@@ -6,6 +6,7 @@ namespace App\Filament\Staff\Actions;
 
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
+use App\Filament\Staff\Support\Dates;
 use App\Reports\Csv;
 use App\Reports\Report;
 use App\Reports\ReportPeriod;
@@ -74,8 +75,8 @@ class DownloadReportAction extends Action
             ->visible(fn (): bool => Gate::allows('export', $this->reportedModel))
             ->schema(fn (): array => [
                 ...($this->coversAPeriod ? [
-                    DatePicker::make('from')->label(__('From'))->required()->default(fn (): string => self::today()->toDateString()),
-                    DatePicker::make('to')->label(__('To'))
+                    DatePicker::make('from')->hint(Dates::ethiopianHint())->live()->label(__('From'))->required()->default(fn (): string => self::today()->toDateString()),
+                    DatePicker::make('to')->hint(Dates::ethiopianHint())->live()->label(__('To'))
                         ->required()
                         ->default(fn (): string => self::today()->toDateString())
                         ->afterOrEqual('from')

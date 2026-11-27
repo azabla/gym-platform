@@ -17,6 +17,7 @@ use App\Domains\Memberships\Pricing\Pricing;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Filament\Staff\Resources\Memberships\MembershipResource;
+use App\Filament\Staff\Support\Dates;
 use Carbon\CarbonImmutable;
 use Closure;
 use Filament\Actions\Action;
@@ -58,7 +59,7 @@ class SellMembershipAction extends Action
                     ->helperText(__('The plans on sale at the member\'s home branch.'))
                     ->required()
                     ->live(),
-                DatePicker::make('starts_on')->label(__('Starts on'))
+                DatePicker::make('starts_on')->hint(Dates::ethiopianHint())->live()->label(__('Starts on'))
                     ->required()
                     ->default(Membership::firstFreeDayFor($record, self::today())->toDateString())
                     ->rules(fn (): array => [self::notInThePastUnlessAllowed()]),
@@ -105,7 +106,7 @@ class SellMembershipAction extends Action
                     ? Membership::sell($record, $plan, $startsOn, $staff, $discount)
                     : Membership::sellAt(Pricing::bestFor($record, $plan, self::today(), $promoCode), $record, $plan, $startsOn, $staff);
 
-                Notification::make()->success()->title("{$plan->name} sold, from {$startsOn->translatedFormat('j F Y')}.")->send();
+                Notification::make()->success()->title(__(':plan sold, from :date.', ['plan' => $plan->name, 'date' => Dates::long($startsOn)]))->send();
 
                 $action->redirect(MembershipResource::getUrl('view', ['record' => $membership]));
             });

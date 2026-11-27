@@ -98,8 +98,8 @@ final class Tables
         return Filter::make($name)
             ->label($label)
             ->schema([
-                DatePicker::make('from')->label(__(':label from', ['label' => $label]))->native(false)->displayFormat('j M Y'),
-                DatePicker::make('to')->label(__(':label to', ['label' => $label]))->native(false)->displayFormat('j M Y')->afterOrEqual('from'),
+                DatePicker::make('from')->hint(Dates::ethiopianHint())->live()->label(__(':label from', ['label' => $label]))->native(false)->displayFormat('j M Y'),
+                DatePicker::make('to')->hint(Dates::ethiopianHint())->live()->label(__(':label to', ['label' => $label]))->native(false)->displayFormat('j M Y')->afterOrEqual('from'),
             ])
             ->columns(2)
             ->columnSpan(2)
@@ -123,11 +123,11 @@ final class Tables
                 $indicators = [];
 
                 if (filled($data['from'] ?? null)) {
-                    $indicators[] = Indicator::make("{$label} from ".CarbonImmutable::parse((string) $data['from'])->translatedFormat('j M Y'))->removeField('from');
+                    $indicators[] = Indicator::make(__(':label from :date', ['label' => $label, 'date' => Dates::short((string) $data['from'])]))->removeField('from');
                 }
 
                 if (filled($data['to'] ?? null)) {
-                    $indicators[] = Indicator::make("{$label} to ".CarbonImmutable::parse((string) $data['to'])->translatedFormat('j M Y'))->removeField('to');
+                    $indicators[] = Indicator::make(__(':label to :date', ['label' => $label, 'date' => Dates::short((string) $data['to'])]))->removeField('to');
                 }
 
                 return $indicators;

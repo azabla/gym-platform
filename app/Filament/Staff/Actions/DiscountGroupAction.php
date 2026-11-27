@@ -9,6 +9,7 @@ use App\Domains\Memberships\Models\DiscountGroup;
 use App\Domains\Memberships\Models\MemberDiscount;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
+use App\Filament\Staff\Support\Dates;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -54,7 +55,7 @@ class DiscountGroupAction extends Action
                         ->all())
                     ->required(fn (Get $get): bool => ! $get('remove'))
                     ->hidden(fn (Get $get): bool => (bool) $get('remove')),
-                DatePicker::make('until')
+                DatePicker::make('until')->hint(Dates::ethiopianHint())->live()
                     ->label(__('Until'))
                     ->helperText(__('Optional, such as when a student card expires. Leave empty for no end.'))
                     ->minDate(fn (): string => app(CurrentOrganization::class)->get()->today()->toDateString())

@@ -15,6 +15,7 @@ use App\Filament\Staff\Resources\CheckIns\Pages\ListCheckIns;
 use App\Filament\Staff\Resources\Concerns\LimitsToTheStaffMembersBranches;
 use App\Filament\Staff\Resources\Members\MemberResource;
 use App\Filament\Staff\Support\Badges;
+use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Photos;
 use App\Filament\Staff\Support\Tables;
 use App\Filament\Staff\Support\TranslatesItsLabels;
@@ -62,8 +63,7 @@ class CheckInResource extends Resource
             ->columns([
                 TextColumn::make('checked_in_at')
                     ->label(__('When'))
-                    ->dateTime('j M Y, H:i')
-                    ->timezone(self::gym()->timezone)
+                    ->formatStateUsing(Dates::asDateTime(self::gym()->timezone))
                     ->description(fn (CheckIn $record): string => $record->checked_in_at->diffForHumans())
                     ->sortable(),
                 ImageColumn::make('photo')
@@ -103,14 +103,14 @@ class CheckInResource extends Resource
                 Filter::make('on')
                     ->label(__('Day'))
                     ->schema([
-                        DatePicker::make('on')->label(__('Day'))->native(false)->displayFormat('j M Y'),
+                        DatePicker::make('on')->hint(Dates::ethiopianHint())->live()->label(__('Day'))->native(false)->displayFormat('j M Y'),
                     ])
                     ->query(fn (Builder $query, array $data): Builder => $query->when(
                         $data['on'] ?? null,
                         fn (Builder $query, string $day): Builder => self::onDay($query, CarbonImmutable::parse($day)),
                     ))
                     ->indicateUsing(fn (array $data): ?Indicator => filled($data['on'] ?? null)
-                        ? Indicator::make(__('On :date', ['date' => CarbonImmutable::parse((string) $data['on'])->translatedFormat('j M Y')]))
+                        ? Indicator::make(__('On :date', ['date' => Dates::short((string) $data['on'])]))
                         : null),
                 Tables::dateRange('between', 'checked_in_at', __('Between'), isMoment: true),
                 SelectFilter::make('branch')->label(__('Branch'))->native(false)->relationship('branch', 'name', self::onlyTheirBranches(...)),

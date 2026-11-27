@@ -11,6 +11,7 @@ use App\Domains\Organizations\Models\Organization;
 use App\Filament\Staff\Actions\CancelMembershipAction;
 use App\Filament\Staff\Resources\CheckIns\CheckInResource;
 use App\Filament\Staff\Resources\Members\MemberResource;
+use App\Filament\Staff\Resources\Memberships\Pages\ListMemberships;
 use App\Filament\Staff\Resources\Memberships\Pages\ViewMembership;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
@@ -69,4 +70,15 @@ it('tells staff who chose Amharic why the gym refused, in Amharic', function () 
     Livewire::test(ViewMembership::class, ['record' => $ended->getRouteKey()])
         ->callAction(CancelMembershipAction::class, ['reason' => 'ሄዷል።'])
         ->assertNotified('ይህ አባልነት ቀድሞ አብቅቷል።');
+});
+
+it('shows staff who chose Amharic the Ethiopian date with the Gregorian beside it', function () {
+    actingAsStaffInPanel($this->gym, StaffRole::Owner);
+    app()->setLocale('am'); // As UseStaffLanguage does on every panel request.
+    $member = Member::factory()->for($this->branch, 'homeBranch')->create();
+    Membership::factory()->for($member)->create(['starts_on' => '2026-11-27', 'ends_on' => '2026-12-26']);
+
+    Livewire::test(ListMemberships::class)
+        ->assertSee('ኅዳር 18, 2019 (27/11/2026)')
+        ->assertSee('ታኅሣሥ 17, 2019 (26/12/2026)');
 });

@@ -10,6 +10,7 @@ use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\Concerns\ShowsGymTime;
 use App\Filament\Staff\Support\Badges;
+use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\TranslatesItsTitle;
 use App\Rules\ChapaSecretKey;
 use BackedEnum;
@@ -74,7 +75,7 @@ class OnlinePayments extends Page
                         ->color(Badges::color($account->mode)),
                     TextEntry::make('key_hint')->label(__('Ends in'))->state('…'.$account->key_hint)->fontFamily('mono'),
                     TextEntry::make('connected_by')->label(__('Connected by'))->state($account->connectedBy?->user->name),
-                    TextEntry::make('connected_at')->label(__('Connected'))->state($account->updated_at)->dateTime('j M Y, H:i')->timezone(self::gymTimezone()),
+                    TextEntry::make('connected_at')->label(__('Connected'))->state($account->updated_at)->formatStateUsing(Dates::asDateTime(self::gymTimezone())),
                 ]),
         ]);
     }

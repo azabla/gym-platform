@@ -170,11 +170,12 @@ class BranchClosure extends Model
     }
 
     /**
-     * The Ethiopian day and month the closure starts on, such as "Tir 11".
+     * The Ethiopian day and month the closure starts on, such as "Tir 11",
+     * or "ጥር 11" in Amharic.
      */
-    public function ethiopianStart(): string
+    public function ethiopianStart(string $language = 'en'): string
     {
-        return EthiopianDate::fromGregorian($this->starts_on->toDateString())->dayAndMonth();
+        return EthiopianDate::fromGregorian($this->starts_on->toDateString())->dayAndMonthIn($language);
     }
 
     /**

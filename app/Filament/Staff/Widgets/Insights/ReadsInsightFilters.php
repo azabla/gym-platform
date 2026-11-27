@@ -8,9 +8,9 @@ use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
+use App\Filament\Staff\Support\Dates;
 use App\Insights\GymInsights;
 use App\Insights\Insight;
-use Carbon\CarbonImmutable;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Illuminate\Support\Facades\Gate;
 
@@ -65,6 +65,6 @@ trait ReadsInsightFilters
      */
     protected static function monthLabel(string $month): string
     {
-        return CarbonImmutable::parse("{$month}-01")->translatedFormat('M Y');
+        return Dates::month("{$month}-01");
     }
 }

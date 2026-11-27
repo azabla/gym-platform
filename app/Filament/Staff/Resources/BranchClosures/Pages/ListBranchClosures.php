@@ -12,6 +12,7 @@ use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Domains\Shared\EthiopianCalendar\EthiopianDate;
 use App\Filament\Staff\Actions\Refusals;
 use App\Filament\Staff\Resources\BranchClosures\BranchClosureResource;
+use App\Filament\Staff\Support\Dates;
 use App\Listeners\TellTheMember;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
@@ -56,14 +57,14 @@ class ListBranchClosures extends ListRecords
                                 ->columnSpanFull()
                                 ->required()
                                 ->live(),
-                            DatePicker::make('starts_on')
+                            DatePicker::make('starts_on')->hint(Dates::ethiopianHint())->live()
                                 ->label(__('From'))
                                 ->native(false)
                                 ->displayFormat('D j M Y')
                                 ->minDate(fn (): string => self::today()->toDateString())
                                 ->required()
                                 ->live(),
-                            DatePicker::make('ends_on')
+                            DatePicker::make('ends_on')->hint(Dates::ethiopianHint())->live()
                                 ->label(__('To'))
                                 ->native(false)
                                 ->displayFormat('D j M Y')
@@ -154,7 +155,7 @@ class ListBranchClosures extends ListRecords
         $from = CarbonImmutable::parse($startsOn);
         $to = CarbonImmutable::parse($endsOn);
         $names = Branch::query()->whereKey($branchIds)->orderBy('name')->pluck('name')->map(fn (mixed $name): string => (string) $name)->all();
-        $days = $from->equalTo($to) ? $from->translatedFormat('D j M') : $from->translatedFormat('D j M').' – '.$to->translatedFormat('D j M');
+        $days = $from->equalTo($to) ? Dates::dayOfWeek($from) : Dates::dayOfWeek($from).' – '.Dates::dayOfWeek($to);
         $hours = $get('special_hours') && is_string($get('opens_at')) && is_string($get('closes_at'))
             ? __('open only :hours', ['hours' => substr($get('opens_at'), 0, 5).'–'.substr($get('closes_at'), 0, 5)])
             : __('closed');
@@ -164,7 +165,7 @@ class ListBranchClosures extends ListRecords
             : __('It is more than 14 days away, so members aren\'t told now; they see it in the app.');
 
         $yearly = $get('repeats_yearly')
-            ? ' '.__('Repeats every year on :date.', ['date' => EthiopianDate::fromGregorian($from->toDateString())->dayAndMonth()])
+            ? ' '.__('Repeats every year on :date.', ['date' => EthiopianDate::fromGregorian($from->toDateString())->dayAndMonthIn(app()->getLocale())])
             : '';
 
         return implode(', ', $names)." {$hours} {$days}.{$yearly} {$told}";

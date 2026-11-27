@@ -25,7 +25,9 @@ Ethiopian date first, with the Gregorian date beside it.
 |---|---|---|
 | Sentences, messages, details | Ethiopian day month year, Gregorian in brackets | ኅዳር 18 ቀን 2019 ዓ.ም. (ኖቬምበር 27, 2026) |
 | Tables and short spaces | Ethiopian short, Gregorian numbers | ኅዳር 18, 2019 (27/11/2026) |
-| Charts (one label a month) | Ethiopian month and year | ኅዳር 2019 |
+| Charts and insights (one label a month) | Gregorian month and year, as the figures are grouped by calendar month | ኖቬምበር 2026 |
+| SMS | Ethiopian date alone, to keep texts short | ኅዳር 18 ቀን 2019 ዓ.ም. |
+| Beside a date picker (the picker is Gregorian) | Ethiopian date of the day chosen | ኅዳር 18 ቀን 2019 ዓ.ም. |
 | Times | 24-hour, unchanged | 18:00–02:00 |
 
 **Ethiopian months:** መስከረም, ጥቅምት, ኅዳር, ታኅሣሥ, ጥር, የካቲት, መጋቢት, ሚያዝያ, ግንቦት, ሰኔ, ሐምሌ, ነሐሴ, ጳጉሜን.

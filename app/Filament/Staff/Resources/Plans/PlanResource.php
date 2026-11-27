@@ -15,6 +15,7 @@ use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\Plans\Pages\CreatePlan;
 use App\Filament\Staff\Resources\Plans\Pages\EditPlan;
 use App\Filament\Staff\Resources\Plans\Pages\ListPlans;
+use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Tables;
 use App\Filament\Staff\Support\TranslatesItsLabels;
 use App\Rules\ValidMoneyAmount;
@@ -291,7 +292,7 @@ class PlanResource extends Resource
         $today = app(CurrentOrganization::class)->get()->today();
         $endsOn = $plan->endsOnFor($today);
         $days = (int) $today->diffInDays($endsOn) + 1;
-        $preview = __('Runs from :from to :to, :days days', ['from' => $today->translatedFormat('j M Y'), 'to' => $endsOn->translatedFormat('j M Y'), 'days' => $days]);
+        $preview = __('Runs from :from to :to, :days days', ['from' => Dates::short($today), 'to' => Dates::short($endsOn), 'days' => $days]);
 
         try {
             $perDay = (float) Money::of(is_string($price) ? $price : '')->toDecimal() / $days;

@@ -16,6 +16,7 @@ use App\Filament\Staff\Resources\Staff\Pages\CreateStaff;
 use App\Filament\Staff\Resources\Staff\Pages\EditStaff;
 use App\Filament\Staff\Resources\Staff\Pages\ListStaff;
 use App\Filament\Staff\Support\Badges;
+use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Tables;
 use App\Filament\Staff\Support\TranslatesItsLabels;
 use App\Rules\ValidPhoneNumber;
@@ -138,7 +139,7 @@ class StaffResource extends Resource
                     ->color(fn (string $state): string => $state === 'Set' ? 'success' : 'warning')
                     ->icon(fn (string $state): Heroicon => $state === 'Set' ? Heroicon::OutlinedCheckCircle : Heroicon::OutlinedEnvelope)
                     ->formatStateUsing(fn (string $state): string => __($state)),
-                TextColumn::make('deleted_at')->label(__('Archived'))->date('j M Y')->badge()->color('gray')->placeholder(__('No'))->toggleable(),
+                TextColumn::make('deleted_at')->label(__('Archived'))->formatStateUsing(Dates::asDate())->badge()->color('gray')->placeholder(__('No'))->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('role')->label(__('Role'))->native(false)->options(Badges::options(StaffRole::class)),

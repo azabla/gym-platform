@@ -15,6 +15,7 @@ use App\Filament\Staff\Resources\PromoCodes\Pages\CreatePromoCode;
 use App\Filament\Staff\Resources\PromoCodes\Pages\EditPromoCode;
 use App\Filament\Staff\Resources\PromoCodes\Pages\ListPromoCodes;
 use App\Filament\Staff\Support\Badges;
+use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Tables;
 use App\Filament\Staff\Support\TranslatesItsLabels;
 use App\Http\Requests\Api\V1\PromoCodes\StorePromoCodeRequest;
@@ -96,8 +97,8 @@ class PromoCodeResource extends Resource
                     ->icon(Heroicon::OutlinedAdjustmentsHorizontal)
                     ->columns(['default' => 1, 'md' => 2])
                     ->schema([
-                        DatePicker::make('starts_on')->label(__('First day'))->native(false)->displayFormat('j M Y')->placeholder(__('Starts now')),
-                        DatePicker::make('ends_on')->label(__('Last day'))->native(false)->displayFormat('j M Y')->afterOrEqual('starts_on')->placeholder(__('No end')),
+                        DatePicker::make('starts_on')->hint(Dates::ethiopianHint())->live()->label(__('First day'))->native(false)->displayFormat('j M Y')->placeholder(__('Starts now')),
+                        DatePicker::make('ends_on')->hint(Dates::ethiopianHint())->live()->label(__('Last day'))->native(false)->displayFormat('j M Y')->afterOrEqual('starts_on')->placeholder(__('No end')),
                         TextInput::make('max_uses')
                             ->label(__('Total uses'))
                             ->integer()
@@ -348,9 +349,9 @@ class PromoCodeResource extends Resource
     {
         return match (true) {
             $promoCode->starts_on === null && $promoCode->ends_on === null => __('Any time'),
-            $promoCode->starts_on === null => __('Until :date', ['date' => $promoCode->ends_on->translatedFormat('j M Y')]),
-            $promoCode->ends_on === null => __('From :date', ['date' => $promoCode->starts_on->translatedFormat('j M Y')]),
-            default => $promoCode->starts_on->translatedFormat('j M Y').' to '.$promoCode->ends_on->translatedFormat('j M Y'),
+            $promoCode->starts_on === null => __('Until :date', ['date' => Dates::short($promoCode->ends_on)]),
+            $promoCode->ends_on === null => __('From :date', ['date' => Dates::short($promoCode->starts_on)]),
+            default => __(':from to :to', ['from' => Dates::short($promoCode->starts_on), 'to' => Dates::short($promoCode->ends_on)]),
         };
     }
 

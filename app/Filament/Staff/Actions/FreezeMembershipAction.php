@@ -7,6 +7,7 @@ namespace App\Filament\Staff\Actions;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
+use App\Filament\Staff\Support\Dates;
 use Carbon\CarbonImmutable;
 use Closure;
 use Filament\Actions\Action;
@@ -39,12 +40,12 @@ class FreezeMembershipAction extends Action
             ->color('info')
             ->visible(fn (Membership $record): bool => Gate::allows('freeze', $record))
             ->schema([
-                DatePicker::make('starts_on')
+                DatePicker::make('starts_on')->hint(Dates::ethiopianHint())->live()
                     ->label(__('First day'))
                     ->required()
                     ->default(fn (): string => self::today()->toDateString())
                     ->rules(fn (): array => [self::notInThePastUnlessAllowed()]),
-                DatePicker::make('ends_on')->label(__('Last day'))->required(),
+                DatePicker::make('ends_on')->hint(Dates::ethiopianHint())->live()->label(__('Last day'))->required(),
                 Textarea::make('reason')->label(__('Reason'))->required()->maxLength(500),
             ])
             ->action(function (array $data, Membership $record, Action $action): void {
@@ -58,7 +59,7 @@ class FreezeMembershipAction extends Action
 
                 $record->freeze($firstDay, $lastDay, (string) $data['reason'], app(CurrentStaff::class)->get());
 
-                Notification::make()->success()->title(__('Frozen. It now ends on :date.', ['date' => $record->refresh()->ends_on->translatedFormat('j F Y')]))->send();
+                Notification::make()->success()->title(__('Frozen. It now ends on :date.', ['date' => Dates::long($record->refresh()->ends_on)]))->send();
             });
     }
 

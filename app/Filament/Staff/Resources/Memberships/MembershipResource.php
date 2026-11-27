@@ -20,6 +20,7 @@ use App\Filament\Staff\Resources\Memberships\Pages\ListMemberships;
 use App\Filament\Staff\Resources\Memberships\Pages\ViewMembership;
 use App\Filament\Staff\Resources\PaymentLinks\PaymentLinkResource;
 use App\Filament\Staff\Support\Badges;
+use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Tables;
 use App\Filament\Staff\Support\TranslatesItsLabels;
 use BackedEnum;
@@ -111,9 +112,9 @@ class MembershipResource extends Resource
                         TextEntry::make('sold')
                             ->label(__('Sold'))
                             ->state(fn (Membership $record): string => ($record->sold_in_app ? __('In the app') : __('By :name', ['name' => (string) $record->soldBy?->user?->name]))
-                                .', '.$record->created_at?->setTimezone(self::gymTimezone())->translatedFormat('j M Y')),
-                        TextEntry::make('starts_on')->label(__('Starts'))->date('j M Y'),
-                        TextEntry::make('ends_on')->label(__('Ends'))->date('j M Y'),
+                                .($record->created_at === null ? '' : ', '.Dates::short($record->created_at->setTimezone(self::gymTimezone())))),
+                        TextEntry::make('starts_on')->label(__('Starts'))->formatStateUsing(Dates::asDate()),
+                        TextEntry::make('ends_on')->label(__('Ends'))->formatStateUsing(Dates::asDate()),
                         TextEntry::make('visit_limit')
                             ->label(__('Visits'))
                             ->formatStateUsing(fn (?int $state): string => $state === null ? __('No limit') : __(':count visits', ['count' => $state]))
@@ -126,11 +127,11 @@ class MembershipResource extends Resource
                     ->schema([
                         TextEntry::make('freeze_days_left')
                             ->label(__('Freeze days left'))
-                            ->state(fn (Membership $record): string => max(0, $record->freeze_days_allowed - $record->freezeDaysUsed())." of {$record->freeze_days_allowed}"),
+                            ->state(fn (Membership $record): string => __(':left of :allowed', ['left' => max(0, $record->freeze_days_allowed - $record->freezeDaysUsed()), 'allowed' => $record->freeze_days_allowed])),
                         TextEntry::make('freezes')->label(__('Freezes'))
                             ->columnSpan(2)
                             ->state(fn (Membership $record): array => $record->freezes()->orderBy('starts_on')->get()->map(
-                                fn (MembershipFreeze $freeze): string => __(':from to :to: :reason', ['from' => $freeze->starts_on->translatedFormat('j M Y'), 'to' => $freeze->ends_on->translatedFormat('j M Y'), 'reason' => (string) $freeze->reason])
+                                fn (MembershipFreeze $freeze): string => __(':from to :to: :reason', ['from' => Dates::short($freeze->starts_on), 'to' => Dates::short($freeze->ends_on), 'reason' => (string) $freeze->reason])
                                     .($freeze->isFromTheApp() ? ' '.__('(by the member, in the app)') : ''),
                             )->all())
                             ->listWithLineBreaks()
@@ -138,8 +139,7 @@ class MembershipResource extends Resource
                             ->placeholder(__('None')),
                         TextEntry::make('cancelled_at')
                             ->label(__('Cancelled'))
-                            ->dateTime('j M Y, H:i')
-                            ->timezone(self::gymTimezone())
+                            ->formatStateUsing(Dates::asDateTime(self::gymTimezone()))
                             ->color('danger')
                             ->visible(fn (Membership $record): bool => $record->cancelled_at !== null),
                     ]),
@@ -194,8 +194,8 @@ class MembershipResource extends Resource
                 TextColumn::make('plan.name')->label(__('Plan'))->badge()->color('primary'),
                 Tables::badge('status')
                     ->state(fn (Membership $record): MembershipStatus => self::statusOf($record)),
-                TextColumn::make('starts_on')->label(__('Starts'))->date('j M Y')->sortable(),
-                TextColumn::make('ends_on')->label(__('Ends'))->date('j M Y')->sortable(),
+                TextColumn::make('starts_on')->label(__('Starts'))->formatStateUsing(Dates::asDate())->sortable(),
+                TextColumn::make('ends_on')->label(__('Ends'))->formatStateUsing(Dates::asDate())->sortable(),
                 Tables::money('price', fn (Membership $record) => $record->price)
                     ->description(fn (Membership $record): ?string => $record->discount_reason === null ? null : __('List :price', ['price' => $record->list_price->format()])),
                 Tables::money('amount_paid', fn (Membership $record, HasTable $livewire) => self::pageBalanceOf($record, $livewire)->amountPaid, __('Paid'))
@@ -215,7 +215,7 @@ class MembershipResource extends Resource
                     ->label(__('Sold by'))
                     ->state(fn (Membership $record): string => $record->sold_in_app ? __('In the app') : (string) $record->soldBy?->user?->name)
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('created_at')->label(__('Sold on'))->date('j M Y')->timezone(self::gymTimezone())->sortable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('created_at')->label(__('Sold on'))->formatStateUsing(Dates::asDate(self::gymTimezone()))->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('member')->label(__('Member'))

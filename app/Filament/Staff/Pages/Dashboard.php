@@ -6,6 +6,7 @@ namespace App\Filament\Staff\Pages;
 
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
+use App\Filament\Staff\Support\Dates;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Pages\Dashboard as BaseDashboard;
@@ -38,9 +39,9 @@ class Dashboard extends BaseDashboard
     public function filtersForm(Schema $schema): Schema
     {
         return $schema->components([
-            DatePicker::make('from')->label(__('From'))
+            DatePicker::make('from')->hint(Dates::ethiopianHint())->live()->label(__('From'))
                 ->default(fn (): string => app(CurrentOrganization::class)->get()->today()->toDateString()),
-            DatePicker::make('to')->label(__('To'))
+            DatePicker::make('to')->hint(Dates::ethiopianHint())->live()->label(__('To'))
                 ->placeholder(__('Same day')),
             Select::make('branch_id')
                 ->label(__('Branch'))
