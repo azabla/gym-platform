@@ -91,7 +91,7 @@ class AnnouncementResource extends Resource
                     ->columns(2)
                     ->schema([
                         Select::make('branch_id')
-                            ->label(__('To'))
+                            ->label(__('Send to'))
                             ->native(false)
                             ->options(fn (): array => app(CurrentStaff::class)->get()->branchesWorkedAt()->mapWithKeys(
                                 fn (Branch $branch): array => [$branch->id => __('Members of :branch', ['branch' => $branch->name])],

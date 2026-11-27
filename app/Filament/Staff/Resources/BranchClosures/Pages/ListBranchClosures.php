@@ -156,9 +156,13 @@ class ListBranchClosures extends ListRecords
         $to = CarbonImmutable::parse($endsOn);
         $names = Branch::query()->whereKey($branchIds)->orderBy('name')->pluck('name')->map(fn (mixed $name): string => (string) $name)->all();
         $days = $from->equalTo($to) ? Dates::dayOfWeek($from) : Dates::dayOfWeek($from).' – '.Dates::dayOfWeek($to);
-        $hours = $get('special_hours') && is_string($get('opens_at')) && is_string($get('closes_at'))
-            ? __('open only :hours', ['hours' => substr($get('opens_at'), 0, 5).'–'.substr($get('closes_at'), 0, 5)])
-            : __('closed');
+        $what = $get('special_hours') && is_string($get('opens_at')) && is_string($get('closes_at'))
+            ? __(':branches opens only :hours on :days.', [
+                'branches' => implode(', ', $names),
+                'hours' => substr($get('opens_at'), 0, 5).'–'.substr($get('closes_at'), 0, 5),
+                'days' => $days,
+            ])
+            : __(':branches is closed on :days.', ['branches' => implode(', ', $names), 'days' => $days]);
 
         $told = $from->lte(self::today()->addDays(TellTheMember::TELL_CLOSURES_DAYS_AHEAD))
             ? trans_choice('{0} No members to tell.|{1} 1 member will get a push.|[2,*] :count members will get a push.', Member::query()->homeAtAnyOf($branchIds)->count())
@@ -168,7 +172,7 @@ class ListBranchClosures extends ListRecords
             ? ' '.__('Repeats every year on :date.', ['date' => EthiopianDate::fromGregorian($from->toDateString())->dayAndMonthIn(app()->getLocale())])
             : '';
 
-        return implode(', ', $names)." {$hours} {$days}.{$yearly} {$told}";
+        return "{$what}{$yearly} {$told}";
     }
 
     private static function today(): CarbonImmutable

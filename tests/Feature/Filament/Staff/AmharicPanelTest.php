@@ -69,7 +69,7 @@ it('tells staff who chose Amharic why the gym refused, in Amharic', function () 
 
     Livewire::test(ViewMembership::class, ['record' => $ended->getRouteKey()])
         ->callAction(CancelMembershipAction::class, ['reason' => 'ሄዷል።'])
-        ->assertNotified('ይህ አባልነት ቀድሞ አብቅቷል።');
+        ->assertNotified('ይህ አባልነት አስቀድሞ አብቅቷል።');
 });
 
 it('shows staff who chose Amharic the Ethiopian date with the Gregorian beside it', function () {
