@@ -7,6 +7,7 @@ namespace App\Filament\Staff\Pages;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Filament\Staff\Actions\DownloadInsightAction;
 use App\Filament\Staff\NavigationGroup;
+use App\Filament\Staff\Support\TranslatesItsTitle;
 use App\Filament\Staff\Widgets\Insights\BusyHoursByWeekdayChart;
 use App\Filament\Staff\Widgets\Insights\BusyHoursGrid;
 use App\Filament\Staff\Widgets\Insights\MembersChart;
@@ -36,6 +37,7 @@ use UnitEnum;
 class Insights extends BaseDashboard
 {
     use HasFiltersForm;
+    use TranslatesItsTitle;
 
     protected static string $routePath = 'insights';
 
@@ -58,13 +60,13 @@ class Insights extends BaseDashboard
     {
         return $schema->components([
             Select::make('months')
-                ->label('Period')
+                ->label(__('Period'))
                 ->options(DownloadInsightAction::periods())
                 ->default(12)
                 ->selectablePlaceholder(false),
             Select::make('branch_id')
-                ->label('Branch')
-                ->placeholder('All my branches')
+                ->label(__('Branch'))
+                ->placeholder(__('All my branches'))
                 ->options(fn (): array => app(CurrentStaff::class)->get()->branchesWorkedAt()->pluck('name', 'id')->all()),
         ]);
     }

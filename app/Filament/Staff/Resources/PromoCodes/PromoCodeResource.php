@@ -385,7 +385,7 @@ class PromoCodeResource extends Resource
             try {
                 Discount::parse((string) $value, 'Promo code');
             } catch (InvalidDiscount $exception) {
-                $fail($exception->getMessage());
+                $fail(__($exception->text, $exception->values));
             }
         };
     }

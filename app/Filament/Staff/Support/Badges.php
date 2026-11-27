@@ -27,8 +27,15 @@ final class Badges
 {
     public static function label(?BackedEnum $value): string
     {
+        return $value === null ? '' : __(self::englishLabel($value));
+    }
+
+    /**
+     * The label in English, the key of its translation in lang/am.json.
+     */
+    private static function englishLabel(BackedEnum $value): string
+    {
         return match (true) {
-            $value === null => '',
             $value instanceof PaymentLinkStatus => match ($value) {
                 PaymentLinkStatus::Pending => 'Waiting',
                 PaymentLinkStatus::Paid => 'Paid',

@@ -29,17 +29,17 @@ class MembersToCall extends TableWidget
         $seesMoney = $this->staff()->role->seesMoney();
 
         return $table
-            ->heading('Members to call')
+            ->heading(__('Members to call'))
             ->records(fn (): array => $this->membersToCall($seesMoney))
             ->columns([
-                TextColumn::make('full_name')->label('Member'),
-                TextColumn::make('phone'),
-                TextColumn::make('plan'),
-                TextColumn::make('ends_on')->label('Ends on')->date(),
-                TextColumn::make('visits_remaining')->label('Visits left')->placeholder('No limit'),
-                TextColumn::make('balance_due')->label('Balance due')->visible($seesMoney),
+                TextColumn::make('full_name')->label(__('Member')),
+                TextColumn::make('phone')->label(__('Phone')),
+                TextColumn::make('plan')->label(__('Plan')),
+                TextColumn::make('ends_on')->label(__('Ends on'))->date(),
+                TextColumn::make('visits_remaining')->label(__('Visits left'))->placeholder(__('No limit')),
+                TextColumn::make('balance_due')->label(__('Balance due'))->visible($seesMoney),
             ])
-            ->emptyStateHeading('No one to call')
+            ->emptyStateHeading(__('No one to call'))
             ->paginated(false);
     }
 

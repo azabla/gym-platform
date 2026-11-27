@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 use App\Domains\Attendance\Models\CheckIn;
 use App\Domains\Members\Models\Member;
+use App\Domains\Memberships\Models\Membership;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Organization;
+use App\Filament\Staff\Actions\CancelMembershipAction;
 use App\Filament\Staff\Resources\CheckIns\CheckInResource;
 use App\Filament\Staff\Resources\Members\MemberResource;
+use App\Filament\Staff\Resources\Memberships\Pages\ViewMembership;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
+use Livewire\Livewire;
 
 beforeEach(function () {
     $this->gym = Organization::factory()->create(['slug' => 'demo-gym', 'timezone' => 'Africa/Addis_Ababa']);
@@ -54,4 +58,15 @@ it('keeps the API in English for staff who chose Amharic', function () {
     $this->postJson(route('api.v1.organizations.members.store', ['organization' => 'demo-gym']), ['full_name' => 'X'])
         ->assertUnprocessable()
         ->assertJsonPath('errors.phone.0', 'The phone field is required.');
+});
+
+it('tells staff who chose Amharic why the gym refused, in Amharic', function () {
+    actingAsStaffInPanel($this->gym, StaffRole::Owner);
+    app()->setLocale('am'); // As UseStaffLanguage does on every panel request.
+    $member = Member::factory()->for($this->branch, 'homeBranch')->create();
+    $ended = Membership::factory()->for($member)->create(['starts_on' => '2026-01-01', 'ends_on' => '2026-01-31']);
+
+    Livewire::test(ViewMembership::class, ['record' => $ended->getRouteKey()])
+        ->callAction(CancelMembershipAction::class, ['reason' => 'ሄዷል።'])
+        ->assertNotified('ይህ አባልነት ቀድሞ አብቅቷል።');
 });

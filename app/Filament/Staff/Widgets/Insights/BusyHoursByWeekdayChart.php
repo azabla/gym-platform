@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Staff\Widgets\Insights;
 
+use App\Filament\Staff\Support\TranslatesItsHeading;
 use App\Insights\Insight;
 use Filament\Widgets\ChartWidget;
 
@@ -14,6 +15,7 @@ use Filament\Widgets\ChartWidget;
 class BusyHoursByWeekdayChart extends ChartWidget
 {
     use ReadsInsightFilters;
+    use TranslatesItsHeading;
 
     public const WEEKDAYS = [1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday'];
 
@@ -48,7 +50,7 @@ class BusyHoursByWeekdayChart extends ChartWidget
 
         return [
             'datasets' => array_map(fn (int $weekday): array => [
-                'label' => self::WEEKDAYS[$weekday],
+                'label' => __(self::WEEKDAYS[$weekday]),
                 'data' => $grid[$weekday],
                 'borderColor' => self::COLOURS[$weekday],
                 'backgroundColor' => self::COLOURS[$weekday],

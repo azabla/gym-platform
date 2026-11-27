@@ -199,7 +199,7 @@ class SellMembershipAction extends Action
             try {
                 Discount::parse($value, $reason, $plan->price->currency)->appliedTo($plan->price);
             } catch (InvalidDiscount $exception) {
-                $fail($exception->getMessage());
+                $fail(__($exception->text, $exception->values));
             }
         };
     }

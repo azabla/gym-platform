@@ -213,7 +213,7 @@ class DiscountGroupResource extends Resource
             try {
                 Discount::parse((string) $value, 'Discount group');
             } catch (InvalidDiscount $exception) {
-                $fail($exception->getMessage());
+                $fail(__($exception->text, $exception->values));
             }
         };
     }

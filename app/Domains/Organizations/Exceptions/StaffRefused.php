@@ -20,11 +20,11 @@ final class StaffRefused extends DomainException
 
     public static function lastOwner(): self
     {
-        return new self('The gym must keep at least one owner.', 'role');
+        return new self(__('The gym must keep at least one owner.'), 'role');
     }
 
     public static function alreadyWorksHere(): self
     {
-        return new self('This person already works at the gym.', 'phone');
+        return new self(__('This person already works at the gym.'), 'phone');
     }
 }

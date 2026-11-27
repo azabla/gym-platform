@@ -10,6 +10,7 @@ use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\Concerns\ShowsGymTime;
 use App\Filament\Staff\Support\Badges;
+use App\Filament\Staff\Support\TranslatesItsTitle;
 use App\Rules\ChapaSecretKey;
 use BackedEnum;
 use Closure;
@@ -33,6 +34,7 @@ use UnitEnum;
 class OnlinePayments extends Page
 {
     use ShowsGymTime;
+    use TranslatesItsTitle;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCreditCard;
 

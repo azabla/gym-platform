@@ -74,7 +74,7 @@ abstract class MoneyAction extends Action
                     ->native(false)
                     ->options(collect(PaymentMethod::cases())
                         ->reject(fn (PaymentMethod $method): bool => $method->isOnline())
-                        ->mapWithKeys(fn (PaymentMethod $method): array => [$method->value => $method->label()])
+                        ->mapWithKeys(fn (PaymentMethod $method): array => [$method->value => __($method->label())])
                         ->all())
                     ->live(),
                 TextInput::make('reference')

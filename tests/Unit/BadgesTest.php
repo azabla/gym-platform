@@ -11,6 +11,10 @@ use App\Domains\Billing\Enums\PaymentType;
 use App\Domains\Memberships\Enums\MembershipStatus;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Filament\Staff\Support\Badges;
+use Tests\TestCase;
+
+// Labels go through __() (ADR 0041), so the app's translator must be running.
+uses(TestCase::class);
 
 it('labels and colours every status the panel shows', function (BackedEnum $value, string $label, string $color) {
     expect(Badges::label($value))->toBe($label)

@@ -78,7 +78,7 @@ class CheckInResource extends Resource
                     ->searchable()
                     ->url(fn (CheckIn $record): ?string => $record->member_id === null ? null : MemberResource::getUrl('view', ['record' => $record->member_id])),
                 Tables::badge('result')
-                    ->description(fn (CheckIn $record): ?string => $record->reason_code?->label()),
+                    ->description(fn (CheckIn $record): ?string => $record->reason_code === null ? null : __($record->reason_code->label())),
                 TextColumn::make('branch.name')->label(__('Branch'))->badge()->color('gray'),
                 Tables::badge('method')
                     ->description(fn (CheckIn $record): ?string => $record->offline ? __('Offline') : null),
@@ -94,7 +94,7 @@ class CheckInResource extends Resource
                     ->placeholder('—'),
                 TextColumn::make('reason_code')
                     ->label(__('Reason'))
-                    ->formatStateUsing(fn (CheckInDenial $state): string => $state->label())
+                    ->formatStateUsing(fn (CheckInDenial $state): string => __($state->label()))
                     ->placeholder(__('None'))
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('checkedInBy.user.name')->label(__('By'))->toggleable(isToggledHiddenByDefault: true),
@@ -119,7 +119,7 @@ class CheckInResource extends Resource
                     ->label(__('Reason'))
                     ->native(false)
                     ->options(collect(CheckInDenial::cases())->mapWithKeys(
-                        fn (CheckInDenial $denial): array => [$denial->value => $denial->label()],
+                        fn (CheckInDenial $denial): array => [$denial->value => __($denial->label())],
                     )->all()),
                 SelectFilter::make('method')->label(__('Method'))->native(false)->options(Badges::options(CheckInMethod::class)),
                 Filter::make('offline')

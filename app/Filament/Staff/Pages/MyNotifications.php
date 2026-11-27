@@ -10,6 +10,7 @@ use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Domains\Shared\Language\Language;
 use App\Filament\Staff\Support\Languages;
+use App\Filament\Staff\Support\TranslatesItsTitle;
 use App\Notifications\StaffNotification;
 use App\Notifications\StaffRecipients;
 use Filament\Actions\Action;
@@ -35,6 +36,8 @@ use Filament\Support\Icons\Heroicon;
  */
 class MyNotifications extends Page
 {
+    use TranslatesItsTitle;
+
     protected static bool $shouldRegisterNavigation = false;
 
     protected static ?string $title = 'My notifications';

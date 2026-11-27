@@ -20,21 +20,21 @@ final class BranchClosureRefused extends DomainException
 
     public static function inThePast(): self
     {
-        return new self('A closure can start today at the earliest.', 'starts_on');
+        return new self(__('A closure can start today at the earliest.'), 'starts_on');
     }
 
     public static function tooLong(int $maximumDays): self
     {
-        return new self("A closure can last {$maximumDays} days at most; add another for more.", 'ends_on');
+        return new self(__('A closure can last :count days at most; add another for more.', ['count' => $maximumDays]), 'ends_on');
     }
 
     public static function notAtYourBranch(string $branchName): self
     {
-        return new self("You don't work at {$branchName}.", 'branch_ids');
+        return new self(__('You don\'t work at :branch.', ['branch' => $branchName]), 'branch_ids');
     }
 
     public static function overlaps(string $branchName): self
     {
-        return new self("{$branchName} already has a closure on some of these days.", 'starts_on');
+        return new self(__(':branch already has a closure on some of these days.', ['branch' => $branchName]), 'starts_on');
     }
 }

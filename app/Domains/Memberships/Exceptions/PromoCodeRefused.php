@@ -27,41 +27,41 @@ final class PromoCodeRefused extends DomainException
 
     public static function unknown(): self
     {
-        return new self('This promo code doesn\'t exist. Check how it is spelled.');
+        return new self(__('This promo code doesn\'t exist. Check how it is spelled.'));
     }
 
     public static function notStarted(CarbonImmutable $startsOn): self
     {
-        return new self("This promo code can be used from {$startsOn->format('j F Y')}.");
+        return new self(__('This promo code can be used from :date.', ['date' => $startsOn->translatedFormat('j F Y')]));
     }
 
     public static function ended(CarbonImmutable $endsOn): self
     {
-        return new self("This promo code ended on {$endsOn->format('j F Y')}.");
+        return new self(__('This promo code ended on :date.', ['date' => $endsOn->translatedFormat('j F Y')]));
     }
 
     public static function usedUp(): self
     {
-        return new self('This promo code has been used up.');
+        return new self(__('This promo code has been used up.'));
     }
 
     public static function alreadyUsedByTheMember(): self
     {
-        return new self('This promo code can be used once per member, and this member has used it.');
+        return new self(__('This promo code can be used once per member, and this member has used it.'));
     }
 
     public static function notForThePlan(Plan $plan): self
     {
-        return new self("This promo code isn't for the {$plan->name} plan.");
+        return new self(__('This promo code isn\'t for the :plan plan.', ['plan' => $plan->name]));
     }
 
     public static function takesTooMuchOff(Plan $plan): self
     {
-        return new self("This promo code takes more off than the {$plan->name} plan costs.");
+        return new self(__('This promo code takes more off than the :plan plan costs.', ['plan' => $plan->name]));
     }
 
     public static function makesItFree(): self
     {
-        return new self('This promo code makes the plan free. Show it at the desk to get your membership.');
+        return new self(__('This promo code makes the plan free. Show it at the desk to get your membership.'));
     }
 }

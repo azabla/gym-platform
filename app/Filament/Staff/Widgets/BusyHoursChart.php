@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Staff\Widgets;
 
 use App\Dashboards\StaffDashboard;
+use App\Filament\Staff\Support\TranslatesItsHeading;
 use App\Filament\Staff\Widgets\Concerns\ReadsDashboardFilters;
 use Filament\Widgets\ChartWidget;
 
@@ -15,6 +16,7 @@ use Filament\Widgets\ChartWidget;
 class BusyHoursChart extends ChartWidget
 {
     use ReadsDashboardFilters;
+    use TranslatesItsHeading;
 
     protected static ?int $sort = 6;
 
@@ -36,7 +38,7 @@ class BusyHoursChart extends ChartWidget
 
         return [
             'datasets' => [[
-                'label' => 'Let in',
+                'label' => __('Let in'),
                 'data' => array_column($hours, 'allowed'),
             ]],
             'labels' => array_map(fn (array $hour): string => sprintf('%02d:00', $hour['hour']), $hours),

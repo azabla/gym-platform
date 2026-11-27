@@ -33,29 +33,29 @@ class GymOverview extends StatsOverviewWidget
         $toReview = CheckIn::query()->madeAtAnyOf($this->branchIds())->where('server_disagrees', true)->count();
 
         $stats = [
-            Stat::make('Check-ins', (string) $checkIns['allowed'])
-                ->description("{$checkIns['denied']} turned away")
+            Stat::make(__('Check-ins'), (string) $checkIns['allowed'])
+                ->description(__(':count turned away', ['count' => $checkIns['denied']]))
                 ->descriptionIcon(Heroicon::OutlinedArrowRightEndOnRectangle)
                 ->color($checkIns['denied'] > 0 ? 'warning' : 'success')
                 ->chart($this->checkInsOfTheLastWeek()),
-            Stat::make('Members with a valid membership today', (string) $members['active'])
-                ->description('Active or frozen')
+            Stat::make(__('Members with a valid membership today'), (string) $members['active'])
+                ->description(__('Active or frozen'))
                 ->descriptionIcon(Heroicon::OutlinedUsers)
                 ->color('primary'),
-            Stat::make('New members', (string) $members['new'])
-                ->description('Registered in the period')
+            Stat::make(__('New members'), (string) $members['new'])
+                ->description(__('Registered in the period'))
                 ->descriptionIcon(Heroicon::OutlinedUserPlus)
                 ->color('info'),
-            Stat::make('Memberships sold', (string) ($sold['at_the_desk'] + $sold['in_the_app']))
-                ->description("{$sold['at_the_desk']} at the desk, {$sold['in_the_app']} in the app")
+            Stat::make(__('Memberships sold'), (string) ($sold['at_the_desk'] + $sold['in_the_app']))
+                ->description(__(':desk at the desk, :app in the app', ['desk' => $sold['at_the_desk'], 'app' => $sold['in_the_app']]))
                 ->descriptionIcon(Heroicon::OutlinedShoppingCart)
                 ->color('success'),
         ];
 
         // Offline scans the server would have decided otherwise (ADR 0038).
         if ($toReview > 0) {
-            $stats[] = Stat::make('Check-ins to review', (string) $toReview)
-                ->description('Made offline; the server disagrees')
+            $stats[] = Stat::make(__('Check-ins to review'), (string) $toReview)
+                ->description(__('Made offline; the server disagrees'))
                 ->descriptionIcon(Heroicon::OutlinedExclamationTriangle)
                 ->color('warning')
                 ->url(CheckInResource::getUrl('index', ['filters' => ['needs_review' => ['isActive' => true]]]));

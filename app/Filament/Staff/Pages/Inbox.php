@@ -11,6 +11,7 @@ use App\Filament\Staff\Resources\Members\MemberResource;
 use App\Filament\Staff\Resources\Memberships\MembershipResource;
 use App\Filament\Staff\Resources\PaymentLinks\PaymentLinkResource;
 use App\Filament\Staff\Resources\Payments\PaymentResource;
+use App\Filament\Staff\Support\TranslatesItsTitle;
 use App\Notifications\MessageText;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -38,6 +39,7 @@ class Inbox extends Page implements HasTable
 {
     use InteractsWithTable;
     use ShowsGymTime;
+    use TranslatesItsTitle;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBell;
 
@@ -67,7 +69,7 @@ class Inbox extends Page implements HasTable
             ->paginated([10, 25, 50])
             ->filters([
                 Filter::make('unread')
-                    ->label('Unread only')
+                    ->label(__('Unread only'))
                     ->toggle()
                     ->query(fn (Builder $query): Builder => $query->whereNull('read_at')),
             ])
@@ -80,35 +82,35 @@ class Inbox extends Page implements HasTable
                     ->falseIcon(Heroicon::OutlinedCheck)
                     ->trueColor('warning')
                     ->falseColor('gray'),
-                TextColumn::make('title')
+                TextColumn::make('title')->label(__('Title'))
                     ->weight(fn (DatabaseNotification $record): string => $record->read_at === null ? 'bold' : 'normal')
                     ->state(fn (DatabaseNotification $record): string => self::text($record, 'title'))
                     ->description(fn (DatabaseNotification $record): string => self::text($record, 'body')),
-                TextColumn::make('created_at')->label('When')->since()->timezone(self::gymTimezone()),
+                TextColumn::make('created_at')->label(__('When'))->since()->timezone(self::gymTimezone()),
             ])
             ->recordUrl(null)
             ->recordActions([
-                Action::make('open')
+                Action::make('open')->label(__('Open'))
                     ->action(function (DatabaseNotification $record, Action $action): void {
                         $record->markAsRead();
 
                         $action->redirect(self::urlOf($record));
                     }),
             ])
-            ->emptyStateHeading('Nothing new')
-            ->emptyStateDescription('Online payments, refunds to make, freezes made in the app and the morning list of members to call arrive here.');
+            ->emptyStateHeading(__('Nothing new'))
+            ->emptyStateDescription(__('Online payments, refunds to make, freezes made in the app and the morning list of members to call arrive here.'));
     }
 
     protected function getHeaderActions(): array
     {
         return [
             Action::make('markAllRead')
-                ->label('Mark all read')
+                ->label(__('Mark all read'))
                 ->visible(fn (): bool => app(CurrentStaff::class)->get()->unreadNotifications()->exists())
                 ->action(function (): void {
                     app(CurrentStaff::class)->get()->unreadNotifications()->update(['read_at' => now()]);
 
-                    Notification::make()->success()->title('All read.')->send();
+                    Notification::make()->success()->title(__('All read.'))->send();
                 }),
         ];
     }

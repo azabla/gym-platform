@@ -20,16 +20,16 @@ final class AnnouncementRefused extends DomainException
 
     public static function notInTheFuture(): self
     {
-        return new self('Choose a time in the future, or leave it out to send it now.', 'send_at');
+        return new self(__('Choose a time in the future, or leave it out to send it now.'), 'send_at');
     }
 
     public static function notToABranchTheStaffMemberWorksAt(): self
     {
-        return new self('Choose a branch of this gym that you work at.', 'branch_id');
+        return new self(__('Choose a branch of this gym that you work at.'), 'branch_id');
     }
 
     public static function alreadyGoneOut(): self
     {
-        return new self('Only an announcement that hasn\'t gone out can be changed.', 'announcement');
+        return new self(__('Only an announcement that hasn\'t gone out can be changed.'), 'announcement');
     }
 }

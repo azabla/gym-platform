@@ -9,6 +9,7 @@ use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Shared\Language\Language;
 use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Support\Languages;
+use App\Filament\Staff\Support\TranslatesItsTitle;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -29,6 +30,8 @@ use UnitEnum;
  */
 class GymSettings extends Page
 {
+    use TranslatesItsTitle;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
 
     protected static string|UnitEnum|null $navigationGroup = NavigationGroup::GymSetup;
