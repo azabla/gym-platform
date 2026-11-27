@@ -15,6 +15,7 @@ use App\Filament\Staff\Resources\PaymentLinks\Pages\ViewPaymentLink;
 use App\Filament\Staff\Resources\Payments\PaymentResource;
 use App\Filament\Staff\Support\Badges;
 use App\Filament\Staff\Support\Tables;
+use App\Filament\Staff\Support\TranslatesItsLabels;
 use BackedEnum;
 use Filament\Actions\ViewAction;
 use Filament\Infolists\Components\TextEntry;
@@ -43,6 +44,7 @@ class PaymentLinkResource extends Resource
 {
     use LimitsToTheStaffMembersBranches;
     use ShowsGymTime;
+    use TranslatesItsLabels;
 
     protected static ?string $model = PaymentLink::class;
 

@@ -46,38 +46,38 @@ class SellMembershipAction extends Action
     {
         parent::setUp();
 
-        $this->label('Sell membership')
+        $this->label(__('Sell membership'))
             ->icon(Heroicon::OutlinedShoppingCart)
             ->modalIcon(Heroicon::OutlinedShoppingCart)
             ->color('primary')
             ->visible(fn (): bool => Gate::allows('create', Membership::class))
             ->schema(fn (Member $record): array => [
                 Select::make('plan_id')
-                    ->label('Plan')
+                    ->label(__('Plan'))
                     ->options(fn (): array => Plan::query()->onSaleAt($record->home_branch_id)->orderBy('name')->pluck('name', 'id')->all())
-                    ->helperText('The plans on sale at the member\'s home branch.')
+                    ->helperText(__('The plans on sale at the member\'s home branch.'))
                     ->required()
                     ->live(),
-                DatePicker::make('starts_on')
+                DatePicker::make('starts_on')->label(__('Starts on'))
                     ->required()
                     ->default(Membership::firstFreeDayFor($record, self::today())->toDateString())
                     ->rules(fn (): array => [self::notInThePastUnlessAllowed()]),
-                TextInput::make('discount')
-                    ->helperText('An amount, such as 500, or a percentage, such as 10%.')
+                TextInput::make('discount')->label(__('Discount'))
+                    ->helperText(__('An amount, such as 500, or a percentage, such as 10%.'))
                     ->visible(fn (): bool => Gate::allows('discount', Membership::class))
                     ->rules(fn (Get $get): array => [self::discountThatFitsThePrice($get('plan_id'), (string) $get('discount_reason'))]),
-                Textarea::make('discount_reason')
+                Textarea::make('discount_reason')->label(__('Discount reason'))
                     ->visible(fn (): bool => Gate::allows('discount', Membership::class))
                     ->requiredWith('discount')
                     ->maxLength(500),
                 TextInput::make('promo_code')
-                    ->label('Promo code')
+                    ->label(__('Promo code'))
                     ->maxLength(30)
                     ->live(onBlur: true)
                     ->hint(function () use ($record): ?string {
                         $group = self::groupOf($record);
 
-                        return $group === null ? null : "In the {$group->name} group";
+                        return $group === null ? null : __('In the :group group', ['group' => $group->name]);
                     })
                     ->helperText(fn (Get $get): string => self::priceWithCode($record, $get('plan_id'), (string) $get('promo_code')))
                     ->rules(fn (Get $get): array => [self::usableCode($record, $get('plan_id'), filled($get('discount')))]),
@@ -105,7 +105,7 @@ class SellMembershipAction extends Action
                     ? Membership::sell($record, $plan, $startsOn, $staff, $discount)
                     : Membership::sellAt(Pricing::bestFor($record, $plan, self::today(), $promoCode), $record, $plan, $startsOn, $staff);
 
-                Notification::make()->success()->title("{$plan->name} sold, from {$startsOn->format('j F Y')}.")->send();
+                Notification::make()->success()->title("{$plan->name} sold, from {$startsOn->translatedFormat('j F Y')}.")->send();
 
                 $action->redirect(MembershipResource::getUrl('view', ['record' => $membership]));
             });
@@ -120,7 +120,7 @@ class SellMembershipAction extends Action
     {
         return function (string $attribute, mixed $value, Closure $fail): void {
             if (CarbonImmutable::parse((string) $value)->lessThan(self::today()) && Gate::denies('backdate', Membership::class)) {
-                $fail('Only owners and managers can start a membership on a past date.');
+                $fail(__('Only owners and managers can start a membership on a past date.'));
             }
         };
     }
@@ -139,7 +139,7 @@ class SellMembershipAction extends Action
     {
         $plan = is_numeric($planId) ? Plan::query()->find((int) $planId) : null;
         $promoCode = trim($typed) === '' ? null : PromoCode::findByCode($typed);
-        $hint = 'A code the gym shares, such as NEWYEAR. Any staff member who sells can use one.';
+        $hint = __('A code the gym shares, such as NEWYEAR. Any staff member who sells can use one.');
 
         if ($plan === null) {
             return $hint;
@@ -149,8 +149,8 @@ class SellMembershipAction extends Action
         $choice = Pricing::bestFor($member, $plan, self::today(), $usableCode);
 
         return match (true) {
-            $choice->promoCode !== null => "With {$choice->promoCode->code}: {$choice->price->format()} instead of {$plan->price->format()}.",
-            $choice->discountGroup !== null => "{$choice->discountGroup->name} group: {$choice->price->format()} instead of {$plan->price->format()}.",
+            $choice->promoCode !== null => __('With :code: :price instead of :list.', ['code' => $choice->promoCode->code, 'price' => $choice->price->format(), 'list' => $plan->price->format()]),
+            $choice->discountGroup !== null => __(':group group: :price instead of :list.', ['group' => $choice->discountGroup->name, 'price' => $choice->price->format(), 'list' => $plan->price->format()]),
             default => $hint,
         };
     }
@@ -169,7 +169,7 @@ class SellMembershipAction extends Action
             }
 
             if ($withADiscount) {
-                $fail('Use a promo code or a discount, not both.');
+                $fail(__('Use a promo code or a discount, not both.'));
 
                 return;
             }

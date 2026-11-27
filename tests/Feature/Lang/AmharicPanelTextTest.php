@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Filament\Facades\Filament;
+
 /**
  * Every English text the panel translates with __() or trans_choice(), as
  * written in the code: the staff panel, the insights and the domains'
@@ -42,6 +44,22 @@ it('has Amharic for every text the panel shows', function () {
     $missing = array_values(array_filter(panelTextsInTheCode(), fn (string $text): bool => ! isset($amharic[$text]) || $amharic[$text] === ''));
 
     expect($missing)->toBe([]);
+});
+
+it('has Amharic for the labels Filament makes from names', function () {
+    $amharic = json_decode((string) file_get_contents(lang_path('am.json')), true, flags: JSON_THROW_ON_ERROR);
+    $labels = [
+        // Tables::badge() and Tables::money() labels made from a column's name.
+        'Method', 'Result', 'Role', 'Status', 'Type', 'Price',
+    ];
+
+    foreach (Filament::getPanel('staff')->getResources() as $resource) {
+        $labels[] = $resource::getModelLabel();
+        $labels[] = $resource::getPluralModelLabel();
+        $labels[] = $resource::getNavigationLabel();
+    }
+
+    expect(array_values(array_unique(array_filter($labels, fn (string $label): bool => ! isset($amharic[$label])))))->toBe([]);
 });
 
 it('keeps each Amharic text\'s placeholders', function () {

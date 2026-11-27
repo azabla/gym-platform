@@ -18,6 +18,7 @@ use App\Filament\Staff\Resources\Payments\Pages\ListPayments;
 use App\Filament\Staff\Resources\Payments\Pages\ViewPayment;
 use App\Filament\Staff\Support\Badges;
 use App\Filament\Staff\Support\Tables;
+use App\Filament\Staff\Support\TranslatesItsLabels;
 use BackedEnum;
 use Filament\Actions\ViewAction;
 use Filament\Infolists\Components\TextEntry;
@@ -45,6 +46,7 @@ class PaymentResource extends Resource
 {
     use LimitsToTheStaffMembersBranches;
     use ShowsGymTime;
+    use TranslatesItsLabels;
 
     protected static ?string $model = Payment::class;
 

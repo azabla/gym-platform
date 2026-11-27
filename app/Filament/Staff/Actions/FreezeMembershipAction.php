@@ -33,19 +33,19 @@ class FreezeMembershipAction extends Action
     {
         parent::setUp();
 
-        $this->label('Freeze')
+        $this->label(__('Freeze'))
             ->icon(Heroicon::OutlinedPauseCircle)
             ->modalIcon(Heroicon::OutlinedPauseCircle)
             ->color('info')
             ->visible(fn (Membership $record): bool => Gate::allows('freeze', $record))
             ->schema([
                 DatePicker::make('starts_on')
-                    ->label('First day')
+                    ->label(__('First day'))
                     ->required()
                     ->default(fn (): string => self::today()->toDateString())
                     ->rules(fn (): array => [self::notInThePastUnlessAllowed()]),
-                DatePicker::make('ends_on')->label('Last day')->required(),
-                Textarea::make('reason')->required()->maxLength(500),
+                DatePicker::make('ends_on')->label(__('Last day'))->required(),
+                Textarea::make('reason')->label(__('Reason'))->required()->maxLength(500),
             ])
             ->action(function (array $data, Membership $record, Action $action): void {
                 $firstDay = CarbonImmutable::parse((string) $data['starts_on']);
@@ -58,7 +58,7 @@ class FreezeMembershipAction extends Action
 
                 $record->freeze($firstDay, $lastDay, (string) $data['reason'], app(CurrentStaff::class)->get());
 
-                Notification::make()->success()->title("Frozen. It now ends on {$record->refresh()->ends_on->format('j F Y')}.")->send();
+                Notification::make()->success()->title(__('Frozen. It now ends on :date.', ['date' => $record->refresh()->ends_on->translatedFormat('j F Y')]))->send();
             });
     }
 
@@ -71,7 +71,7 @@ class FreezeMembershipAction extends Action
     {
         return function (string $attribute, mixed $value, Closure $fail): void {
             if (CarbonImmutable::parse((string) $value)->lessThan(self::today()) && Gate::denies('backdate', Membership::class)) {
-                $fail('Only owners and managers can start a freeze on a past date.');
+                $fail(__('Only owners and managers can start a freeze on a past date.'));
             }
         };
     }

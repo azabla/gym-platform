@@ -22,7 +22,7 @@ class ListMembers extends ListRecords
             DownloadReportAction::make()
                 ->withoutAPeriod()
                 ->report(Member::class, fn (ReportPeriod $period): MembersReport => new MembersReport($period->gym, $period->branchIds)),
-            CreateAction::make()->label('Register member'),
+            CreateAction::make()->label(__('Register member')),
         ];
     }
 }

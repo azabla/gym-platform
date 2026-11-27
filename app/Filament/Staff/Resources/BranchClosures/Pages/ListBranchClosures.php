@@ -154,7 +154,7 @@ class ListBranchClosures extends ListRecords
         $from = CarbonImmutable::parse($startsOn);
         $to = CarbonImmutable::parse($endsOn);
         $names = Branch::query()->whereKey($branchIds)->orderBy('name')->pluck('name')->map(fn (mixed $name): string => (string) $name)->all();
-        $days = $from->equalTo($to) ? $from->format('D j M') : $from->format('D j M').' – '.$to->format('D j M');
+        $days = $from->equalTo($to) ? $from->translatedFormat('D j M') : $from->translatedFormat('D j M').' – '.$to->translatedFormat('D j M');
         $hours = $get('special_hours') && is_string($get('opens_at')) && is_string($get('closes_at'))
             ? 'open only '.substr($get('opens_at'), 0, 5).'–'.substr($get('closes_at'), 0, 5)
             : 'closed';

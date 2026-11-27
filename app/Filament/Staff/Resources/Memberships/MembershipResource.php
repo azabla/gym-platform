@@ -21,6 +21,7 @@ use App\Filament\Staff\Resources\Memberships\Pages\ViewMembership;
 use App\Filament\Staff\Resources\PaymentLinks\PaymentLinkResource;
 use App\Filament\Staff\Support\Badges;
 use App\Filament\Staff\Support\Tables;
+use App\Filament\Staff\Support\TranslatesItsLabels;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Filament\Actions\ViewAction;
@@ -51,6 +52,7 @@ class MembershipResource extends Resource
 {
     use LimitsToTheStaffMembersBranches;
     use ShowsGymTime;
+    use TranslatesItsLabels;
 
     protected static ?string $model = Membership::class;
 
@@ -71,94 +73,94 @@ class MembershipResource extends Resource
     {
         return $schema
             ->components([
-                Section::make('At a glance')
+                Section::make(__('At a glance'))
                     ->icon(Heroicon::OutlinedSparkles)
                     ->schema([
                         Grid::make(['default' => 2, 'lg' => 4])->schema([
-                            TextEntry::make('status')
+                            TextEntry::make('status')->label(__('Status'))
                                 ->badge()
                                 ->state(fn (Membership $record): MembershipStatus => self::statusOf($record))
                                 ->formatStateUsing(fn (MembershipStatus $state): string => Badges::label($state))
                                 ->color(fn (MembershipStatus $state): string => Badges::color($state))
                                 ->icon(fn (MembershipStatus $state): ?Heroicon => Badges::icon($state)),
-                            TextEntry::make('price')
+                            TextEntry::make('price')->label(__('Price'))
                                 ->state(fn (Membership $record): string => $record->price->format())
                                 ->weight(FontWeight::Bold)
-                                ->helperText(fn (Membership $record): ?string => $record->discount_reason === null ? null : "List {$record->list_price->format()}, {$record->discount_reason}"),
+                                ->helperText(fn (Membership $record): ?string => $record->discount_reason === null ? null : __('List :price, :reason', ['price' => $record->list_price->format(), 'reason' => $record->discount_reason])),
                             TextEntry::make('amount_paid')
-                                ->label('Paid')
+                                ->label(__('Paid'))
                                 ->state(fn (Membership $record): string => self::balanceOf($record)->amountPaid->format())
                                 ->color('success')
                                 ->weight(FontWeight::Bold),
                             TextEntry::make('balance_due')
-                                ->label('Still owed')
+                                ->label(__('Still owed'))
                                 ->state(fn (Membership $record): string => self::balanceOf($record)->balanceDue->format())
                                 ->color(fn (Membership $record): string => self::balanceOf($record)->balanceDue->isPositive() ? 'danger' : 'gray')
                                 ->weight(FontWeight::Bold),
                         ]),
                     ]),
-                Section::make('Membership')
+                Section::make(__('Membership'))
                     ->icon(Heroicon::OutlinedIdentification)
                     ->columns(['default' => 1, 'md' => 3])
                     ->schema([
                         TextEntry::make('member.full_name')
-                            ->label('Member')
+                            ->label(__('Member'))
                             ->weight(FontWeight::SemiBold)
                             ->url(fn (Membership $record): string => MemberResource::getUrl('view', ['record' => $record->member_id])),
-                        TextEntry::make('plan.name')->label('Plan')->badge()->color('primary'),
+                        TextEntry::make('plan.name')->label(__('Plan'))->badge()->color('primary'),
                         TextEntry::make('sold')
-                            ->label('Sold')
-                            ->state(fn (Membership $record): string => ($record->sold_in_app ? 'In the app' : 'By '.$record->soldBy?->user?->name)
-                                .', '.$record->created_at?->setTimezone(self::gymTimezone())->format('j M Y')),
-                        TextEntry::make('starts_on')->label('Starts')->date('j M Y'),
-                        TextEntry::make('ends_on')->label('Ends')->date('j M Y'),
+                            ->label(__('Sold'))
+                            ->state(fn (Membership $record): string => ($record->sold_in_app ? __('In the app') : __('By :name', ['name' => (string) $record->soldBy?->user?->name]))
+                                .', '.$record->created_at?->setTimezone(self::gymTimezone())->translatedFormat('j M Y')),
+                        TextEntry::make('starts_on')->label(__('Starts'))->date('j M Y'),
+                        TextEntry::make('ends_on')->label(__('Ends'))->date('j M Y'),
                         TextEntry::make('visit_limit')
-                            ->label('Visits')
-                            ->formatStateUsing(fn (?int $state): string => $state === null ? 'No limit' : "{$state} visits")
-                            ->placeholder('No limit'),
+                            ->label(__('Visits'))
+                            ->formatStateUsing(fn (?int $state): string => $state === null ? __('No limit') : __(':count visits', ['count' => $state]))
+                            ->placeholder(__('No limit')),
                     ]),
-                Section::make('Freezes')
+                Section::make(__('Freezes'))
                     ->icon(Heroicon::OutlinedPauseCircle)
                     ->columns(['default' => 1, 'md' => 3])
                     ->collapsible()
                     ->schema([
                         TextEntry::make('freeze_days_left')
-                            ->label('Freeze days left')
+                            ->label(__('Freeze days left'))
                             ->state(fn (Membership $record): string => max(0, $record->freeze_days_allowed - $record->freezeDaysUsed())." of {$record->freeze_days_allowed}"),
-                        TextEntry::make('freezes')
+                        TextEntry::make('freezes')->label(__('Freezes'))
                             ->columnSpan(2)
                             ->state(fn (Membership $record): array => $record->freezes()->orderBy('starts_on')->get()->map(
-                                fn (MembershipFreeze $freeze): string => "{$freeze->starts_on->format('j M Y')} to {$freeze->ends_on->format('j M Y')}: {$freeze->reason}"
-                                    .($freeze->isFromTheApp() ? ' (by the member, in the app)' : ''),
+                                fn (MembershipFreeze $freeze): string => __(':from to :to: :reason', ['from' => $freeze->starts_on->translatedFormat('j M Y'), 'to' => $freeze->ends_on->translatedFormat('j M Y'), 'reason' => (string) $freeze->reason])
+                                    .($freeze->isFromTheApp() ? ' '.__('(by the member, in the app)') : ''),
                             )->all())
                             ->listWithLineBreaks()
                             ->bulleted()
-                            ->placeholder('None'),
+                            ->placeholder(__('None')),
                         TextEntry::make('cancelled_at')
-                            ->label('Cancelled')
+                            ->label(__('Cancelled'))
                             ->dateTime('j M Y, H:i')
                             ->timezone(self::gymTimezone())
                             ->color('danger')
                             ->visible(fn (Membership $record): bool => $record->cancelled_at !== null),
                     ]),
-                Section::make('Open payment link')
-                    ->description('Waiting for the member to pay on Chapa. Copy it, or send it by SMS from the top of the page.')
+                Section::make(__('Open payment link'))
+                    ->description(__('Waiting for the member to pay on Chapa. Copy it, or send it by SMS from the top of the page.'))
                     ->icon(Heroicon::OutlinedLink)
                     ->columns(2)
                     ->visible(fn (Membership $record): bool => self::openPaymentLinkOf($record) !== null)
                     ->schema([
                         TextEntry::make('open_payment_link_amount')
-                            ->label('Amount')
+                            ->label(__('Amount'))
                             ->weight(FontWeight::Bold)
                             ->state(fn (Membership $record): ?string => self::openPaymentLinkOf($record)?->amount->format())
                             ->url(fn (Membership $record): ?string => ($paymentLink = self::openPaymentLinkOf($record)) === null
                                 ? null
                                 : PaymentLinkResource::getUrl('view', ['record' => $paymentLink])),
                         TextEntry::make('open_payment_link_url')
-                            ->label('Link to send the member')
+                            ->label(__('Link to send the member'))
                             ->state(fn (Membership $record): ?string => self::openPaymentLinkOf($record)?->checkout_url)
                             ->copyable()
-                            ->copyMessage('Copied'),
+                            ->copyMessage(__('Copied')),
                     ]),
             ]);
     }
@@ -179,87 +181,87 @@ class MembershipResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return Tables::standard($table, Heroicon::OutlinedIdentification, 'No memberships here', 'Sell one from a member\'s page, or change the filters.')
+        return Tables::standard($table, Heroicon::OutlinedIdentification, __('No memberships here'), __('Sell one from a member\'s page, or change the filters.'))
             ->defaultSort('starts_on', 'desc')
             ->modifyQueryUsing(self::listedMemberships(...))
-            ->searchPlaceholder('Member name')
+            ->searchPlaceholder(__('Member name'))
             ->columns([
                 TextColumn::make('member.full_name')
-                    ->label('Member')
+                    ->label(__('Member'))
                     ->weight(FontWeight::SemiBold)
                     ->description(fn (Membership $record): string => (string) $record->member?->phone)
                     ->searchable(),
-                TextColumn::make('plan.name')->label('Plan')->badge()->color('primary'),
+                TextColumn::make('plan.name')->label(__('Plan'))->badge()->color('primary'),
                 Tables::badge('status')
                     ->state(fn (Membership $record): MembershipStatus => self::statusOf($record)),
-                TextColumn::make('starts_on')->label('Starts')->date('j M Y')->sortable(),
-                TextColumn::make('ends_on')->label('Ends')->date('j M Y')->sortable(),
+                TextColumn::make('starts_on')->label(__('Starts'))->date('j M Y')->sortable(),
+                TextColumn::make('ends_on')->label(__('Ends'))->date('j M Y')->sortable(),
                 Tables::money('price', fn (Membership $record) => $record->price)
-                    ->description(fn (Membership $record): ?string => $record->discount_reason === null ? null : 'List '.$record->list_price->format()),
-                Tables::money('amount_paid', fn (Membership $record, HasTable $livewire) => self::pageBalanceOf($record, $livewire)->amountPaid, 'Paid')
+                    ->description(fn (Membership $record): ?string => $record->discount_reason === null ? null : __('List :price', ['price' => $record->list_price->format()])),
+                Tables::money('amount_paid', fn (Membership $record, HasTable $livewire) => self::pageBalanceOf($record, $livewire)->amountPaid, __('Paid'))
                     ->color('success')
                     ->toggleable(),
-                Tables::money('balance_due', fn (Membership $record, HasTable $livewire) => self::pageBalanceOf($record, $livewire)->balanceDue, 'Owed')
+                Tables::money('balance_due', fn (Membership $record, HasTable $livewire) => self::pageBalanceOf($record, $livewire)->balanceDue, __('Owed'))
                     ->color(fn (Membership $record, HasTable $livewire): string => self::pageBalanceOf($record, $livewire)->balanceDue->isPositive() ? 'danger' : 'gray'),
-                TextColumn::make('discount')
+                TextColumn::make('discount')->label(__('Discount'))
                     ->state(fn (Membership $record): ?string => self::discountSourceOf($record))
                     ->badge()
                     ->color('info')
-                    ->placeholder('None')
+                    ->placeholder(__('None'))
                     ->tooltip(fn (Membership $record): ?string => $record->discount_reason)
                     ->toggleable(),
-                TextColumn::make('member.homeBranch.name')->label('Home branch')->badge()->color('gray')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('member.homeBranch.name')->label(__('Home branch'))->badge()->color('gray')->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('sold_by')
-                    ->label('Sold by')
-                    ->state(fn (Membership $record): string => $record->sold_in_app ? 'In the app' : (string) $record->soldBy?->user?->name)
+                    ->label(__('Sold by'))
+                    ->state(fn (Membership $record): string => $record->sold_in_app ? __('In the app') : (string) $record->soldBy?->user?->name)
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('created_at')->label('Sold on')->date('j M Y')->timezone(self::gymTimezone())->sortable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('created_at')->label(__('Sold on'))->date('j M Y')->timezone(self::gymTimezone())->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('member')
+                SelectFilter::make('member')->label(__('Member'))
                     ->native(false)
                     ->relationship('member', 'full_name')
                     ->searchable(),
-                SelectFilter::make('status')
+                SelectFilter::make('status')->label(__('Status'))
                     ->native(false)
                     ->options(Badges::options(MembershipStatus::class))
                     ->query(fn (Builder $query, array $data): Builder => self::withStatus($query, $data['value'] ?? null)),
-                SelectFilter::make('plan')
+                SelectFilter::make('plan')->label(__('Plan'))
                     ->native(false)
                     ->relationship('plan', 'name', fn (Builder $query): Builder => $query->withoutGlobalScope(SoftDeletingScope::class)),
                 SelectFilter::make('home_branch')
-                    ->label('Home branch')
+                    ->label(__('Home branch'))
                     ->native(false)
                     ->options(fn (): array => self::onlyTheirBranches(Branch::query())->orderBy('name')->pluck('name', 'id')->all())
                     ->query(fn (Builder $query, array $data): Builder => filled($data['value'] ?? null)
                         ? $query->whereRelation('member', 'home_branch_id', (int) $data['value'])
                         : $query),
                 SelectFilter::make('ending_within')
-                    ->label('Ending within')
+                    ->label(__('Ending within'))
                     ->native(false)
-                    ->options(['7' => 'The next 7 days', '30' => 'The next 30 days'])
+                    ->options(['7' => __('The next 7 days'), '30' => __('The next 30 days')])
                     ->query(fn (Builder $query, array $data): Builder => filled($data['value'] ?? null)
                         ? $query->whereNull('cancelled_at')
                             ->where('ends_on', '>=', self::today()->toDateString())
                             ->where('ends_on', '<=', self::today()->addDays((int) $data['value'])->toDateString())
                         : $query),
-                SelectFilter::make('discount')
+                SelectFilter::make('discount')->label(__('Discount'))
                     ->native(false)
                     ->options([
-                        'any' => 'Any discount',
-                        'typed' => 'Typed at the desk',
-                        'promo_code' => 'Promo code',
-                        'discount_group' => 'Discount group',
-                        'none' => 'Full price',
+                        'any' => __('Any discount'),
+                        'typed' => __('Typed at the desk'),
+                        'promo_code' => __('Promo code'),
+                        'discount_group' => __('Discount group'),
+                        'none' => __('Full price'),
                     ])
                     ->query(fn (Builder $query, array $data): Builder => self::withDiscount($query, $data['value'] ?? null)),
                 TernaryFilter::make('sold_in_app')
-                    ->label('Where sold')
+                    ->label(__('Where sold'))
                     ->native(false)
-                    ->placeholder('Anywhere')
-                    ->trueLabel('In the app')
-                    ->falseLabel('At the desk'),
-                Tables::dateRange('sold', 'created_at', 'Sold', isMoment: true),
+                    ->placeholder(__('Anywhere'))
+                    ->trueLabel(__('In the app'))
+                    ->falseLabel(__('At the desk')),
+                Tables::dateRange('sold', 'created_at', __('Sold'), isMoment: true),
             ])
             ->recordActions([
                 ViewAction::make(),
@@ -310,9 +312,9 @@ class MembershipResource extends Resource
     {
         return match (true) {
             $membership->discount_reason === null => null,
-            $membership->promo_code_id !== null => 'Promo code',
-            $membership->discount_group_id !== null => 'Group',
-            default => 'Typed',
+            $membership->promo_code_id !== null => __('Promo code'),
+            $membership->discount_group_id !== null => __('Group'),
+            default => __('Typed'),
         };
     }
 

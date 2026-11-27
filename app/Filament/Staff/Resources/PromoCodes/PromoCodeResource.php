@@ -16,6 +16,7 @@ use App\Filament\Staff\Resources\PromoCodes\Pages\EditPromoCode;
 use App\Filament\Staff\Resources\PromoCodes\Pages\ListPromoCodes;
 use App\Filament\Staff\Support\Badges;
 use App\Filament\Staff\Support\Tables;
+use App\Filament\Staff\Support\TranslatesItsLabels;
 use App\Http\Requests\Api\V1\PromoCodes\StorePromoCodeRequest;
 use BackedEnum;
 use Closure;
@@ -51,6 +52,8 @@ use UnitEnum;
  */
 class PromoCodeResource extends Resource
 {
+    use TranslatesItsLabels;
+
     protected static ?string $model = PromoCode::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTicket;
@@ -344,9 +347,9 @@ class PromoCodeResource extends Resource
     {
         return match (true) {
             $promoCode->starts_on === null && $promoCode->ends_on === null => 'Any time',
-            $promoCode->starts_on === null => 'Until '.$promoCode->ends_on->format('j M Y'),
-            $promoCode->ends_on === null => 'From '.$promoCode->starts_on->format('j M Y'),
-            default => $promoCode->starts_on->format('j M Y').' to '.$promoCode->ends_on->format('j M Y'),
+            $promoCode->starts_on === null => 'Until '.$promoCode->ends_on->translatedFormat('j M Y'),
+            $promoCode->ends_on === null => 'From '.$promoCode->starts_on->translatedFormat('j M Y'),
+            default => $promoCode->starts_on->translatedFormat('j M Y').' to '.$promoCode->ends_on->translatedFormat('j M Y'),
         };
     }
 

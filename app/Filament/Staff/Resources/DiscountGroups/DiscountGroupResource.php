@@ -14,6 +14,7 @@ use App\Filament\Staff\Resources\DiscountGroups\Pages\CreateDiscountGroup;
 use App\Filament\Staff\Resources\DiscountGroups\Pages\EditDiscountGroup;
 use App\Filament\Staff\Resources\DiscountGroups\Pages\ListDiscountGroups;
 use App\Filament\Staff\Support\Tables;
+use App\Filament\Staff\Support\TranslatesItsLabels;
 use BackedEnum;
 use Closure;
 use Filament\Actions\Action;
@@ -41,6 +42,8 @@ use UnitEnum;
  */
 class DiscountGroupResource extends Resource
 {
+    use TranslatesItsLabels;
+
     protected static ?string $model = DiscountGroup::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedReceiptPercent;

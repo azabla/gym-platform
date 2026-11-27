@@ -13,6 +13,7 @@ use App\Filament\Staff\Resources\Branches\Pages\CreateBranch;
 use App\Filament\Staff\Resources\Branches\Pages\EditBranch;
 use App\Filament\Staff\Resources\Branches\Pages\ListBranches;
 use App\Filament\Staff\Support\Tables;
+use App\Filament\Staff\Support\TranslatesItsLabels;
 use BackedEnum;
 use Closure;
 use Filament\Actions\EditAction;
@@ -39,6 +40,8 @@ use UnitEnum;
  */
 class BranchResource extends Resource
 {
+    use TranslatesItsLabels;
+
     protected static ?string $model = Branch::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingStorefront;

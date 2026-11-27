@@ -16,6 +16,7 @@ use App\Filament\Staff\Resources\Plans\Pages\CreatePlan;
 use App\Filament\Staff\Resources\Plans\Pages\EditPlan;
 use App\Filament\Staff\Resources\Plans\Pages\ListPlans;
 use App\Filament\Staff\Support\Tables;
+use App\Filament\Staff\Support\TranslatesItsLabels;
 use App\Rules\ValidMoneyAmount;
 use BackedEnum;
 use Closure;
@@ -53,6 +54,8 @@ use UnitEnum;
  */
 class PlanResource extends Resource
 {
+    use TranslatesItsLabels;
+
     protected static ?string $model = Plan::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTag;
@@ -289,7 +292,7 @@ class PlanResource extends Resource
         $today = app(CurrentOrganization::class)->get()->today();
         $endsOn = $plan->endsOnFor($today);
         $days = (int) $today->diffInDays($endsOn) + 1;
-        $preview = "Runs from {$today->format('j M Y')} to {$endsOn->format('j M Y')}, {$days} days";
+        $preview = "Runs from {$today->translatedFormat('j M Y')} to {$endsOn->translatedFormat('j M Y')}, {$days} days";
 
         try {
             $perDay = (float) Money::of(is_string($price) ? $price : '')->toDecimal() / $days;

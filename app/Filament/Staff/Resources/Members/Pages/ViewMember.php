@@ -41,36 +41,36 @@ class ViewMember extends ViewRecord
             DiscountGroupAction::make(),
             MemberPhotoAction::make(),
             Action::make('removePhoto')
-                ->label('Remove photo')
+                ->label(__('Remove photo'))
                 ->icon(Heroicon::OutlinedTrash)
                 ->color('gray')
                 ->visible(fn (Member $record): bool => $record->photo_path !== null && Gate::allows('update', $record))
                 ->requiresConfirmation()
                 ->modalIcon(Heroicon::OutlinedCamera)
-                ->modalDescription('The member\'s photo is deleted. The desk can add another, or the member can from the app.')
+                ->modalDescription(__('The member\'s photo is deleted. The desk can add another, or the member can from the app.'))
                 ->action(function (Member $record): void {
                     app(MemberPhoto::class)->remove($record);
 
-                    Notification::make()->success()->title('Photo removed.')->send();
+                    Notification::make()->success()->title(__('Photo removed.'))->send();
                 }),
-            Action::make('memberships')
+            Action::make('memberships')->label(__('Memberships'))
                 ->icon(Heroicon::OutlinedIdentification)
                 ->color('gray')
                 ->url(MembershipResource::getUrl('index', $filteredToMember))
                 ->visible(MembershipResource::canViewAny()),
-            Action::make('payments')
+            Action::make('payments')->label(__('Payments'))
                 ->icon(Heroicon::OutlinedBanknotes)
                 ->color('gray')
                 ->url(PaymentResource::getUrl('index', $filteredToMember))
                 ->visible(PaymentResource::canViewAny()),
             Action::make('checkIns')
-                ->label('Check-ins')
+                ->label(__('Check-ins'))
                 ->icon(Heroicon::OutlinedArrowRightEndOnRectangle)
                 ->color('gray')
                 ->url(CheckInResource::getUrl('index', $filteredToMember))
                 ->visible(CheckInResource::canViewAny()),
             EditAction::make(),
-            DeleteAction::make()->label('Archive')->modalHeading('Archive this member?'),
+            DeleteAction::make()->label(__('Archive'))->modalHeading(__('Archive this member?')),
         ];
     }
 }

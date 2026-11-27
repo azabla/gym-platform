@@ -17,7 +17,7 @@ class EditMember extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make()->label('Archive')->modalHeading('Archive this member?'),
+            DeleteAction::make()->label(__('Archive'))->modalHeading(__('Archive this member?')),
         ];
     }
 

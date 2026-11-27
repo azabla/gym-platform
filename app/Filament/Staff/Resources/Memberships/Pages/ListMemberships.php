@@ -20,11 +20,11 @@ class ListMemberships extends ListRecords
     {
         return [
             DownloadReportAction::make()
-                ->label('Download memberships sold')
+                ->label(__('Download memberships sold'))
                 ->report(Membership::class, fn (ReportPeriod $period): MembershipsReport => new MembershipsReport($period)),
             // Every discount given, typed, by promo code or by discount group (ADR 0032).
             DownloadReportAction::make('downloadDiscounts')
-                ->label('Download discounts')
+                ->label(__('Download discounts'))
                 ->report(Membership::class, fn (ReportPeriod $period): DiscountsReport => new DiscountsReport($period)),
         ];
     }

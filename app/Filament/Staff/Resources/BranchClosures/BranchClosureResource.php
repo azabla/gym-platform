@@ -10,6 +10,7 @@ use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\BranchClosures\Pages\ListBranchClosures;
 use App\Filament\Staff\Support\Tables;
+use App\Filament\Staff\Support\TranslatesItsLabels;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
@@ -32,6 +33,8 @@ use UnitEnum;
  */
 class BranchClosureResource extends Resource
 {
+    use TranslatesItsLabels;
+
     protected static ?string $model = BranchClosure::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
@@ -129,9 +132,9 @@ class BranchClosureResource extends Resource
      */
     public static function daysOf(BranchClosure $closure): string
     {
-        $from = $closure->starts_on->format('D j M');
+        $from = $closure->starts_on->translatedFormat('D j M');
 
-        return $closure->starts_on->equalTo($closure->ends_on) ? $from : $from.' – '.$closure->ends_on->format('D j M');
+        return $closure->starts_on->equalTo($closure->ends_on) ? $from : $from.' – '.$closure->ends_on->translatedFormat('D j M');
     }
 
     /**

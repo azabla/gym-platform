@@ -17,6 +17,7 @@ use App\Filament\Staff\Resources\Staff\Pages\EditStaff;
 use App\Filament\Staff\Resources\Staff\Pages\ListStaff;
 use App\Filament\Staff\Support\Badges;
 use App\Filament\Staff\Support\Tables;
+use App\Filament\Staff\Support\TranslatesItsLabels;
 use App\Rules\ValidPhoneNumber;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -50,6 +51,8 @@ use UnitEnum;
  */
 class StaffResource extends Resource
 {
+    use TranslatesItsLabels;
+
     protected static ?string $model = Staff::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBriefcase;
