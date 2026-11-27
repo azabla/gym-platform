@@ -10,6 +10,7 @@ use App\Domains\Billing\Enums\ChapaMode;
 use App\Domains\Billing\Enums\PaymentLinkStatus;
 use App\Domains\Billing\Enums\PaymentMethod;
 use App\Domains\Billing\Enums\PaymentType;
+use App\Domains\Imports\Exceptions\RowRefused;
 use App\Domains\Memberships\Discount\Exceptions\InvalidDiscount;
 use App\Domains\Memberships\Enums\MembershipStatus;
 use App\Domains\Organizations\Enums\StaffRole;
@@ -120,6 +121,12 @@ it('has Amharic for the labels the panel works out as it runs', function () {
     // A discount the panel can't read, shown from its text (InvalidDiscount).
     foreach ([InvalidDiscount::cannotParse('x'), InvalidDiscount::notMoreThanZero('0'), InvalidDiscount::moreThanAHundredPercent('101%'), InvalidDiscount::moreThanThePrice(Money::of('100')), InvalidDiscount::nothingOff(Money::of('100'))] as $invalid) {
         $labels[] = $invalid->text;
+    }
+
+    // Why a row of a member import wasn't imported, shown from its text (RowRefused, ADR 0044).
+    foreach ((new ReflectionClass(RowRefused::class))->getMethods(ReflectionMethod::IS_STATIC) as $factory) {
+        $arguments = array_map(fn (ReflectionParameter $parameter): string|int => $parameter->getType()?->__toString() === 'int' ? 2 : 'x', $factory->getParameters());
+        $labels[] = $factory->invoke(null, ...$arguments)->text;
     }
 
     foreach (Insight::cases() as $insight) {

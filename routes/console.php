@@ -2,6 +2,7 @@
 
 use App\Domains\Identity\Models\PasswordLink;
 use App\Domains\Identity\Models\SignInCode;
+use App\Domains\Imports\Models\MemberImportRow;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -13,8 +14,9 @@ Artisan::command('inspire', function () {
 // Chapa's own call after a payment may not arrive, so open payment links are checked regularly (ADR 0009).
 Schedule::command('billing:check-payment-links')->everyTenMinutes()->withoutOverlapping();
 
-// Sign-in codes and password links are deleted a day after they expire (ADRs 0010 and 0019).
-Schedule::command('model:prune', ['--model' => [SignInCode::class, PasswordLink::class]])->daily();
+// Sign-in codes and password links are deleted a day after they expire (ADRs 0010 and 0019),
+// and the rows of member imports, with their names and phones, 30 days after they finish (ADR 0044).
+Schedule::command('model:prune', ['--model' => [SignInCode::class, PasswordLink::class, MemberImportRow::class]])->daily();
 
 // Members hear before their membership ends, and the day after; each gym's go out from 09:00 its time (ADR 0012).
 Schedule::command('notifications:send-membership-reminders')->hourly()->withoutOverlapping();
