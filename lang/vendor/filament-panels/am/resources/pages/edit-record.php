@@ -7,6 +7,7 @@ declare(strict_types=1);
 return [
     'title' => ':label አስተካክል',
     'breadcrumb' => 'አስተካክል',
+    'navigation_label' => 'አስተካክል',
     'form' => [
         'actions' => [
             'cancel' => ['label' => 'ተው'],

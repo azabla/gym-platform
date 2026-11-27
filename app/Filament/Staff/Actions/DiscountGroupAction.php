@@ -51,7 +51,7 @@ class DiscountGroupAction extends Action
                 Select::make('discount_group_id')
                     ->label(__('Group'))
                     ->options(fn (): array => DiscountGroup::query()->orderBy('name')->get()
-                        ->mapWithKeys(fn (DiscountGroup $group): array => [$group->id => "{$group->name} ({$group->discount} off)"])
+                        ->mapWithKeys(fn (DiscountGroup $group): array => [$group->id => __(':group (:discount off)', ['group' => $group->name, 'discount' => $group->discount])])
                         ->all())
                     ->required(fn (Get $get): bool => ! $get('remove'))
                     ->hidden(fn (Get $get): bool => (bool) $get('remove')),

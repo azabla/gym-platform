@@ -87,7 +87,7 @@ class DiscountGroupResource extends Resource
             ->searchPlaceholder(__('Group name'))
             ->columns([
                 TextColumn::make('name')->label(__('Name'))->searchable()->sortable()->weight(FontWeight::Bold),
-                TextColumn::make('discount')->label(__('Discount'))->badge()->color('primary')->formatStateUsing(fn (string $state): string => "{$state} off"),
+                TextColumn::make('discount')->label(__('Discount'))->badge()->color('primary')->formatStateUsing(fn (string $state): string => __(':discount off', ['discount' => $state])),
                 TextColumn::make('member_discounts_count')
                     ->label(__('Members'))
                     ->badge()

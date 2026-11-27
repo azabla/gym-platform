@@ -67,6 +67,7 @@ class MyNotifications extends Page
                     ->icon(Heroicon::OutlinedLanguage)
                     ->schema([
                         Radio::make('message_language')
+                            ->label(__('Message language'))
                             ->hiddenLabel()
                             ->options(Languages::options())
                             ->descriptions([

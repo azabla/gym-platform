@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 return [
     'entries' => [
+        'icon' => ['true' => 'አዎ', 'false' => 'አይ'],
         'text' => [
             'actions' => [
                 'collapse_list' => ':count ያነሰ አሳይ',

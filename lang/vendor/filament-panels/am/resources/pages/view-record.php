@@ -7,6 +7,7 @@ declare(strict_types=1);
 return [
     'title' => ':label',
     'breadcrumb' => 'ዝርዝር',
+    'navigation_label' => 'ዝርዝር',
     'content' => ['tab' => ['label' => 'ዝርዝር']],
     'form' => ['actions' => ['save' => ['label' => 'አስቀምጥ']]],
     'notifications' => ['saved' => ['title' => 'ተቀምጧል']],

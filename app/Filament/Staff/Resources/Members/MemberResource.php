@@ -179,6 +179,7 @@ class MemberResource extends Resource
                     ->icon(Heroicon::OutlinedSparkles)
                     ->schema([
                         ImageEntry::make('photo')
+                            ->label(__('Photo'))
                             ->hiddenLabel()
                             ->state(fn (Member $record): string => Photos::urlFor($record))
                             ->circular()

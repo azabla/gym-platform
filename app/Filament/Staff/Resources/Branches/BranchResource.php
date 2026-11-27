@@ -89,6 +89,7 @@ class BranchResource extends Resource
                     ->icon(Heroicon::OutlinedClock)
                     ->schema([
                         Repeater::make('hours')
+                            ->label(__('Opening hours'))
                             ->hiddenLabel()
                             ->addActionLabel(__('Add a day'))
                             ->maxItems(7)

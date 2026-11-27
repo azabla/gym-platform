@@ -5,8 +5,44 @@ declare(strict_types=1);
 // Amharic that follows docs/amharic-glossary.md, over Filament's own (ADR 0041).
 
 return [
-    'column_manager' => ['heading' => 'ዓምዶች'],
+    'column_manager' => [
+        'heading' => 'ዓምዶች',
+        'position' => 'ቦታ :position ከ:count።',
+        'position_in_group' => 'በ:group ውስጥ ቦታ :position ከ:count።',
+        'reordered' => ':column ወደ ቦታ :position ከ:count ተዛውሯል።',
+        'reordered_deferred' => ':column ወደ ቦታ :position ከ:count ተዛውሯል። ለውጡን ለማስቀመጥ «ዓምዶቹን ተግብር» ይጫኑ።',
+        'reordered_in_group' => ':column በ:group ውስጥ ወደ ቦታ :position ከ:count ተዛውሯል።',
+        'reordered_in_group_deferred' => ':column በ:group ውስጥ ወደ ቦታ :position ከ:count ተዛውሯል። ለውጡን ለማስቀመጥ «ዓምዶቹን ተግብር» ይጫኑ።',
+        'actions' => [
+            'apply' => ['label' => 'ዓምዶቹን ተግብር'],
+            'move_up' => ['label' => ':column ወደ ላይ'],
+            'move_down' => ['label' => ':column ወደ ታች'],
+            'reorder' => ['label' => 'ዓምዱን አንቀሳቅስ'],
+            'reset' => ['label' => 'እንደነበረ መልስ'],
+        ],
+    ],
+    'loading' => 'እየተጫነ ነው…',
+    'result_count' => '{0} ምንም የለም|{1} :count ረድፍ|[2,*] :count ረድፎች',
+    'reordering' => [
+        'position' => ':label፣ ቦታ :position ከ:count።',
+        'moved' => ':label ወደ ቦታ :position ከ:count ተዛውሯል።',
+    ],
     'columns' => [
+        'icon' => ['boolean' => ['true' => 'አዎ', 'false' => 'አይ']],
+        'select' => [
+            'loading_message' => 'እየተጫነ ነው…',
+            'no_options_message' => 'ምንም አማራጭ የለም።',
+            'no_search_results_message' => 'የሚመሳሰል አልተገኘም።',
+            'placeholder' => 'ይምረጡ',
+            'searching_message' => 'እየፈለገ ነው…',
+            'search_prompt' => 'ለመፈለግ መጻፍ ይጀምሩ',
+        ],
+        'editable' => [
+            'saving' => 'ለውጡ እየተቀመጠ ነው…',
+            'saved' => 'ለውጡ ተቀምጧል።',
+            'failure' => 'ለውጡ መቀመጡ አልተረጋገጠም። እንደገና ከመሞከርዎ በፊት ገጹን ያድሱ።',
+            'unavailable' => 'ይህን ከእንግዲህ መቀየር አይቻልም።',
+        ],
         'text' => [
             'actions' => [
                 'collapse_list' => ':count ያነሰ አሳይ',
@@ -21,6 +57,10 @@ return [
         'search' => ['label' => 'ፈልግ', 'placeholder' => 'ፈልግ', 'indicator' => 'ፍለጋ'],
     ],
     'actions' => [
+        'reorder_record' => ['label' => ':key አንቀሳቅስ'],
+        'move_record_up' => ['label' => ':label ወደ ላይ'],
+        'move_record_down' => ['label' => ':label ወደ ታች'],
+        'toggle_record_content' => ['label' => ':key ዘርጋ ወይም ሰብስብ'],
         'filter' => ['label' => 'አጣራ'],
         'open_bulk_actions' => ['label' => 'ለተመረጡት'],
         'column_manager' => ['label' => 'ዓምዶችን አሳይ ወይም ደብቅ'],
@@ -39,7 +79,10 @@ return [
         'heading' => 'ማጣሪያዎች',
         'indicator' => 'የተመረጡ ማጣሪያዎች',
         'multi_select' => ['placeholder' => 'ሁሉም'],
-        'select' => ['placeholder' => 'ሁሉም'],
+        'select' => [
+            'placeholder' => 'ሁሉም',
+            'relationship' => ['empty_option_label' => 'የለም'],
+        ],
         'trashed' => [
             'label' => 'በማህደር ያሉ',
             'only_trashed' => 'በማህደር ያሉ ብቻ',

@@ -7,6 +7,7 @@ declare(strict_types=1);
 return [
     'modal' => [
         'heading' => 'ማሳወቂያዎች',
+        'unread_label' => 'ያልተነበበ ማሳወቂያ',
         'actions' => [
             'clear' => ['label' => 'ሁሉንም አጽዳ'],
             'mark_all_as_read' => ['label' => 'ሁሉንም እንደተነበበ ምልክት አድርግ'],

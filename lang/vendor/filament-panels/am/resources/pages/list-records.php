@@ -6,4 +6,5 @@ declare(strict_types=1);
 
 return [
     'breadcrumb' => 'ዝርዝር',
+    'tabs' => ['label' => 'መዝገቦችን አጣራ'],
 ];

@@ -44,7 +44,7 @@ class MembersTable extends TableWidget
                 TextColumn::make('visits_used')
                     ->label(__('Visits used'))
                     ->alignEnd()
-                    ->formatStateUsing(fn (mixed $state, array $record): string => "{$state} of {$record['visits_bought']}"),
+                    ->formatStateUsing(fn (mixed $state, array $record): string => __(':used of :bought', ['used' => $state, 'bought' => $record['visits_bought']])),
                 TextColumn::make('pack_use')
                     ->label(__('Pack use'))
                     ->alignEnd()
