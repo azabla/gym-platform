@@ -174,3 +174,21 @@ it('can no longer be edited or cancelled once sent', function () {
         ->title->toBe('Closed on Sunday')
         ->cancelled_at->toBeNull();
 });
+
+it('holds a paused gym\'s due announcement, even one already queued, and sends it once the gym is resumed', function () {
+    $member = memberWithMembership($this->mainBranch, '2026-10-01', '2026-10-31');
+    $announcement = announcementAt($this->gym, ['send_at' => CarbonImmutable::parse('2026-10-24 18:00', 'Africa/Addis_Ababa')->utc()]);
+    $this->travelTo(CarbonImmutable::parse('2026-10-24 18:00', 'Africa/Addis_Ababa'));
+    $this->gym->suspend(User::factory()->create(), 'Hasn\'t paid.');
+
+    $this->artisan('announcements:send-due')->expectsOutput('Queued 0 due announcements.')->assertSuccessful();
+    SendAnnouncement::dispatch($announcement->fresh());
+
+    expect($member->notifications()->count())->toBe(0)
+        ->and($announcement->fresh()->sent_at)->toBeNull();
+
+    $this->gym->resume(User::factory()->create());
+    $this->artisan('announcements:send-due')->expectsOutput('Queued 1 due announcement.')->assertSuccessful();
+
+    expect($member->notifications()->count())->toBe(1);
+});

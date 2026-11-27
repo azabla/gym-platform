@@ -45,7 +45,7 @@ class SendStaffMorningList extends Command
     {
         $sent = 0;
 
-        foreach (Organization::query()->orderBy('id')->get() as $organization) {
+        foreach (Organization::query()->active()->orderBy('id')->get() as $organization) {
             if (CarbonImmutable::now($organization->timezone)->hour < self::SEND_FROM_HOUR) {
                 continue;
             }

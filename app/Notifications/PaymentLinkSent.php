@@ -17,7 +17,7 @@ use Illuminate\Notifications\Notification;
  */
 final class PaymentLinkSent extends Notification implements SendableBySms, ShouldQueue
 {
-    use Queueable;
+    use HeldWhileTheGymIsPaused, Queueable;
 
     /**
      * @param  array<string, string>  $details

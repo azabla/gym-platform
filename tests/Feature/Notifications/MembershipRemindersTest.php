@@ -125,3 +125,17 @@ it('texts a member in their gym\'s language, unless they chose their own', funct
         ['+251911223344', 'Demo Gym: your Monthly membership ended on 27 October 2026. Renew at the desk to keep training.'],
     ]);
 });
+
+it('reminds nobody at a paused gym, and picks up again once it is resumed', function () {
+    $this->gym->suspend(User::factory()->create(), 'Hasn\'t paid.');
+
+    remindAt('2026-10-24 09:00');
+
+    expect($this->tigist->notifications()->count())->toBe(0)
+        ->and($this->texts->sent)->toBe([]);
+
+    $this->gym->resume(User::factory()->create());
+    remindAt('2026-10-24 10:00');
+
+    expect($this->tigist->notifications()->count())->toBe(1);
+});

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domains\Identity\Models\User;
 use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Organizations\Enums\StaffRole;
@@ -58,6 +59,14 @@ it('sends the list once a day, and again the next day', function () {
 
 it('sends nothing when there is no one to call', function () {
     Membership::query()->acrossOrganizations()->where('ends_on', '<', '2026-12-01')->update(['ends_on' => '2026-12-31']);
+
+    sendMorningListAt('2026-11-15 08:05');
+
+    expect($this->owner->notifications()->count())->toBe(0);
+});
+
+it('sends no morning list at a paused gym', function () {
+    $this->gym->suspend(User::factory()->create(), 'Hasn\'t paid.');
 
     sendMorningListAt('2026-11-15 08:05');
 
