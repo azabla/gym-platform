@@ -50,9 +50,10 @@ class StaffPanelProvider extends PanelProvider
             )
             ->authGuard('staff_panel')
             ->tenant(Organization::class, slugAttribute: 'slug', ownershipRelationship: 'organization')
+            // The language first, so a paused gym's page is in the staff member's language (ADR 0043).
             ->tenantMiddleware([
-                ActAsTenant::class,
                 UseStaffLanguage::class,
+                ActAsTenant::class,
             ], isPersistent: true)
             // The look of the panel (ADR 0033): the gym's name as the brand, an energetic
             // orange on slate, Inter, light or dark as the device is, and grouped navigation.

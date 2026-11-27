@@ -33,10 +33,24 @@ class PanelUser extends User implements FilamentUser, HasTenants
      */
     public function getTenants(Panel $panel): Collection
     {
+        // Gyms that aren't paused first, so signing in lands on one (ADR 0043).
         return Organization::query()
             ->whereIn('id', $this->staffRecords()->select('organization_id'))
+            ->orderByRaw('suspended_at IS NOT NULL')
             ->orderBy('name')
             ->get();
+    }
+
+    /**
+     * Whether every gym the user works at is paused, so there is nowhere to
+     * sign in to. See ADR 0043.
+     */
+    public function worksOnlyAtPausedGyms(): bool
+    {
+        return Organization::query()
+            ->active()
+            ->whereIn('id', $this->staffRecords()->select('organization_id'))
+            ->doesntExist();
     }
 
     public function canAccessTenant(Model $tenant): bool
