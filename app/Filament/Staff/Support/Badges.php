@@ -77,6 +77,7 @@ final class Badges
                 PaymentMethod::Telebirr, PaymentMethod::CbeBirr => 'info',
                 PaymentMethod::BankTransfer => 'gray',
                 PaymentMethod::Chapa => 'primary',
+                PaymentMethod::BroughtIn => 'gray',
             },
             $value instanceof StaffRole => match ($value) {
                 StaffRole::Owner => 'primary',

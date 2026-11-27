@@ -73,8 +73,7 @@ abstract class MoneyAction extends Action
                 Select::make('method')->label(__('Method'))
                     ->required()
                     ->native(false)
-                    ->options(collect(PaymentMethod::cases())
-                        ->reject(fn (PaymentMethod $method): bool => $method->isOnline())
+                    ->options(collect(PaymentMethod::forTheDesk())
                         ->mapWithKeys(fn (PaymentMethod $method): array => [$method->value => __($method->label())])
                         ->all())
                     ->live(),

@@ -106,3 +106,15 @@ it('keeps voids from receptionists', function () {
     Livewire::test(ViewPayment::class, ['record' => $payment->getRouteKey()])
         ->assertActionHidden(VoidPaymentAction::class);
 });
+
+it('offers only the desk\'s methods: not Chapa, and not money brought in', function () {
+    actingAsStaffInPanel($this->gym, StaffRole::Receptionist, $this->mainBranch);
+
+    Livewire::test(ViewMembership::class, ['record' => $this->membership->getRouteKey()])
+        ->mountAction(TakePaymentAction::class)
+        ->fillForm(['amount' => '1,000', 'method' => PaymentMethod::BroughtIn->value])
+        ->callMountedAction()
+        ->assertHasFormErrors(['method']);
+
+    expect(Payment::query()->count())->toBe(0);
+});

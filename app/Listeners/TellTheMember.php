@@ -46,7 +46,8 @@ final class TellTheMember
     {
         $payment = $event->payment;
 
-        if ($payment->type !== PaymentType::Payment) {
+        // Money brought in by an import was paid long ago: telling every imported member would flood them (ADR 0044).
+        if ($payment->type !== PaymentType::Payment || $payment->method->isBroughtIn()) {
             return;
         }
 
