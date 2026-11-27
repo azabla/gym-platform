@@ -580,6 +580,8 @@ Offline scanning (ADR 0038): run `php artisan door-list:generate-key` and put th
 
 Closure reminders and yearly holidays (ADR 0039): add a closure for tomorrow, then run `php artisan notifications:send-closure-reminders` after 09:00 gym time; members who weren't told in the last 2 days get the reminder. **Remove** a closure members were told about and they get "open as usual". Mark a closure **Every year** in **Add closure** and, once it ends, `php artisan branch-closures:repeat-yearly` adds next year's on the same Ethiopian date (both commands run hourly with the scheduler).
 
+Insights (ADR 0040): with the demo data loaded (`make demo`, which adds two months of activity), sign in as the owner and open **Reports > Insights**. Choose the last 3, 6 or 12 months and a branch; each chart has its figures beneath and a **Download CSV** button. The same figures are at `GET /api/v1/organizations/demo-gym/insights/revenue` (also `renewals`, `busy-hours`, `members`) with `?months=` and `?branch_id=`.
+
 ### Demo activity
 
 The base seed is small on purpose, so the examples in this guide keep their ids. To see the gym busy, run `make demo` after `make fresh` (it adds nothing a second time). It adds:
