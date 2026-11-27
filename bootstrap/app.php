@@ -8,6 +8,7 @@ use App\Domains\Members\Exceptions\MemberPhotoRefused;
 use App\Domains\Memberships\Exceptions\MembershipRefused;
 use App\Domains\Memberships\Exceptions\PromoCodeRefused;
 use App\Domains\Organizations\Exceptions\BranchClosureRefused;
+use App\Domains\Organizations\Exceptions\GymSuspended;
 use App\Domains\Organizations\Exceptions\StaffRefused;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Http\Middleware\ActAsMember;
@@ -94,6 +95,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->map(fn (MemberPhotoRefused $exception) => ValidationException::withMessages([
             $exception->field => $exception->getMessage(),
         ]));
+
+        // A gym the platform paused: forbidden, with a code the apps can show a screen for (ADR 0043).
+        $exceptions->dontReport(GymSuspended::class);
+        $exceptions->render(function (GymSuspended $exception, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json(['message' => $exception->getMessage(), 'code' => GymSuspended::CODE], 403);
+            }
+        });
 
         // Offline scanning without a signing key: not available, with how to set it up (ADR 0038).
         $exceptions->render(function (DoorListNotSetUp $exception, Request $request) {

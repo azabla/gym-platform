@@ -22,6 +22,8 @@ class StaffResource extends JsonResource
             'organization' => [
                 'slug' => $this->organization->slug,
                 'name' => $this->organization->name,
+                // A paused gym answers 403 GYM_PAUSED everywhere else (ADR 0043).
+                'paused' => $this->organization->isSuspended(),
             ],
             'role' => $this->role,
             'works_at_all_branches' => $this->works_at_all_branches,

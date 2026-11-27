@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domains\Organizations\Exceptions\GymSuspended;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
@@ -41,6 +42,11 @@ class ActAsOrganization
             ->first();
 
         abort_if($staff === null, Response::HTTP_NOT_FOUND);
+
+        // Only the gym's own staff learn that it is paused; everyone else got the 404 above (ADR 0043).
+        if ($staff->organization->isSuspended()) {
+            throw GymSuspended::make();
+        }
 
         $this->currentOrganization->set($staff->organization);
         $this->currentStaff->set($staff);
