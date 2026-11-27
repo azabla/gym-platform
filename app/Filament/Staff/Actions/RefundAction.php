@@ -30,7 +30,7 @@ class RefundAction extends MoneyAction
     {
         parent::setUp();
 
-        $this->label('Refund')
+        $this->label(__('Refund'))
             ->icon(Heroicon::OutlinedArrowUturnLeft)
             ->modalIcon(Heroicon::OutlinedArrowUturnLeft)
             ->color('danger')

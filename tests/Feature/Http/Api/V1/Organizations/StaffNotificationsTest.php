@@ -63,5 +63,5 @@ it('writes the messages in the staff member\'s message language', function () {
     $this->getJson(route('api.v1.organizations.notifications.index', ['organization' => 'demo-gym']))
         ->assertOk()
         ->assertJsonPath('data.0.title', 'የሚደወልላቸው አባላት')
-        ->assertJsonPath('data.0.body', 'የሚደወልለት 1 አባል አለ፦ በሚቀጥሉት 7 ቀናት የሚያበቃ አባልነት አለ፣ ከዚያ በኋላ ምንም አልተሸጠም።');
+        ->assertJsonPath('data.0.body', 'የሚደወልለት 1 አባል አለ፦ አባልነቱ በሚቀጥሉት 7 ቀናት ያበቃል፣ ከዚያ በኋላ ምንም አልተሸጠለትም።');
 });

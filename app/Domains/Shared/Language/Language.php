@@ -6,7 +6,7 @@ namespace App\Domains\Shared\Language;
 
 /**
  * The languages messages are written in: to members by SMS, and to staff in
- * their inbox and by SMS. The panel itself stays in English. See ADR 0034.
+ * their inbox, by SMS and in the staff panel. See ADR 0034 and ADR 0041.
  *
  * The values are the names of the folders under lang/.
  */

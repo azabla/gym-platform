@@ -20,10 +20,10 @@ enum NavigationGroup: string implements HasLabel
     public function getLabel(): string
     {
         return match ($this) {
-            self::FrontDesk => 'Front desk',
-            self::Money => 'Money',
-            self::GymSetup => 'Gym setup',
-            self::Reports => 'Reports',
+            self::FrontDesk => __('Front desk'),
+            self::Money => __('Money'),
+            self::GymSetup => __('Gym setup'),
+            self::Reports => __('Reports'),
         };
     }
 }

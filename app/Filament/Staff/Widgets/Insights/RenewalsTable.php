@@ -30,7 +30,7 @@ class RenewalsTable extends TableWidget
     public function table(Table $table): Table
     {
         return $table
-            ->heading('Renewals, month by month')
+            ->heading(__('Renewals, month by month'))
             ->records(fn (): array => array_reverse(array_map(fn (array $month): array => [
                 'month' => self::monthLabel($month['month']),
                 'ended' => $month['ended'],
@@ -41,18 +41,18 @@ class RenewalsTable extends TableWidget
                 'lapsed_most' => self::lapsedMost($month['by_plan']),
             ], $this->insights()->renewals($this->gym(), $this->months(), $this->branchIds()))))
             ->columns([
-                TextColumn::make('month')->weight(FontWeight::SemiBold),
-                TextColumn::make('ended')->alignEnd(),
-                TextColumn::make('renewed')->alignEnd()->color('success'),
-                TextColumn::make('lapsed')->alignEnd()->color('danger'),
-                TextColumn::make('waiting')->alignEnd()->color('gray'),
+                TextColumn::make('month')->label(__('Month'))->weight(FontWeight::SemiBold),
+                TextColumn::make('ended')->label(__('Ended'))->alignEnd(),
+                TextColumn::make('renewed')->label(__('Renewed'))->alignEnd()->color('success'),
+                TextColumn::make('lapsed')->label(__('Lapsed'))->alignEnd()->color('danger'),
+                TextColumn::make('waiting')->label(__('Waiting'))->alignEnd()->color('gray'),
                 TextColumn::make('rate')
-                    ->label('Renewal rate')
+                    ->label(__('Renewal rate'))
                     ->alignEnd()
                     ->badge()
                     ->formatStateUsing(fn (mixed $state): string => is_numeric($state) ? number_format((float) $state * 100, 1).'%' : '—')
                     ->color(fn (mixed $state): string => ! is_numeric($state) ? 'gray' : ((float) $state >= 0.6 ? 'success' : ((float) $state >= 0.4 ? 'warning' : 'danger'))),
-                TextColumn::make('lapsed_most')->label('Lapsed most')->placeholder('—')->color('gray'),
+                TextColumn::make('lapsed_most')->label(__('Lapsed most'))->placeholder('—')->color('gray'),
             ])
             ->headerActions([DownloadInsightAction::for(self::insight())->chosen(['months' => $this->months()])])
             ->paginated(false);

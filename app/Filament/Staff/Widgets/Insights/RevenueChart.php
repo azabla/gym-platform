@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Staff\Widgets\Insights;
 
+use App\Filament\Staff\Support\TranslatesItsHeading;
+use App\Insights\GymInsights;
 use App\Insights\Insight;
 use Filament\Widgets\ChartWidget;
 
@@ -13,6 +15,7 @@ use Filament\Widgets\ChartWidget;
 class RevenueChart extends ChartWidget
 {
     use ReadsInsightFilters;
+    use TranslatesItsHeading;
 
     private const COLOURS = ['#f97316', '#0ea5e9', '#10b981', '#a855f7', '#f43f5e', '#eab308', '#64748b'];
 
@@ -47,7 +50,7 @@ class RevenueChart extends ChartWidget
 
         return [
             'datasets' => array_map(fn (string $plan, int $index): array => [
-                'label' => $plan,
+                'label' => $plan === GymInsights::NO_PLAN ? __($plan) : $plan,
                 'data' => array_map(fn (array $month): float => isset($month['by_plan'][$plan]) ? (float) $month['by_plan'][$plan]->toDecimal() : 0.0, $months),
                 'backgroundColor' => self::COLOURS[$index % count(self::COLOURS)],
             ], $plans, array_keys($plans)),

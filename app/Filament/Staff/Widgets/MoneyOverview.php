@@ -50,17 +50,17 @@ class MoneyOverview extends StatsOverviewWidget
         $refundsNeeded = $money['refunds_needed'];
 
         $stats = [
-            Stat::make('Taken', $net->format())
-                ->description("Received {$received->format()}, refunded {$refunded->format()}")
+            Stat::make(__('Taken'), $net->format())
+                ->description(__('Received :received, refunded :refunded', ['received' => $received->format(), 'refunded' => $refunded->format()]))
                 ->descriptionIcon(Heroicon::OutlinedBanknotes)
                 ->color('success')
                 ->chart($this->takingsOfTheLastWeek()),
-            Stat::make('Owed', $owed['total']->format())
+            Stat::make(__('Owed'), $owed['total']->format())
                 ->description(trans_choice('{0} No member owes|{1} By 1 member|[2,*] By :count members', $owed['members']))
                 ->descriptionIcon(Heroicon::OutlinedExclamationCircle)
                 ->color($owed['members'] > 0 ? 'warning' : 'gray')
                 ->url(MembershipResource::getUrl('index')),
-            Stat::make('Open payment links', $openLinks['amount']->format())
+            Stat::make(__('Open payment links'), $openLinks['amount']->format())
                 ->description(trans_choice('{0} None waiting|{1} 1 waiting to be paid|[2,*] :count waiting to be paid', $openLinks['count']))
                 ->descriptionIcon(Heroicon::OutlinedLink)
                 ->color($openLinks['count'] > 0 ? 'info' : 'gray')
@@ -69,7 +69,7 @@ class MoneyOverview extends StatsOverviewWidget
 
         // Money Chapa took when nothing was due, still to give back (ADR 0031).
         if ($refundsNeeded['count'] > 0) {
-            $stats[] = Stat::make('Refunds to make', $refundsNeeded['amount']->format())
+            $stats[] = Stat::make(__('Refunds to make'), $refundsNeeded['amount']->format())
                 ->description(trans_choice('{1} 1 payment link|[2,*] :count payment links', $refundsNeeded['count']))
                 ->descriptionIcon(Heroicon::OutlinedArrowUturnLeft)
                 ->color('danger')

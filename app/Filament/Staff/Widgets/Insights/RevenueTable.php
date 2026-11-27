@@ -33,7 +33,7 @@ class RevenueTable extends TableWidget
     public function table(Table $table): Table
     {
         return $table
-            ->heading('Revenue, month by month')
+            ->heading(__('Revenue, month by month'))
             ->records(fn (): array => array_reverse(array_map(fn (array $month): array => [
                 'month' => self::monthLabel($month['month']),
                 'net' => $month['net'],
@@ -43,9 +43,9 @@ class RevenueTable extends TableWidget
                 ),
             ], $this->insights()->revenue($this->gym(), $this->months(), $this->branchIds()))))
             ->columns([
-                TextColumn::make('month')->weight(FontWeight::SemiBold),
-                self::money('net', 'Net')->weight(FontWeight::Bold),
-                ...array_map(fn (PaymentMethod $method): TextColumn => self::money($method->value, $method->label())->size(TextSize::Small)->color('gray'), PaymentMethod::cases()),
+                TextColumn::make('month')->label(__('Month'))->weight(FontWeight::SemiBold),
+                self::money('net', __('Net'))->weight(FontWeight::Bold),
+                ...array_map(fn (PaymentMethod $method): TextColumn => self::money($method->value, __($method->label()))->size(TextSize::Small)->color('gray'), PaymentMethod::cases()),
             ])
             ->headerActions([DownloadInsightAction::for(self::insight())->chosen(['months' => $this->months()])])
             ->paginated(false);

@@ -30,8 +30,8 @@ final class Languages
     public static function label(Language $language): string
     {
         return match ($language) {
-            Language::English => 'English',
-            Language::Amharic => 'Amharic ('.$language->label().')',
+            Language::English => __('English'),
+            Language::Amharic => __('Amharic (:name)', ['name' => $language->label()]),
         };
     }
 
@@ -40,6 +40,6 @@ final class Languages
      */
     public static function gymDefault(): string
     {
-        return 'Gym default ('.self::label(app(CurrentOrganization::class)->get()->messageLanguage()).')';
+        return __('Gym default (:language)', ['language' => self::label(app(CurrentOrganization::class)->get()->messageLanguage())]);
     }
 }

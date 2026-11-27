@@ -13,6 +13,7 @@ use App\Filament\Staff\Resources\Branches\Pages\CreateBranch;
 use App\Filament\Staff\Resources\Branches\Pages\EditBranch;
 use App\Filament\Staff\Resources\Branches\Pages\ListBranches;
 use App\Filament\Staff\Support\Tables;
+use App\Filament\Staff\Support\TranslatesItsLabels;
 use BackedEnum;
 use Closure;
 use Filament\Actions\EditAction;
@@ -39,6 +40,8 @@ use UnitEnum;
  */
 class BranchResource extends Resource
 {
+    use TranslatesItsLabels;
+
     protected static ?string $model = Branch::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingStorefront;
@@ -50,56 +53,67 @@ class BranchResource extends Resource
     /** @var array<int, string> */
     private const WEEKDAYS = [1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday'];
 
+    /**
+     * The weekdays, ISO numbered, in the staff member's language.
+     *
+     * @return array<int, string>
+     */
+    private static function weekdays(): array
+    {
+        return array_map(fn (string $weekday): string => __($weekday), self::WEEKDAYS);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema
             ->components([
-                Section::make('Branch')
-                    ->description('Members belong to a home branch, and payments and check-ins are recorded where they happen.')
+                Section::make(__('Branch'))
+                    ->description(__('Members belong to a home branch, and payments and check-ins are recorded where they happen.'))
                     ->icon(Heroicon::OutlinedBuildingStorefront)
                     ->columns(3)
                     ->schema([
-                        TextInput::make('name')->placeholder('Bole Branch')->required()->maxLength(255),
-                        TextInput::make('code')
-                            ->placeholder('BOLE')
+                        TextInput::make('name')->label(__('Name'))->placeholder(__('Bole Branch'))->required()->maxLength(255),
+                        TextInput::make('code')->label(__('Code'))
+                            ->placeholder(__('BOLE'))
                             ->required()
                             ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                            ->helperText('A short code, such as BOLE.')
+                            ->helperText(__('A short code, such as BOLE.'))
                             ->rules(fn (?Branch $record): array => [self::validCodeNoOtherBranchHas($record)]),
-                        TextInput::make('address')
-                            ->placeholder('Bole Road, near Edna Mall')
+                        TextInput::make('address')->label(__('Address'))
+                            ->placeholder(__('Bole Road, near Edna Mall'))
                             ->prefixIcon(Heroicon::OutlinedMapPin)
                             ->maxLength(255),
                     ]),
-                Section::make('Opening hours')
-                    ->description('In the gym\'s time zone. With no hours the branch is always open; once it has some, a day without hours is closed, and check-ins outside them are turned away. Holidays go under Closures.')
+                Section::make(__('Opening hours'))
+                    ->description(__('In the gym\'s time zone. With no hours the branch is always open; once it has some, a day without hours is closed, and check-ins outside them are turned away. Holidays go under Closures.'))
                     ->icon(Heroicon::OutlinedClock)
                     ->schema([
                         Repeater::make('hours')
+                            ->label(__('Opening hours'))
                             ->hiddenLabel()
-                            ->addActionLabel('Add a day')
+                            ->addActionLabel(__('Add a day'))
                             ->maxItems(7)
                             ->columns(3)
                             ->defaultItems(0)
                             ->reorderable(false)
-                            ->itemLabel(fn (array $state): ?string => self::WEEKDAYS[(int) ($state['weekday'] ?? 0)] ?? null)
+                            ->itemLabel(fn (array $state): ?string => self::weekdays()[(int) ($state['weekday'] ?? 0)] ?? null)
                             ->schema([
-                                Select::make('weekday')
+                                Select::make('weekday')->label(__('Weekday'))
                                     ->native(false)
-                                    ->options(self::WEEKDAYS)
+                                    ->options(self::weekdays())
                                     ->required()
                                     ->distinct()
                                     ->live()
-                                    ->validationMessages(['distinct' => 'Give each weekday once.']),
-                                TimePicker::make('opens_at')->label('Opens')->seconds(false)->required()->prefixIcon(Heroicon::OutlinedSun),
+                                    ->validationMessages(['distinct' => __('Give each weekday once.')]),
+                                TimePicker::make('opens_at')->label(__('Opens'))->seconds(false)->required()->prefixIcon(Heroicon::OutlinedSun),
                                 TimePicker::make('closes_at')
-                                    ->label('Closes')
+                                    ->label(__('Closes'))
                                     ->seconds(false)
                                     ->required()
                                     ->prefixIcon(Heroicon::OutlinedMoon)
                                     ->different('opens_at')
-                                    ->helperText('Earlier than opening means after midnight, such as 18:00–02:00.')
-                                    ->validationMessages(['different' => 'Closing must be a different time from opening.']),
+                                    ->helperText(__('Earlier than opening means after midnight, such as 18:00–02:00.'))
+                                    ->validationMessages(['different' => __('Closing must be a different time from opening.')]),
                             ]),
                     ]),
             ]);
@@ -107,27 +121,27 @@ class BranchResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return Tables::standard($table, Heroicon::OutlinedBuildingStorefront, 'No branches', 'Add the gym\'s branches, each with its opening hours.')
+        return Tables::standard($table, Heroicon::OutlinedBuildingStorefront, __('No branches'), __('Add the gym\'s branches, each with its opening hours.'))
             ->defaultSort('name')
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(Branch::withHoursAndClosuresFrom(app(CurrentStaff::class)->get()->organization->today())))
             ->columns([
-                TextColumn::make('name')
+                TextColumn::make('name')->label(__('Name'))
                     ->weight(FontWeight::SemiBold)
                     ->description(fn (Branch $record): ?string => $record->address)
                     ->sortable(),
-                TextColumn::make('code')->badge()->color('gray')->fontFamily('mono'),
+                TextColumn::make('code')->label(__('Code'))->badge()->color('gray')->fontFamily('mono'),
                 TextColumn::make('hours')
-                    ->label('Opening hours')
+                    ->label(__('Opening hours'))
                     ->state(fn (Branch $record): array => self::hoursOf($record))
                     ->listWithLineBreaks()
                     ->color('gray'),
                 TextColumn::make('next_closure')
-                    ->label('Next closure')
+                    ->label(__('Next closure'))
                     ->state(fn (Branch $record): ?string => self::nextClosureOf($record))
                     ->badge()
                     ->color('warning')
                     ->icon(Heroicon::OutlinedCalendarDays)
-                    ->placeholder('None soon')
+                    ->placeholder(__('None soon'))
                     ->url(fn (Branch $record): string => BranchClosureResource::getUrl('index', ['filters' => ['branch' => ['value' => $record->id]]])),
             ])
             ->recordActions([
@@ -200,11 +214,11 @@ class BranchResource extends Resource
     private static function hoursOf(Branch $branch): array
     {
         if ($branch->openingHours->isEmpty()) {
-            return ['Always open'];
+            return [__('Always open')];
         }
 
         return array_map(
-            fn (array $day): string => self::WEEKDAYS[$day['weekday']]." {$day['opens_at']}–{$day['closes_at']}".($day['closes_at'] < $day['opens_at'] ? ' (next day)' : ''),
+            fn (array $day): string => self::weekdays()[$day['weekday']]." {$day['opens_at']}–{$day['closes_at']}".($day['closes_at'] < $day['opens_at'] ? ' '.__('(next day)') : ''),
             self::weekOf($branch),
         );
     }
@@ -226,9 +240,9 @@ class BranchResource extends Resource
             $code = Branch::tidyCode(is_string($value) ? $value : '');
 
             if (preg_match(Branch::CODE_PATTERN, $code) !== 1) {
-                $fail('A code is 2 to 20 letters, digits or hyphens, such as BOLE.');
+                $fail(__('A code is 2 to 20 letters, digits or hyphens, such as BOLE.'));
             } elseif (Branch::codeTakenBy($code, $ignoring) !== null) {
-                $fail('Another branch of this gym already has this code.');
+                $fail(__('Another branch of this gym already has this code.'));
             }
         };
     }

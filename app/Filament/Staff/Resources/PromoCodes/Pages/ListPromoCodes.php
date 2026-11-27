@@ -15,7 +15,7 @@ class ListPromoCodes extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make()->label('Add promo code'),
+            CreateAction::make()->label(__('Add promo code')),
         ];
     }
 }

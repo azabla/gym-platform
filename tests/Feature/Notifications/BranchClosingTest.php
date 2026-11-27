@@ -38,7 +38,7 @@ it('tells members of the branch about a closure soon, in the inbox and by push',
         ->and($message->data['details'])->toMatchArray(['branch' => 'Main Branch', 'reason' => 'Repairs', 'starts_on' => '2026-10-26', 'ends_on' => '2026-10-27', 'count' => 2])
         ->and($message->data['data'])->toBe(['branch_id' => (string) $this->main->id])
         ->and($this->pushes->sent[0][1]->title)->toBe('Main Branch ዝግ ይሆናል')
-        ->and($this->pushes->sent[0][1]->body)->toBe('በDemo Gym የሚገኘው Main Branch ከ2026-10-26 እስከ 2026-10-27 ዝግ ይሆናል፦ Repairs።')
+        ->and($this->pushes->sent[0][1]->body)->toBe('በDemo Gym የሚገኘው Main Branch ከጥቅምት 16 ቀን 2019 ዓ.ም. (ኦክቶበር 26, 2026) እስከ ጥቅምት 17 ቀን 2019 ዓ.ም. (ኦክቶበር 27, 2026) ዝግ ይሆናል፦ Repairs።')
         ->and($this->abebe->notifications()->count())->toBe(0);
 });
 

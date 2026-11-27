@@ -20,11 +20,11 @@ final class MemberPhotoRefused extends DomainException
 
     public static function notAnImage(): self
     {
-        return new self('The photo must be a JPEG, PNG or WebP image.');
+        return new self(__('The photo must be a JPEG, PNG or WebP image.'));
     }
 
     public static function tooSmall(int $minimumPixels): self
     {
-        return new self("The photo must be at least {$minimumPixels} pixels wide and high.");
+        return new self(__('The photo must be at least :pixels pixels wide and high.', ['pixels' => $minimumPixels]));
     }
 }

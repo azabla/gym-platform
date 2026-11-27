@@ -28,9 +28,11 @@ use App\Filament\Staff\Resources\Members\Pages\EditMember;
 use App\Filament\Staff\Resources\Members\Pages\ListMembers;
 use App\Filament\Staff\Resources\Members\Pages\ViewMember;
 use App\Filament\Staff\Support\Badges;
+use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Languages;
 use App\Filament\Staff\Support\Photos;
 use App\Filament\Staff\Support\Tables;
+use App\Filament\Staff\Support\TranslatesItsLabels;
 use App\Rules\ValidPhoneNumber;
 use BackedEnum;
 use Carbon\CarbonImmutable;
@@ -71,6 +73,7 @@ class MemberResource extends Resource
 {
     use LimitsToTheStaffMembersBranches;
     use ShowsGymTime;
+    use TranslatesItsLabels;
 
     protected static ?string $model = Member::class;
 
@@ -98,67 +101,67 @@ class MemberResource extends Resource
     {
         return $schema
             ->components([
-                Section::make('Member')
-                    ->description('Who they are and where they train. They sign in to the members app with this phone number.')
+                Section::make(__('Member'))
+                    ->description(__('Who they are and where they train. They sign in to the members app with this phone number.'))
                     ->icon(Heroicon::OutlinedUser)
                     ->columns(2)
                     ->schema([
                         TextInput::make('full_name')
-                            ->label('Full name')
-                            ->placeholder('Abebe Kebede')
+                            ->label(__('Full name'))
+                            ->placeholder(__('Abebe Kebede'))
                             ->required()
                             ->maxLength(255)
                             ->autofocus(),
-                        TextInput::make('phone')
+                        TextInput::make('phone')->label(__('Phone'))
                             ->tel()
                             ->placeholder('0911 23 45 67')
                             ->prefixIcon(Heroicon::OutlinedPhone)
-                            ->helperText('One member per number in this gym. Any Ethiopian format works.')
+                            ->helperText(__('One member per number in this gym. Any Ethiopian format works.'))
                             ->required()
                             ->rules(fn (?Member $record): array => [new ValidPhoneNumber, self::phoneNotTakenInTheGym($record)]),
                         Select::make('home_branch_id')
-                            ->label('Home branch')
+                            ->label(__('Home branch'))
                             ->required()
                             ->native(false)
                             ->options(fn (): array => app(CurrentStaff::class)->get()->branchesWorkedAt()->pluck('name', 'id')->all())
                             ->default(fn (): ?int => self::onlyBranchWorkedAt())
-                            ->helperText('The plans sold to them are the ones on sale here.'),
-                        TextInput::make('email')
+                            ->helperText(__('The plans sold to them are the ones on sale here.')),
+                        TextInput::make('email')->label(__('Email'))
                             ->email()
-                            ->placeholder('Optional')
+                            ->placeholder(__('Optional'))
                             ->prefixIcon(Heroicon::OutlinedEnvelope)
                             ->maxLength(255),
-                        Select::make('gender')
+                        Select::make('gender')->label(__('Gender'))
                             ->native(false)
-                            ->placeholder('Not given')
+                            ->placeholder(__('Not given'))
                             ->options(Badges::options(Gender::class)),
-                        DatePicker::make('date_of_birth')
-                            ->label('Date of birth')
+                        DatePicker::make('date_of_birth')->hint(Dates::ethiopianHint())->live()
+                            ->label(__('Date of birth'))
                             ->native(false)
                             ->displayFormat('j M Y')
                             ->maxDate(fn (): string => self::today()->subDay()->toDateString())
                             ->beforeOrEqual('yesterday'),
                         Select::make('message_language')
-                            ->label('Message language')
+                            ->label(__('Message language'))
                             ->native(false)
                             ->placeholder(fn (): string => Languages::gymDefault())
                             ->options(Languages::options())
                             ->prefixIcon(Heroicon::OutlinedLanguage)
-                            ->helperText('Their texts come in this language. The members app changes it when they switch language.'),
+                            ->helperText(__('Their texts come in this language. The members app changes it when they switch language.')),
                     ]),
-                Section::make('Emergency contact')
-                    ->description('Who to call if something happens at the gym. Optional, but give both or neither.')
+                Section::make(__('Emergency contact'))
+                    ->description(__('Who to call if something happens at the gym. Optional, but give both or neither.'))
                     ->icon(Heroicon::OutlinedLifebuoy)
                     ->columns(2)
                     ->collapsible()
                     ->schema([
                         TextInput::make('emergency_contact_name')
-                            ->label('Name')
-                            ->placeholder('Almaz Kebede')
+                            ->label(__('Name'))
+                            ->placeholder(__('Almaz Kebede'))
                             ->maxLength(255)
                             ->requiredWith('emergency_contact_phone'),
                         TextInput::make('emergency_contact_phone')
-                            ->label('Phone')
+                            ->label(__('Phone'))
                             ->tel()
                             ->placeholder('0911 98 76 54')
                             ->prefixIcon(Heroicon::OutlinedPhone)
@@ -172,77 +175,78 @@ class MemberResource extends Resource
     {
         return $schema
             ->components([
-                Section::make('At a glance')
+                Section::make(__('At a glance'))
                     ->icon(Heroicon::OutlinedSparkles)
                     ->schema([
                         ImageEntry::make('photo')
+                            ->label(__('Photo'))
                             ->hiddenLabel()
                             ->state(fn (Member $record): string => Photos::urlFor($record))
                             ->circular()
                             ->imageSize(112),
                         Grid::make(['default' => 2, 'lg' => 4])->schema([
                             TextEntry::make('membership_today')
-                                ->label('Membership today')
+                                ->label(__('Membership today'))
                                 ->state(fn (Member $record): string => self::membershipSummaryOf($record))
                                 ->badge()
                                 ->color(fn (Member $record): string => Badges::color(self::statusTodayOf($record)))
                                 ->icon(fn (Member $record): ?Heroicon => Badges::icon(self::statusTodayOf($record))),
                             TextEntry::make('balance_due')
-                                ->label('Balance due')
+                                ->label(__('Balance due'))
                                 ->state(fn (Member $record): string => self::balanceDueOf($record)->format())
                                 ->weight(FontWeight::Bold)
                                 ->color(fn (Member $record): string => self::balanceDueOf($record)->isPositive() ? 'danger' : 'success'),
                             TextEntry::make('discount_group')
-                                ->label('Discount group')
+                                ->label(__('Discount group'))
                                 ->state(fn (Member $record): ?string => self::discountGroupOf($record))
                                 ->badge()
                                 ->color('info')
-                                ->placeholder('None'),
+                                ->placeholder(__('None')),
                             TextEntry::make('last_visit')
-                                ->label('Last visit')
+                                ->label(__('Last visit'))
                                 ->state(fn (Member $record): ?CarbonImmutable => self::lastVisitOf($record))
                                 ->since()
                                 ->timezone(self::gymTimezone())
-                                ->placeholder('Never'),
+                                ->placeholder(__('Never')),
                         ]),
                     ]),
-                Section::make('Member')
+                Section::make(__('Member'))
                     ->icon(Heroicon::OutlinedUser)
                     ->columns(['default' => 1, 'md' => 3])
                     ->schema([
-                        TextEntry::make('full_name')->label('Full name')->weight(FontWeight::Bold),
-                        TextEntry::make('phone')->copyable()->copyMessage('Copied')->icon(Heroicon::OutlinedPhone),
-                        TextEntry::make('email')->placeholder('None')->copyable()->icon(Heroicon::OutlinedEnvelope),
-                        TextEntry::make('homeBranch.name')->label('Home branch')->badge()->color('gray'),
-                        TextEntry::make('gender')
+                        TextEntry::make('full_name')->label(__('Full name'))->weight(FontWeight::Bold),
+                        TextEntry::make('phone')->label(__('Phone'))->copyable()->copyMessage(__('Copied'))->icon(Heroicon::OutlinedPhone),
+                        TextEntry::make('email')->label(__('Email'))->placeholder(__('None'))->copyable()->icon(Heroicon::OutlinedEnvelope),
+                        TextEntry::make('homeBranch.name')->label(__('Home branch'))->badge()->color('gray'),
+                        TextEntry::make('gender')->label(__('Gender'))
                             ->formatStateUsing(fn (mixed $state): string => $state instanceof BackedEnum ? Badges::label($state) : (string) $state)
-                            ->placeholder('Not given'),
-                        TextEntry::make('date_of_birth')->label('Date of birth')->date('j M Y')->placeholder('Not given'),
-                        TextEntry::make('created_at')->label('Registered')->date('j M Y')->timezone(self::gymTimezone()),
+                            ->placeholder(__('Not given')),
+                        TextEntry::make('date_of_birth')->label(__('Date of birth'))->formatStateUsing(Dates::asDate())->placeholder(__('Not given')),
+                        TextEntry::make('created_at')->label(__('Registered'))->formatStateUsing(Dates::asDate(self::gymTimezone())),
                         TextEntry::make('message_language')
-                            ->label('Message language')
+                            ->label(__('Message language'))
                             ->state(fn (Member $record): string => $record->message_language === null ? Languages::gymDefault() : Languages::label($record->message_language))
                             ->icon(Heroicon::OutlinedLanguage),
                     ]),
-                Section::make('Emergency contact')
+                Section::make(__('Emergency contact'))
                     ->icon(Heroicon::OutlinedLifebuoy)
                     ->columns(2)
                     ->collapsible()
                     ->schema([
-                        TextEntry::make('emergency_contact_name')->label('Name')->placeholder('None'),
-                        TextEntry::make('emergency_contact_phone')->label('Phone')->placeholder('None')->copyable(),
+                        TextEntry::make('emergency_contact_name')->label(__('Name'))->placeholder(__('None')),
+                        TextEntry::make('emergency_contact_phone')->label(__('Phone'))->placeholder(__('None'))->copyable(),
                     ]),
             ]);
     }
 
     public static function table(Table $table): Table
     {
-        return Tables::standard($table, Heroicon::OutlinedUsers, 'No members found', 'Register a member, or search by part of a name or phone number to find one at another branch.')
+        return Tables::standard($table, Heroicon::OutlinedUsers, __('No members found'), __('Register a member, or search by part of a name or phone number to find one at another branch.'))
             ->recordTitleAttribute('full_name')
             ->defaultSort('full_name')
             ->modifyQueryUsing(self::listedMembers(...))
             ->splitSearchTerms(false)
-            ->searchPlaceholder('Name or phone number')
+            ->searchPlaceholder(__('Name or phone number'))
             ->columns([
                 ImageColumn::make('photo')
                     ->label('')
@@ -250,65 +254,65 @@ class MemberResource extends Resource
                     ->circular()
                     ->imageSize(36),
                 TextColumn::make('full_name')
-                    ->label('Name')
+                    ->label(__('Name'))
                     ->weight(FontWeight::SemiBold)
                     ->description(fn (Member $record): string => (string) $record->phone)
                     ->sortable()
                     ->searchable(query: self::searchMembers(...)),
-                TextColumn::make('phone')
+                TextColumn::make('phone')->label(__('Phone'))
                     ->copyable()
-                    ->copyMessage('Copied')
+                    ->copyMessage(__('Copied'))
                     ->icon(Heroicon::OutlinedPhone)
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('homeBranch.name')->label('Home branch')->badge()->color('gray'),
+                TextColumn::make('homeBranch.name')->label(__('Home branch'))->badge()->color('gray'),
                 TextColumn::make('membership_today')
-                    ->label('Membership today')
+                    ->label(__('Membership today'))
                     ->state(fn (Member $record, HasTable $livewire): string => self::membershipSummaryOf($record, $livewire))
                     ->badge()
                     ->color(fn (Member $record, HasTable $livewire): string => Badges::color(self::statusTodayOf($record, $livewire)))
                     ->icon(fn (Member $record, HasTable $livewire): ?Heroicon => Badges::icon(self::statusTodayOf($record, $livewire))),
-                Tables::money('balance_due', fn (Member $record, HasTable $livewire): Money => self::pageFor($livewire)['balances'][$record->id] ?? Money::zero(), 'Owes')
+                Tables::money('balance_due', fn (Member $record, HasTable $livewire): Money => self::pageFor($livewire)['balances'][$record->id] ?? Money::zero(), __('Owes'))
                     ->color(fn (Member $record, HasTable $livewire): string => (self::pageFor($livewire)['balances'][$record->id] ?? Money::zero())->isPositive() ? 'danger' : 'gray')
                     ->visible(fn (): bool => app(CurrentStaff::class)->get()->role->seesMoney()),
                 TextColumn::make('discount_group')
-                    ->label('Discount group')
+                    ->label(__('Discount group'))
                     ->state(fn (Member $record, HasTable $livewire): ?string => self::pageFor($livewire)['groups'][$record->id] ?? null)
                     ->badge()
                     ->color('info')
-                    ->placeholder('None')
+                    ->placeholder(__('None'))
                     ->toggleable(),
-                TextColumn::make('email')->placeholder('None')->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('gender')
+                TextColumn::make('email')->label(__('Email'))->placeholder(__('None'))->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('gender')->label(__('Gender'))
                     ->formatStateUsing(fn (mixed $state): string => $state instanceof BackedEnum ? Badges::label($state) : (string) $state)
-                    ->placeholder('Not given')
+                    ->placeholder(__('Not given'))
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('date_of_birth')->label('Born')->date('j M Y')->placeholder('Not given')->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('created_at')->label('Registered')->date('j M Y')->timezone(self::gymTimezone())->sortable()->toggleable(),
+                TextColumn::make('date_of_birth')->label(__('Born'))->formatStateUsing(Dates::asDate())->placeholder(__('Not given'))->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('created_at')->label(__('Registered'))->formatStateUsing(Dates::asDate(self::gymTimezone()))->sortable()->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('home_branch_id')
-                    ->label('Home branch')
+                    ->label(__('Home branch'))
                     ->native(false)
                     ->relationship('homeBranch', 'name', self::onlyTheirBranches(...)),
                 SelectFilter::make('membership_today')
-                    ->label('Membership today')
+                    ->label(__('Membership today'))
                     ->native(false)
                     ->options([
-                        'active' => 'Has a valid membership',
-                        'ending' => 'Ending in the next 7 days',
-                        'expired' => 'Expired, nothing since',
-                        'never' => 'Never had one',
+                        'active' => __('Has a valid membership'),
+                        'ending' => __('Ending in the next 7 days'),
+                        'expired' => __('Expired, nothing since'),
+                        'never' => __('Never had one'),
                     ])
                     ->query(fn (Builder $query, array $data): Builder => self::withMembershipToday($query, $data['value'] ?? null)),
                 SelectFilter::make('discount_group')
-                    ->label('Discount group')
+                    ->label(__('Discount group'))
                     ->native(false)
                     ->options(fn (): array => DiscountGroup::query()->orderBy('name')->pluck('name', 'id')->all())
                     ->query(fn (Builder $query, array $data): Builder => filled($data['value'] ?? null)
                         ? $query->whereIn('id', MemberDiscount::query()->select('member_id')->where('discount_group_id', (int) $data['value']))
                         : $query),
-                SelectFilter::make('gender')->native(false)->options(Badges::options(Gender::class)),
-                Tables::dateRange('registered', 'created_at', 'Registered', isMoment: true),
+                SelectFilter::make('gender')->label(__('Gender'))->native(false)->options(Badges::options(Gender::class)),
+                Tables::dateRange('registered', 'created_at', __('Registered'), isMoment: true),
             ])
             ->recordActions([
                 CheckInAction::make()->button()->size('sm'),
@@ -398,7 +402,7 @@ class MemberResource extends Resource
                 ->exists();
 
             if ($taken) {
-                $fail('Another member of this gym already has this phone number.');
+                $fail(__('Another member of this gym already has this phone number.'));
             }
         };
     }
@@ -481,7 +485,7 @@ class MemberResource extends Resource
     {
         $membership = self::membershipOf($member, $livewire);
 
-        return $membership === null ? 'None' : Badges::label($membership->statusOn(self::today())).' · '.$membership->plan?->name;
+        return $membership === null ? __('None') : Badges::label($membership->statusOn(self::today())).' · '.$membership->plan?->name;
     }
 
     /**
@@ -497,7 +501,9 @@ class MemberResource extends Resource
             return null;
         }
 
-        return "{$group->name}, {$group->discount} off".($memberDiscount->until === null ? '' : ', until '.$memberDiscount->until->format('j M Y'));
+        return $memberDiscount->until === null
+            ? __(':group, :discount off', ['group' => $group->name, 'discount' => $group->discount])
+            : __(':group, :discount off, until :date', ['group' => $group->name, 'discount' => $group->discount, 'date' => Dates::short($memberDiscount->until)]);
     }
 
     /**

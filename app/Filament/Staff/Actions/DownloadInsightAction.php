@@ -59,22 +59,22 @@ class DownloadInsightAction extends Action
     {
         parent::setUp();
 
-        $this->label('Download CSV')
+        $this->label(__('Download CSV'))
             ->icon(Heroicon::OutlinedArrowDownTray)
             ->color('gray')
-            ->modalHeading(fn (): string => 'Download '.mb_strtolower($this->insight->label()))
+            ->modalHeading(fn (): string => __('Download :insight', ['insight' => mb_strtolower(__($this->insight->label()))]))
             ->modalIcon(Heroicon::OutlinedArrowDownTray)
-            ->modalSubmitActionLabel('Download')
+            ->modalSubmitActionLabel(__('Download'))
             ->visible(fn (): bool => Gate::allows('see-insight', $this->insight))
             ->schema(fn (): array => [
                 Select::make('months')
-                    ->label('Period')
+                    ->label(__('Period'))
                     ->options(self::periods())
                     ->default(fn (): int => $this->chosen['months'] ?? 12)
                     ->required(),
                 Select::make('branch_id')
-                    ->label('Branch')
-                    ->placeholder('All my branches')
+                    ->label(__('Branch'))
+                    ->placeholder(__('All my branches'))
                     ->default(fn (): ?int => $this->chosen['branch_id'] ?? null)
                     ->options(fn (): array => app(CurrentStaff::class)->get()->branchesWorkedAt()->pluck('name', 'id')->all()),
             ])
@@ -94,7 +94,7 @@ class DownloadInsightAction extends Action
         $periods = [];
 
         foreach (GymInsights::MONTHS as $months) {
-            $periods[$months] = "Last {$months} months";
+            $periods[$months] = __('Last :count months', ['count' => $months]);
         }
 
         return $periods;

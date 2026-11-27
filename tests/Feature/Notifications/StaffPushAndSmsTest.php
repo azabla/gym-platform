@@ -76,5 +76,5 @@ it('writes the push and the text in the staff member\'s message language', funct
     tellAboutMembersToCallAt($this->staff->refresh(), '2026-11-19 08:00');
 
     expect($this->pushes->sent[0][1]->title)->toBe('የሚደወልላቸው አባላት')
-        ->and($this->texts->sent[0][1])->toBe('Demo Gym፦ ዛሬ የሚደወልላቸው 3 አባላት አሉ፤ አባልነታቸው በ7 ቀናት ውስጥ ያበቃል።');
+        ->and($this->texts->sent[0][1])->toBe('Demo Gym፦ ዛሬ የሚደወልላቸው 3 አባላት አሉ፤ አባልነታቸው በ7 ቀን ውስጥ ያበቃል።');
 });

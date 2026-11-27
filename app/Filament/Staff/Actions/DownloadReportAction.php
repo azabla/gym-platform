@@ -6,6 +6,7 @@ namespace App\Filament\Staff\Actions;
 
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
+use App\Filament\Staff\Support\Dates;
 use App\Reports\Csv;
 use App\Reports\Report;
 use App\Reports\ReportPeriod;
@@ -66,24 +67,24 @@ class DownloadReportAction extends Action
     {
         parent::setUp();
 
-        $this->label('Download CSV')
+        $this->label(__('Download CSV'))
             ->icon(Heroicon::OutlinedArrowDownTray)
             ->color('gray')
-            ->modalHeading('Download a CSV file')
-            ->modalSubmitActionLabel('Download')
+            ->modalHeading(__('Download a CSV file'))
+            ->modalSubmitActionLabel(__('Download'))
             ->visible(fn (): bool => Gate::allows('export', $this->reportedModel))
             ->schema(fn (): array => [
                 ...($this->coversAPeriod ? [
-                    DatePicker::make('from')->required()->default(fn (): string => self::today()->toDateString()),
-                    DatePicker::make('to')
+                    DatePicker::make('from')->hint(Dates::ethiopianHint())->live()->label(__('From'))->required()->default(fn (): string => self::today()->toDateString()),
+                    DatePicker::make('to')->hint(Dates::ethiopianHint())->live()->label(__('To'))
                         ->required()
                         ->default(fn (): string => self::today()->toDateString())
                         ->afterOrEqual('from')
                         ->rules(fn (Get $get): array => [self::atMostAYearAfter($get('from'))]),
                 ] : []),
                 Select::make('branch_id')
-                    ->label('Branch')
-                    ->placeholder('All my branches')
+                    ->label(__('Branch'))
+                    ->placeholder(__('All my branches'))
                     ->options(fn (): array => app(CurrentStaff::class)->get()->branchesWorkedAt()->pluck('name', 'id')->all()),
             ])
             ->action(fn (array $data): StreamedResponse => Csv::download(($this->makeReport)($this->periodIn($data), $data)));
@@ -120,7 +121,7 @@ class DownloadReportAction extends Action
             }
 
             if (CarbonImmutable::parse($from)->diffInDays(CarbonImmutable::parse($value)) >= 366) {
-                $fail('The period can be at most a year long.');
+                $fail(__('The period can be at most a year long.'));
             }
         };
     }

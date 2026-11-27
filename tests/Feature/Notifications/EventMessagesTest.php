@@ -112,7 +112,7 @@ it('tells the member their membership was frozen, and its new end date', functio
     ])->assertCreated();
 
     expect($this->tigist->notifications()->sole()->type)->toBe('membership_frozen')
-        ->and($this->pushes->sent[0][1]->body)->toBe('Your Monthly membership at Demo Gym is frozen from 2026-10-26 to 2026-11-01. It now ends on 2026-11-30.');
+        ->and($this->pushes->sent[0][1]->body)->toBe('Your Monthly membership at Demo Gym is frozen from 26 October 2026 to 1 November 2026. It now ends on 30 November 2026.');
 });
 
 it('tells a member nothing about a freeze they made themselves, in the app', function () {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Staff\Widgets;
 
 use App\Dashboards\StaffDashboard;
+use App\Filament\Staff\Support\TranslatesItsHeading;
 use App\Filament\Staff\Widgets\Concerns\ReadsDashboardFilters;
 use Filament\Widgets\ChartWidget;
 
@@ -15,6 +16,7 @@ use Filament\Widgets\ChartWidget;
 class CheckInsChart extends ChartWidget
 {
     use ReadsDashboardFilters;
+    use TranslatesItsHeading;
 
     protected static ?int $sort = 5;
 
@@ -36,8 +38,8 @@ class CheckInsChart extends ChartWidget
 
         return [
             'datasets' => [
-                ['label' => 'Let in', 'data' => array_column($days, 'allowed'), 'backgroundColor' => '#10b981'],
-                ['label' => 'Turned away', 'data' => array_column($days, 'denied'), 'backgroundColor' => '#f43f5e'],
+                ['label' => __('Let in'), 'data' => array_column($days, 'allowed'), 'backgroundColor' => '#10b981'],
+                ['label' => __('Turned away'), 'data' => array_column($days, 'denied'), 'backgroundColor' => '#f43f5e'],
             ],
             'labels' => array_column($days, 'date'),
         ];

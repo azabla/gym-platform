@@ -67,7 +67,7 @@ final class Tables
     public static function money(string $name, Closure $money, ?string $label = null): TextColumn
     {
         return TextColumn::make($name)
-            ->label($label ?? ucfirst(str_replace('_', ' ', $name)))
+            ->label($label ?? __(ucfirst(str_replace('_', ' ', $name))))
             ->state($money)
             ->formatStateUsing(fn (mixed $state): string => is_object($state) && method_exists($state, 'format') ? $state->format() : (string) $state)
             ->alignEnd()
@@ -81,7 +81,7 @@ final class Tables
     public static function badge(string $name, ?string $label = null): TextColumn
     {
         return TextColumn::make($name)
-            ->label($label ?? ucfirst(str_replace('_', ' ', $name)))
+            ->label($label ?? __(ucfirst(str_replace('_', ' ', $name))))
             ->badge()
             ->formatStateUsing(fn (mixed $state): string => $state instanceof BackedEnum ? Badges::label($state) : (string) $state)
             ->color(fn (mixed $state): string => $state instanceof BackedEnum ? Badges::color($state) : 'gray')
@@ -98,8 +98,8 @@ final class Tables
         return Filter::make($name)
             ->label($label)
             ->schema([
-                DatePicker::make('from')->label("{$label} from")->native(false)->displayFormat('j M Y'),
-                DatePicker::make('to')->label("{$label} to")->native(false)->displayFormat('j M Y')->afterOrEqual('from'),
+                DatePicker::make('from')->hint(Dates::ethiopianHint())->live()->label(__(':label from', ['label' => $label]))->native(false)->displayFormat('j M Y'),
+                DatePicker::make('to')->hint(Dates::ethiopianHint())->live()->label(__(':label to', ['label' => $label]))->native(false)->displayFormat('j M Y')->afterOrEqual('from'),
             ])
             ->columns(2)
             ->columnSpan(2)
@@ -123,11 +123,11 @@ final class Tables
                 $indicators = [];
 
                 if (filled($data['from'] ?? null)) {
-                    $indicators[] = Indicator::make("{$label} from ".CarbonImmutable::parse((string) $data['from'])->format('j M Y'))->removeField('from');
+                    $indicators[] = Indicator::make(__(':label from :date', ['label' => $label, 'date' => Dates::short((string) $data['from'])]))->removeField('from');
                 }
 
                 if (filled($data['to'] ?? null)) {
-                    $indicators[] = Indicator::make("{$label} to ".CarbonImmutable::parse((string) $data['to'])->format('j M Y'))->removeField('to');
+                    $indicators[] = Indicator::make(__(':label to :date', ['label' => $label, 'date' => Dates::short((string) $data['to'])]))->removeField('to');
                 }
 
                 return $indicators;

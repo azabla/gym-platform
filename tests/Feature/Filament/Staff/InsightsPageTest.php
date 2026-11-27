@@ -51,6 +51,20 @@ it('shows an owner every insight, with figures beneath each chart', function () 
     Livewire::test(RenewalsChart::class)->assertOk();
 });
 
+it('shows the insights in Amharic, with Amharic months and weekdays, to staff who chose Amharic', function () {
+    actingAsStaffInPanel($this->gym, StaffRole::Owner);
+    // As UseStaffLanguage does on every panel request.
+    app()->setLocale('am');
+    CarbonImmutable::setLocale('am');
+
+    Livewire::test(RevenueTable::class, ['pageFilters' => ['months' => 3]])->assertSee('ኦክቶበር 2026')->assertSee('የተጣራ');
+    Livewire::test(BusyHoursGrid::class)->assertSee('ሰኞ');
+    Livewire::test(RevenueChart::class)->assertOk();
+
+    app()->setLocale('en');
+    CarbonImmutable::setLocale('en');
+});
+
 it('follows the branch chosen, within the staff member\'s branches', function () {
     actingAsStaffInPanel($this->gym, StaffRole::Owner);
 

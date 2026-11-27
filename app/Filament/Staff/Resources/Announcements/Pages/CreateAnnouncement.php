@@ -9,7 +9,6 @@ use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Filament\Staff\Resources\Announcements\AnnouncementResource;
 use App\Jobs\SendAnnouncement;
 use Filament\Resources\Pages\CreateRecord;
-use Illuminate\Support\Str;
 
 /**
  * Post an announcement, as the API does: now, or at the time chosen.
@@ -53,7 +52,7 @@ class CreateAnnouncement extends CreateRecord
 
     protected function getCreatedNotificationTitle(): string
     {
-        return 'It goes to '.$this->audienceCount.' '.Str::plural('member', $this->audienceCount).'.';
+        return trans_choice('{0} It goes to no members.|{1} It goes to 1 member.|[2,*] It goes to :count members.', $this->audienceCount);
     }
 
     protected function getRedirectUrl(): string

@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Domains\Organizations\Models\Organization;
 use App\Filament\Staff\Auth\Login;
 use App\Filament\Staff\Middleware\ActAsTenant;
+use App\Filament\Staff\Middleware\UseStaffLanguage;
 use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Pages\Dashboard;
 use App\Filament\Staff\Pages\MyNotifications;
@@ -51,6 +52,7 @@ class StaffPanelProvider extends PanelProvider
             ->tenant(Organization::class, slugAttribute: 'slug', ownershipRelationship: 'organization')
             ->tenantMiddleware([
                 ActAsTenant::class,
+                UseStaffLanguage::class,
             ], isPersistent: true)
             // The look of the panel (ADR 0033): the gym's name as the brand, an energetic
             // orange on slate, Inter, light or dark as the device is, and grouped navigation.

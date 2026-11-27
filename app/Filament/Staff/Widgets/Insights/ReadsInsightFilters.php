@@ -8,6 +8,7 @@ use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
+use App\Filament\Staff\Support\Dates;
 use App\Insights\GymInsights;
 use App\Insights\Insight;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
@@ -64,6 +65,6 @@ trait ReadsInsightFilters
      */
     protected static function monthLabel(string $month): string
     {
-        return date('M Y', (int) strtotime("{$month}-01"));
+        return Dates::month("{$month}-01");
     }
 }

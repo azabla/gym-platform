@@ -27,13 +27,13 @@ class ViewPaymentLink extends ViewRecord
     {
         return [
             Action::make('check')
-                ->label('Check now')
+                ->label(__('Check now'))
                 ->visible(fn (PaymentLink $record): bool => $record->settled_at === null && Gate::allows('check', $record))
                 ->action(function (PaymentLink $record): void {
                     $chapaAccount = ChapaAccount::query()->first();
 
                     if ($chapaAccount === null) {
-                        Notification::make()->danger()->title('Connect the gym\'s Chapa account first.')->send();
+                        Notification::make()->danger()->title(__('Connect the gym\'s Chapa account first.'))->send();
 
                         return;
                     }
@@ -49,27 +49,27 @@ class ViewPaymentLink extends ViewRecord
                     self::sayWhereItStands($record);
                 }),
             Action::make('cancel')
-                ->label('Cancel link')
+                ->label(__('Cancel link'))
                 ->color('danger')
                 ->visible(fn (PaymentLink $record): bool => $record->status === PaymentLinkStatus::Pending && Gate::allows('cancel', $record))
                 ->requiresConfirmation()
-                ->modalDescription('The member can no longer pay with this link. If they pay on Chapa\'s page anyway, the payment is still recorded while the membership owes it.')
+                ->modalDescription(__('The member can no longer pay with this link. If they pay on Chapa\'s page anyway, the payment is still recorded while the membership owes it.'))
                 ->action(function (PaymentLink $record): void {
                     $record->cancel(app(CurrentStaff::class)->get());
 
-                    Notification::make()->success()->title('The link is cancelled.')->send();
+                    Notification::make()->success()->title(__('The link is cancelled.'))->send();
                 }),
             SendPaymentLinkAction::make(),
             Action::make('markRefunded')
-                ->label('Mark refunded')
+                ->label(__('Mark refunded'))
                 ->color('warning')
                 ->visible(fn (PaymentLink $record): bool => $record->status === PaymentLinkStatus::RefundNeeded && Gate::allows('markRefunded', $record))
-                ->modalDescription('Once you have given the money back from your Chapa dashboard. The link then shows as refunded.')
+                ->modalDescription(__('Once you have given the money back from your Chapa dashboard. The link then shows as refunded.'))
                 ->schema([
                     TextInput::make('note')
-                        ->label('Note')
+                        ->label(__('Note'))
                         ->maxLength(255)
-                        ->helperText('Optional, such as Chapa\'s refund reference.'),
+                        ->helperText(__('Optional, such as Chapa\'s refund reference.')),
                 ])
                 ->action(function (array $data, PaymentLink $record, Action $action): void {
                     try {
@@ -78,7 +78,7 @@ class ViewPaymentLink extends ViewRecord
                         Refusals::halt($action, $refusal);
                     }
 
-                    Notification::make()->success()->title('Marked refunded.')->send();
+                    Notification::make()->success()->title(__('Marked refunded.'))->send();
                 }),
         ];
     }
@@ -86,9 +86,9 @@ class ViewPaymentLink extends ViewRecord
     private static function sayWhereItStands(PaymentLink $paymentLink): void
     {
         match ($paymentLink->status) {
-            PaymentLinkStatus::Paid => Notification::make()->success()->title("Paid. Receipt {$paymentLink->payment?->receipt_number}.")->send(),
-            PaymentLinkStatus::RefundNeeded => Notification::make()->warning()->title('Chapa took the money, but nothing is due any more. Refund it from your Chapa dashboard.')->send(),
-            default => Notification::make()->title('Not paid yet.')->send(),
+            PaymentLinkStatus::Paid => Notification::make()->success()->title(__('Paid. Receipt :receipt.', ['receipt' => $paymentLink->payment?->receipt_number]))->send(),
+            PaymentLinkStatus::RefundNeeded => Notification::make()->warning()->title(__('Chapa took the money, but nothing is due any more. Refund it from your Chapa dashboard.'))->send(),
+            default => Notification::make()->title(__('Not paid yet.'))->send(),
         };
     }
 }

@@ -14,6 +14,7 @@ use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Domains\Shared\Money\Money;
 use App\Filament\Staff\Resources\Members\MemberResource;
+use App\Filament\Staff\Support\Dates;
 use App\Rules\ValidMoneyAmount;
 use Carbon\CarbonImmutable;
 use Closure;
@@ -62,39 +63,39 @@ abstract class MoneyAction extends Action
         $this->modalWidth(Width::Large)
             ->modalDescription(fn (Membership $record): string => self::moneySummaryOf($record))
             ->schema(fn (Membership $record): array => [
-                TextInput::make('amount')
+                TextInput::make('amount')->label(__('Amount'))
                     ->required()
                     ->prefix('ETB')
                     ->placeholder('2,500')
                     ->default($this->suggestedAmount($record)->toDecimal())
-                    ->helperText('Write it as on a receipt, such as 2,500 or 1500.50.')
+                    ->helperText(__('Write it as on a receipt, such as 2,500 or 1500.50.'))
                     ->rules(fn (): array => [new ValidMoneyAmount, self::moreThanZero()]),
-                Select::make('method')
+                Select::make('method')->label(__('Method'))
                     ->required()
                     ->native(false)
                     ->options(collect(PaymentMethod::cases())
                         ->reject(fn (PaymentMethod $method): bool => $method->isOnline())
-                        ->mapWithKeys(fn (PaymentMethod $method): array => [$method->value => $method->label()])
+                        ->mapWithKeys(fn (PaymentMethod $method): array => [$method->value => __($method->label())])
                         ->all())
                     ->live(),
                 TextInput::make('reference')
-                    ->label('Transaction number')
-                    ->placeholder('From the SMS or the bank slip, such as CJ12ABC34D')
+                    ->label(__('Transaction number'))
+                    ->placeholder(__('From the SMS or the bank slip, such as CJ12ABC34D'))
                     ->prefixIcon(Heroicon::OutlinedHashtag)
-                    ->helperText('Each transaction number can be recorded once.')
+                    ->helperText(__('Each transaction number can be recorded once.'))
                     ->visible(fn (Get $get): bool => PaymentMethod::tryFrom((string) $get('method'))?->hasReference() ?? false)
                     ->required()
                     ->maxLength(100)
                     ->rules(fn (Get $get): array => [self::notRecordedAlready(PaymentMethod::tryFrom((string) $get('method')))]),
                 Grid::make(2)->schema([
                     Select::make('branch_id')
-                        ->label('Branch')
+                        ->label(__('Branch'))
                         ->required()
                         ->native(false)
                         ->options(fn (): array => app(CurrentStaff::class)->get()->branchesWorkedAt()->pluck('name', 'id')->all())
                         ->default(MemberResource::onlyBranchWorkedAt()),
-                    DatePicker::make('paid_on')
-                        ->label('Paid on')
+                    DatePicker::make('paid_on')->hint(Dates::ethiopianHint())->live()
+                        ->label(__('Paid on'))
                         ->required()
                         ->native(false)
                         ->displayFormat('j M Y')
@@ -138,7 +139,13 @@ abstract class MoneyAction extends Action
     {
         $balance = Payment::balanceOf($membership);
 
-        return "{$membership->plan?->name} for {$membership->member?->full_name}: price {$membership->price->format()}, paid {$balance->amountPaid->format()}, still owed {$balance->balanceDue->format()}.";
+        return __(':plan for :name: price :price, paid :paid, still owed :owed.', [
+            'plan' => $membership->plan?->name,
+            'name' => $membership->member?->full_name,
+            'price' => $membership->price->format(),
+            'paid' => $balance->amountPaid->format(),
+            'owed' => $balance->balanceDue->format(),
+        ]);
     }
 
     private static function today(): CarbonImmutable
@@ -150,7 +157,7 @@ abstract class MoneyAction extends Action
     {
         return function (string $attribute, mixed $value, Closure $fail): void {
             if (is_string($value) && Money::of($value)->isZero()) {
-                $fail('The amount must be more than zero.');
+                $fail(__('The amount must be more than zero.'));
             }
         };
     }
@@ -161,7 +168,7 @@ abstract class MoneyAction extends Action
             $payment = $method !== null && is_string($value) ? Payment::recordedWithReference($method, $value) : null;
 
             if ($payment !== null) {
-                $fail("This transaction number is already recorded, on receipt {$payment->receipt_number}.");
+                $fail(__('This transaction number is already recorded, on receipt :receipt.', ['receipt' => $payment->receipt_number]));
             }
         };
     }
@@ -170,7 +177,7 @@ abstract class MoneyAction extends Action
     {
         return function (string $attribute, mixed $value, Closure $fail): void {
             if (CarbonImmutable::parse((string) $value)->greaterThan(self::today())) {
-                $fail('A payment can\'t be dated in the future.');
+                $fail(__('A payment can\'t be dated in the future.'));
             }
         };
     }
@@ -179,7 +186,7 @@ abstract class MoneyAction extends Action
     {
         return function (string $attribute, mixed $value, Closure $fail): void {
             if (CarbonImmutable::parse((string) $value)->lessThan(self::today()) && Gate::denies('backdate', Payment::class)) {
-                $fail('Only owners, managers and accountants can date a payment in the past.');
+                $fail(__('Only owners, managers and accountants can date a payment in the past.'));
             }
         };
     }

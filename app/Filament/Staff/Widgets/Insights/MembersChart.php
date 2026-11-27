@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Staff\Widgets\Insights;
 
+use App\Filament\Staff\Support\TranslatesItsHeading;
 use App\Insights\Insight;
 use Filament\Widgets\ChartWidget;
 
@@ -14,6 +15,7 @@ use Filament\Widgets\ChartWidget;
 class MembersChart extends ChartWidget
 {
     use ReadsInsightFilters;
+    use TranslatesItsHeading;
 
     protected static ?int $sort = 7;
 
@@ -44,10 +46,10 @@ class MembersChart extends ChartWidget
 
         return [
             'datasets' => [
-                ['type' => 'line', 'label' => 'Active members', 'data' => array_column($months, 'active'), 'borderColor' => '#f97316', 'backgroundColor' => '#f97316'],
-                ['type' => 'line', 'label' => 'New members', 'data' => array_column($months, 'new'), 'borderColor' => '#0ea5e9', 'backgroundColor' => '#0ea5e9'],
-                ['label' => 'Pack visits bought', 'data' => array_column($months, 'visits_bought'), 'backgroundColor' => '#cbd5e1'],
-                ['label' => 'Pack visits used', 'data' => array_column($months, 'visits_used'), 'backgroundColor' => '#10b981'],
+                ['type' => 'line', 'label' => __('Active members'), 'data' => array_column($months, 'active'), 'borderColor' => '#f97316', 'backgroundColor' => '#f97316'],
+                ['type' => 'line', 'label' => __('New members'), 'data' => array_column($months, 'new'), 'borderColor' => '#0ea5e9', 'backgroundColor' => '#0ea5e9'],
+                ['label' => __('Pack visits bought'), 'data' => array_column($months, 'visits_bought'), 'backgroundColor' => '#cbd5e1'],
+                ['label' => __('Pack visits used'), 'data' => array_column($months, 'visits_used'), 'backgroundColor' => '#10b981'],
             ],
             'labels' => array_map(fn (array $month): string => self::monthLabel($month['month']), $months),
         ];

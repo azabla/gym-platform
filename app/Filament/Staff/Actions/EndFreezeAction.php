@@ -8,6 +8,7 @@ use App\Domains\Memberships\Models\Membership;
 use App\Domains\Memberships\Models\MembershipFreeze;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
+use App\Filament\Staff\Support\Dates;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
@@ -30,14 +31,14 @@ class EndFreezeAction extends Action
     {
         parent::setUp();
 
-        $this->label('End freeze')
+        $this->label(__('End freeze'))
             ->icon(Heroicon::OutlinedPlayCircle)
             ->modalIcon(Heroicon::OutlinedPlayCircle)
             ->color('info')
             ->visible(fn (Membership $record): bool => Gate::allows('freeze', $record) && self::freezesNotOver($record) !== [])
             ->schema(fn (Membership $record): array => [
                 Select::make('freeze_id')
-                    ->label('Freeze')
+                    ->label(__('Freeze'))
                     ->options(self::freezesNotOver($record))
                     ->default(array_key_first(self::freezesNotOver($record)))
                     ->required(),
@@ -53,7 +54,7 @@ class EndFreezeAction extends Action
 
                 $record->endFreeze($freeze, $today, app(CurrentStaff::class)->get());
 
-                Notification::make()->success()->title("Freeze ended. It now ends on {$record->refresh()->ends_on->format('j F Y')}.")->send();
+                Notification::make()->success()->title(__('Freeze ended. It now ends on :date.', ['date' => Dates::long($record->refresh()->ends_on)]))->send();
             });
     }
 
@@ -71,7 +72,7 @@ class EndFreezeAction extends Action
             ->orderBy('starts_on')
             ->get()
             ->mapWithKeys(fn (MembershipFreeze $freeze): array => [
-                $freeze->id => "{$freeze->starts_on->format('j M Y')} to {$freeze->ends_on->format('j M Y')}",
+                $freeze->id => __(':from to :to', ['from' => Dates::short($freeze->starts_on), 'to' => Dates::short($freeze->ends_on)]),
             ])
             ->all();
     }

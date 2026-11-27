@@ -7,6 +7,7 @@ namespace App\Filament\Staff\Widgets;
 use App\Dashboards\StaffDashboard;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Domains\Shared\Money\Money;
+use App\Filament\Staff\Support\TranslatesItsHeading;
 use App\Filament\Staff\Widgets\Concerns\ReadsDashboardFilters;
 use Filament\Widgets\ChartWidget;
 
@@ -17,6 +18,7 @@ use Filament\Widgets\ChartWidget;
 class TakingsChart extends ChartWidget
 {
     use ReadsDashboardFilters;
+    use TranslatesItsHeading;
 
     protected static ?int $sort = 4;
 
@@ -46,7 +48,7 @@ class TakingsChart extends ChartWidget
 
         return [
             'datasets' => [[
-                'label' => 'Taken (ETB)',
+                'label' => __('Taken (ETB)'),
                 'data' => array_map(fn (array $day): float => (float) $day['net']->toDecimal(), $days),
             ]],
             'labels' => array_column($days, 'date'),

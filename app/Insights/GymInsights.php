@@ -35,6 +35,9 @@ final class GymInsights
     /** A membership counts as renewed when the next one starts within this many days of its end. */
     public const RENEWAL_DAYS = 14;
 
+    /** What revenue without a plan is grouped under; the panel translates it. */
+    public const NO_PLAN = 'No plan';
+
     /**
      * The first day of each month covered, oldest first, ending with the
      * gym's current month.
@@ -80,7 +83,7 @@ final class GymInsights
             $total = Money::ofMinor((int) $sum->total_minor, Currency::from((string) $sum->currency));
             $signed = $sum->type === PaymentType::Refund->value ? $total->negate() : $total;
             $month = (string) $sum->month;
-            $plan = $sum->plan === null ? 'No plan' : (string) $sum->plan;
+            $plan = $sum->plan === null ? self::NO_PLAN : (string) $sum->plan;
             $method = (string) $sum->method;
 
             $byPlan[$month][$plan] = (isset($byPlan[$month][$plan]) ? $byPlan[$month][$plan] : Money::zero())->add($signed);

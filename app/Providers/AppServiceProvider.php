@@ -17,6 +17,7 @@ use App\Domains\Shared\PhoneNumber\Exceptions\InvalidPhoneNumber;
 use App\Domains\Shared\PhoneNumber\PhoneNumber;
 use App\Http\ApiDocs\DocumentTheGymInThePath;
 use App\Insights\Insight;
+use Carbon\Translator as CarbonTranslator;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
@@ -62,6 +63,31 @@ class AppServiceProvider extends ServiceProvider
         $this->limitSmsSignIn();
         $this->describeApiCallsAsTakingBearerTokens();
         $this->letRolesSeeTheirInsights();
+        $this->spellAmharicDatesInFull();
+    }
+
+    /**
+     * Carbon's Amharic cuts month names short (ኦክተ) and misspells some
+     * (ጃንዩወሪ, ጡዋት); dates read with these instead, as the glossary sets
+     * (docs/amharic-glossary.md, ADR 0041).
+     */
+    private function spellAmharicDatesInFull(): void
+    {
+        $months = ['ጃንዋሪ', 'ፌብሩዋሪ', 'ማርች', 'ኤፕሪል', 'ሜይ', 'ጁን', 'ጁላይ', 'ኦገስት', 'ሴፕቴምበር', 'ኦክቶበር', 'ኖቬምበር', 'ዲሴምበር'];
+        $weekdays = ['እሁድ', 'ሰኞ', 'ማክሰኞ', 'ረቡዕ', 'ሐሙስ', 'ዓርብ', 'ቅዳሜ'];
+
+        CarbonTranslator::get()->setMessages('am', [
+            'months' => $months,
+            'months_short' => $months,
+            'weekdays' => $weekdays,
+            'weekdays_short' => $weekdays,
+            'weekdays_min' => $weekdays,
+            'meridiem' => ['ጠዋት', 'ከሰዓት'],
+            'ago' => ':time በፊት',
+            'from_now' => ':time በኋላ',
+            'before' => ':time በፊት',
+            'after' => ':time በኋላ',
+        ]);
     }
 
     /**

@@ -9,7 +9,9 @@ use App\Domains\Organizations\Models\BranchClosure;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\BranchClosures\Pages\ListBranchClosures;
+use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Tables;
+use App\Filament\Staff\Support\TranslatesItsLabels;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
@@ -32,6 +34,8 @@ use UnitEnum;
  */
 class BranchClosureResource extends Resource
 {
+    use TranslatesItsLabels;
+
     protected static ?string $model = BranchClosure::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
@@ -46,34 +50,34 @@ class BranchClosureResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return Tables::standard($table, Heroicon::OutlinedCalendarDays, 'No closures', 'Add holidays and repair days, so check-ins are turned away and members are told.')
+        return Tables::standard($table, Heroicon::OutlinedCalendarDays, __('No closures'), __('Add holidays and repair days, so check-ins are turned away and members are told.'))
             ->defaultSort('starts_on')
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['branch', 'createdBy.user']))
             ->columns([
-                TextColumn::make('branch.name')->label('Branch')->badge()->color('gray')->sortable(),
+                TextColumn::make('branch.name')->label(__('Branch'))->badge()->color('gray')->sortable(),
                 TextColumn::make('starts_on')
-                    ->label('Days')
+                    ->label(__('Days'))
                     ->state(fn (BranchClosure $record): string => self::daysOf($record))
                     ->description(fn (BranchClosure $record): string => trans_choice('{1} 1 day|[2,*] :count days', self::lengthOf($record)))
                     ->weight(FontWeight::SemiBold)
                     ->sortable(),
                 TextColumn::make('hours')
-                    ->label('Hours')
+                    ->label(__('Hours'))
                     ->state(fn (BranchClosure $record): string => self::hoursOf($record))
                     ->badge()
                     ->color(fn (BranchClosure $record): string => $record->isClosedAllDay() ? 'danger' : 'warning')
                     ->icon(fn (BranchClosure $record): Heroicon => $record->isClosedAllDay() ? Heroicon::OutlinedLockClosed : Heroicon::OutlinedClock),
-                TextColumn::make('reason')
+                TextColumn::make('reason')->label(__('Reason'))
                     ->searchable()
                     ->wrap()
-                    ->description(fn (BranchClosure $record): ?string => $record->repeats_yearly ? 'Yearly, on '.$record->ethiopianStart() : null),
-                TextColumn::make('createdBy.user.name')->label('Added by')->toggleable(isToggledHiddenByDefault: true),
+                    ->description(fn (BranchClosure $record): ?string => $record->repeats_yearly ? __('Yearly, on :date', ['date' => $record->ethiopianStart(app()->getLocale())]) : null),
+                TextColumn::make('createdBy.user.name')->label(__('Added by'))->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->searchPlaceholder('Reason')
+            ->searchPlaceholder(__('Reason'))
             ->filters([
                 SelectFilter::make('when')
-                    ->label('When')
-                    ->options(['coming' => 'Today and coming', 'past' => 'Ended'])
+                    ->label(__('When'))
+                    ->options(['coming' => __('Today and coming'), 'past' => __('Ended')])
                     ->default('coming')
                     ->query(fn (Builder $query, array $data): Builder => match ($data['value'] ?? null) {
                         'coming' => $query->whereDate('ends_on', '>=', self::today()->toDateString()),
@@ -81,23 +85,23 @@ class BranchClosureResource extends Resource
                         default => $query,
                     }),
                 SelectFilter::make('branch')
-                    ->label('Branch')
+                    ->label(__('Branch'))
                     ->relationship('branch', 'name', fn (Builder $query): Builder => $query->whereKey(self::branchIds())),
-                Tables::dateRange('starts', 'starts_on', 'Starts'),
+                Tables::dateRange('starts', 'starts_on', __('Starts')),
             ])
             ->recordActions([
-                Action::make('remove')
+                Action::make('remove')->label(__('Remove'))
                     ->icon(Heroicon::OutlinedTrash)
                     ->color('danger')
                     ->visible(fn (BranchClosure $record): bool => Gate::allows('update', $record->branch))
                     ->requiresConfirmation()
-                    ->modalHeading('Take this closure back?')
-                    ->modalDescription(fn (BranchClosure $record): string => "{$record->branch->name} keeps its weekly hours on ".self::daysOf($record).'.'
-                        .($record->members_told_at === null ? '' : ' Members who were told of the closure hear it is open as usual.'))
+                    ->modalHeading(__('Take this closure back?'))
+                    ->modalDescription(fn (BranchClosure $record): string => __(':branch keeps its weekly hours on :days.', ['branch' => $record->branch->name, 'days' => self::daysOf($record)])
+                        .($record->members_told_at === null ? '' : ' '.__('Members who were told of the closure hear it is open as usual.')))
                     ->action(function (BranchClosure $record): void {
                         $record->takeBack();
 
-                        Notification::make()->success()->title('Closure taken back.')->send();
+                        Notification::make()->success()->title(__('Closure taken back.'))->send();
                     }),
             ]);
     }
@@ -129,9 +133,9 @@ class BranchClosureResource extends Resource
      */
     public static function daysOf(BranchClosure $closure): string
     {
-        $from = $closure->starts_on->format('D j M');
+        $from = Dates::dayOfWeek($closure->starts_on);
 
-        return $closure->starts_on->equalTo($closure->ends_on) ? $from : $from.' – '.$closure->ends_on->format('D j M');
+        return $closure->starts_on->equalTo($closure->ends_on) ? $from : $from.' – '.Dates::dayOfWeek($closure->ends_on);
     }
 
     /**
@@ -142,10 +146,10 @@ class BranchClosureResource extends Resource
         $window = $closure->window();
 
         if ($window === null) {
-            return 'Closed';
+            return __('Closed');
         }
 
-        return substr($window->opensAt, 0, 5).'–'.substr($window->closesAt, 0, 5).($window->runsPastMidnight() ? ' (next day)' : '');
+        return substr($window->opensAt, 0, 5).'–'.substr($window->closesAt, 0, 5).($window->runsPastMidnight() ? ' '.__('(next day)') : '');
     }
 
     private static function lengthOf(BranchClosure $closure): int

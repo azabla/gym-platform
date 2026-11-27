@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Staff\Widgets\Insights;
 
+use App\Filament\Staff\Support\TranslatesItsHeading;
 use App\Insights\Insight;
 use Filament\Widgets\ChartWidget;
 
@@ -14,6 +15,7 @@ use Filament\Widgets\ChartWidget;
 class RenewalsChart extends ChartWidget
 {
     use ReadsInsightFilters;
+    use TranslatesItsHeading;
 
     protected static ?int $sort = 3;
 
@@ -44,12 +46,12 @@ class RenewalsChart extends ChartWidget
 
         return [
             'datasets' => [
-                ['label' => 'Renewed', 'data' => array_column($months, 'renewed'), 'backgroundColor' => '#10b981', 'stack' => 'ended'],
-                ['label' => 'Lapsed', 'data' => array_column($months, 'lapsed'), 'backgroundColor' => '#f43f5e', 'stack' => 'ended'],
-                ['label' => 'Waiting', 'data' => array_column($months, 'waiting'), 'backgroundColor' => '#94a3b8', 'stack' => 'ended'],
+                ['label' => __('Renewed'), 'data' => array_column($months, 'renewed'), 'backgroundColor' => '#10b981', 'stack' => 'ended'],
+                ['label' => __('Lapsed'), 'data' => array_column($months, 'lapsed'), 'backgroundColor' => '#f43f5e', 'stack' => 'ended'],
+                ['label' => __('Waiting'), 'data' => array_column($months, 'waiting'), 'backgroundColor' => '#94a3b8', 'stack' => 'ended'],
                 [
                     'type' => 'line',
-                    'label' => 'Renewal rate (%)',
+                    'label' => __('Renewal rate (%)'),
                     'data' => array_map(fn (array $month): ?float => $month['rate'] === null ? null : round($month['rate'] * 100, 1), $months),
                     'borderColor' => '#f97316',
                     'backgroundColor' => '#f97316',

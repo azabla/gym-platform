@@ -9,6 +9,7 @@ use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Shared\Language\Language;
 use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Support\Languages;
+use App\Filament\Staff\Support\TranslatesItsTitle;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -29,6 +30,8 @@ use UnitEnum;
  */
 class GymSettings extends Page
 {
+    use TranslatesItsTitle;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
 
     protected static string|UnitEnum|null $navigationGroup = NavigationGroup::GymSetup;
@@ -47,21 +50,21 @@ class GymSettings extends Page
         $gym = self::gym();
 
         return $schema->components([
-            Section::make('The gym')
-                ->description('Set when the gym joined the platform. Ask the platform to change them.')
+            Section::make(__('The gym'))
+                ->description(__('Set when the gym joined the platform. Ask the platform to change them.'))
                 ->icon(Heroicon::OutlinedBuildingStorefront)
                 ->columns(['default' => 1, 'md' => 3])
                 ->schema([
-                    TextEntry::make('name')->state($gym->name)->weight('bold'),
-                    TextEntry::make('slug')->label('Address in the panel')->state('/staff/'.$gym->slug)->fontFamily('mono')->copyable(),
-                    TextEntry::make('timezone')->label('Time zone')->state($gym->timezone)->icon(Heroicon::OutlinedClock),
+                    TextEntry::make('name')->label(__('Name'))->state($gym->name)->weight('bold'),
+                    TextEntry::make('slug')->label(__('Address in the panel'))->state('/staff/'.$gym->slug)->fontFamily('mono')->copyable(),
+                    TextEntry::make('timezone')->label(__('Time zone'))->state($gym->timezone)->icon(Heroicon::OutlinedClock),
                 ]),
-            Section::make('Messages')
-                ->description('The language members get texts in, unless the desk or the members app chose another for them. Pushes and the app\'s inbox follow the language of each member\'s phone.')
+            Section::make(__('Messages'))
+                ->description(__('The language members get texts in, unless the desk or the members app chose another for them. Pushes and the app\'s inbox follow the language of each member\'s phone.'))
                 ->icon(Heroicon::OutlinedLanguage)
                 ->schema([
                     TextEntry::make('message_language')
-                        ->label('Message language')
+                        ->label(__('Message language'))
                         ->state(Languages::label($gym->messageLanguage()))
                         ->badge()
                         ->color('primary'),
@@ -73,16 +76,16 @@ class GymSettings extends Page
     {
         return [
             Action::make('changeMessageLanguage')
-                ->label('Change message language')
+                ->label(__('Change message language'))
                 ->icon(Heroicon::OutlinedLanguage)
                 ->visible(fn (): bool => Gate::allows('update', self::gym()))
                 ->modalIcon(Heroicon::OutlinedLanguage)
                 ->modalWidth(Width::Medium)
-                ->modalDescription(fn (): string => 'Members now get texts in '.Languages::label(self::gym()->messageLanguage()).'. Members who chose their own language keep it.')
+                ->modalDescription(fn (): string => __('Members now get texts in :language. Members who chose their own language keep it.', ['language' => Languages::label(self::gym()->messageLanguage())]))
                 ->fillForm(fn (): array => ['message_language' => self::gym()->messageLanguage()->value])
                 ->schema([
                     Select::make('message_language')
-                        ->label('Message language')
+                        ->label(__('Message language'))
                         ->options(Languages::options())
                         ->native(false)
                         ->required(),
@@ -91,7 +94,7 @@ class GymSettings extends Page
                     $language = Language::from((string) $data['message_language']);
                     self::gym()->update(['message_language' => $language]);
 
-                    Notification::make()->success()->title('Members now get texts in '.Languages::label($language).'.')->send();
+                    Notification::make()->success()->title(__('Members now get texts in :language.', ['language' => Languages::label($language)]))->send();
                 }),
         ];
     }

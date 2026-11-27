@@ -10,6 +10,8 @@ use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\Concerns\ShowsGymTime;
 use App\Filament\Staff\Support\Badges;
+use App\Filament\Staff\Support\Dates;
+use App\Filament\Staff\Support\TranslatesItsTitle;
 use App\Rules\ChapaSecretKey;
 use BackedEnum;
 use Closure;
@@ -33,6 +35,7 @@ use UnitEnum;
 class OnlinePayments extends Page
 {
     use ShowsGymTime;
+    use TranslatesItsTitle;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCreditCard;
 
@@ -52,8 +55,8 @@ class OnlinePayments extends Page
         $account = self::account();
 
         return $schema->components([
-            Section::make('Chapa')
-                ->description('Members\' online payments go straight to the gym\'s own Chapa account. The platform never holds the money.')
+            Section::make(__('Chapa'))
+                ->description(__('Members\' online payments go straight to the gym\'s own Chapa account. The platform never holds the money.'))
                 ->icon(Heroicon::OutlinedCreditCard)
                 ->iconColor($account === null ? 'gray' : Badges::color($account->mode))
                 ->columns(['default' => 1, 'md' => 4])
@@ -63,16 +66,16 @@ class OnlinePayments extends Page
                         ->columnSpanFull()
                         ->icon(Heroicon::OutlinedExclamationTriangle)
                         ->iconColor('warning')
-                        ->state('Not connected. Connect the gym\'s Chapa account to send payment links and let members pay in the app.'),
+                        ->state(__('Not connected. Connect the gym\'s Chapa account to send payment links and let members pay in the app.')),
                 ] : [
                     TextEntry::make('mode')
-                        ->label('Key')
-                        ->state(Badges::label($account->mode).($account->mode->value === 'live' ? ': real payments' : ': test payments only'))
+                        ->label(__('Key'))
+                        ->state($account->mode->value === 'live' ? __(':mode: real payments', ['mode' => Badges::label($account->mode)]) : __(':mode: test payments only', ['mode' => Badges::label($account->mode)]))
                         ->badge()
                         ->color(Badges::color($account->mode)),
-                    TextEntry::make('key_hint')->label('Ends in')->state('…'.$account->key_hint)->fontFamily('mono'),
-                    TextEntry::make('connected_by')->label('Connected by')->state($account->connectedBy?->user->name),
-                    TextEntry::make('connected_at')->label('Connected')->state($account->updated_at)->dateTime('j M Y, H:i')->timezone(self::gymTimezone()),
+                    TextEntry::make('key_hint')->label(__('Ends in'))->state('…'.$account->key_hint)->fontFamily('mono'),
+                    TextEntry::make('connected_by')->label(__('Connected by'))->state($account->connectedBy?->user->name),
+                    TextEntry::make('connected_at')->label(__('Connected'))->state($account->updated_at)->formatStateUsing(Dates::asDateTime(self::gymTimezone())),
                 ]),
         ]);
     }
@@ -81,12 +84,12 @@ class OnlinePayments extends Page
     {
         return [
             Action::make('connect')
-                ->label(fn (): string => self::account() === null ? 'Connect Chapa' : 'Replace key')
+                ->label(fn (): string => self::account() === null ? __('Connect Chapa') : __('Replace key'))
                 ->visible(fn (): bool => Gate::allows('connect', ChapaAccount::class))
-                ->modalDescription('Copy the secret key from your Chapa dashboard, under Settings > API. It starts with CHASECK_TEST for test payments or CHASECK for real ones.')
+                ->modalDescription(__('Copy the secret key from your Chapa dashboard, under Settings > API. It starts with CHASECK_TEST for test payments or CHASECK for real ones.'))
                 ->schema([
                     TextInput::make('secret_key')
-                        ->label('Secret key')
+                        ->label(__('Secret key'))
                         ->password()
                         ->required()
                         ->maxLength(255)
@@ -95,17 +98,17 @@ class OnlinePayments extends Page
                 ->action(function (array $data): void {
                     ChapaAccount::connect(trim((string) $data['secret_key']), app(CurrentStaff::class)->get());
 
-                    Notification::make()->success()->title('Chapa is connected.')->send();
+                    Notification::make()->success()->title(__('Chapa is connected.'))->send();
                 }),
-            Action::make('disconnect')
+            Action::make('disconnect')->label(__('Disconnect'))
                 ->color('danger')
                 ->visible(fn (): bool => self::account() !== null && Gate::allows('disconnect', ChapaAccount::class))
                 ->requiresConfirmation()
-                ->modalDescription('Members can no longer pay online, and open payment links can no longer be checked. The key is deleted.')
+                ->modalDescription(__('Members can no longer pay online, and open payment links can no longer be checked. The key is deleted.'))
                 ->action(function (): void {
                     ChapaAccount::query()->delete();
 
-                    Notification::make()->success()->title('Chapa is disconnected.')->send();
+                    Notification::make()->success()->title(__('Chapa is disconnected.'))->send();
                 }),
         ];
     }

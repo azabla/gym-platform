@@ -22,65 +22,65 @@ final class PaymentRefused extends DomainException
 
     public static function membershipCancelled(): self
     {
-        return new self('This membership is cancelled, so nothing is due on it.', 'membership');
+        return new self(__('This membership is cancelled, so nothing is due on it.'), 'membership');
     }
 
     public static function moreThanBalanceDue(Money $balanceDue): self
     {
         return new self($balanceDue->isPositive()
-            ? "Only {$balanceDue->format()} is still due on this membership."
-            : 'Nothing is due on this membership.', 'amount');
+            ? __('Only :amount is still due on this membership.', ['amount' => $balanceDue->format()])
+            : __('Nothing is due on this membership.'), 'amount');
     }
 
     public static function membershipNotCancelled(): self
     {
-        return new self('Only a cancelled membership can be refunded. Cancel it first.', 'membership');
+        return new self(__('Only a cancelled membership can be refunded. Cancel it first.'), 'membership');
     }
 
     public static function moreThanAmountPaid(Money $amountPaid): self
     {
         return new self($amountPaid->isPositive()
-            ? "Only {$amountPaid->format()} has been paid towards this membership."
-            : 'Nothing has been paid towards this membership.', 'amount');
+            ? __('Only :amount has been paid towards this membership.', ['amount' => $amountPaid->format()])
+            : __('Nothing has been paid towards this membership.'), 'amount');
     }
 
     public static function alreadyVoided(): self
     {
-        return new self('This payment is already voided.', 'payment');
+        return new self(__('This payment is already voided.'), 'payment');
     }
 
     public static function noChapaAccount(): self
     {
-        return new self('Connect the gym\'s Chapa account first.', 'chapa_account');
+        return new self(__('Connect the gym\'s Chapa account first.'), 'chapa_account');
     }
 
     public static function linkAlreadyOpen(): self
     {
-        return new self('This membership already has an open payment link. Cancel it to create a new one.', 'membership');
+        return new self(__('This membership already has an open payment link. Cancel it to create a new one.'), 'membership');
     }
 
     public static function noRefundNeeded(): self
     {
-        return new self('Only a link needing a refund can be marked refunded.', 'payment_link');
+        return new self(__('Only a link needing a refund can be marked refunded.'), 'payment_link');
     }
 
     public static function linkNotOpen(): self
     {
-        return new self('Only an open link can be texted to the member.', 'payment_link');
+        return new self(__('Only an open link can be texted to the member.'), 'payment_link');
     }
 
     public static function textedAMomentAgo(): self
     {
-        return new self('The link was texted to the member a moment ago. Wait a few minutes before sending it again.', 'payment_link');
+        return new self(__('The link was texted to the member a moment ago. Wait a few minutes before sending it again.'), 'payment_link');
     }
 
     public static function nothingDue(): self
     {
-        return new self('Nothing is due on this membership.', 'amount');
+        return new self(__('Nothing is due on this membership.'), 'amount');
     }
 
     public static function voidLeavesMoreRefundedThanPaid(): self
     {
-        return new self('Voiding this payment would leave more refunded than paid. Void the refund first.', 'payment');
+        return new self(__('Voiding this payment would leave more refunded than paid. Void the refund first.'), 'payment');
     }
 }

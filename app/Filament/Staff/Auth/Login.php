@@ -22,7 +22,7 @@ class Login extends BaseLogin
     protected function getEmailFormComponent(): Component
     {
         return TextInput::make('phone')
-            ->label('Phone number')
+            ->label(__('Phone number'))
             ->tel()
             ->required()
             ->rule(new ValidPhoneNumber)

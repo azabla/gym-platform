@@ -31,12 +31,12 @@ class MemberPhotoAction extends Action
     {
         parent::setUp();
 
-        $this->label(fn (Member $record): string => $record->photo_path === null ? 'Add photo' : 'Change photo')
+        $this->label(fn (Member $record): string => $record->photo_path === null ? __('Add photo') : __('Change photo'))
             ->icon(Heroicon::OutlinedCamera)
             ->color('gray')
             ->modalIcon(Heroicon::OutlinedCamera)
             ->modalWidth(Width::Medium)
-            ->modalDescription('So the desk can see that the person at the door is the member. Take it with the camera or choose a picture; it is cropped square.')
+            ->modalDescription(__('So the desk can see that the person at the door is the member. Take it with the camera or choose a picture; it is cropped square.'))
             ->visible(fn (Member $record): bool => Gate::allows('update', $record))
             ->schema([
                 FileUpload::make('photo')
@@ -49,7 +49,7 @@ class MemberPhotoAction extends Action
                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                     ->maxSize(5120)
                     ->storeFiles(false)
-                    ->helperText('JPEG, PNG or WebP, up to 5 MB.')
+                    ->helperText(__('JPEG, PNG or WebP, up to 5 MB.'))
                     ->required(),
             ])
             ->action(function (array $data, Member $record, Action $action): void {
@@ -61,7 +61,7 @@ class MemberPhotoAction extends Action
                     Refusals::halt($action, $refusal);
                 }
 
-                Notification::make()->success()->title('Photo saved.')->send();
+                Notification::make()->success()->title(__('Photo saved.'))->send();
             });
     }
 }

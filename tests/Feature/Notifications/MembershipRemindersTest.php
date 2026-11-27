@@ -64,12 +64,12 @@ it('reminds the member 5, 3 and 1 days before the membership ends, by SMS only a
 
     expect($this->tigist->notifications()->pluck('type')->all())->toBe(['membership_expiring', 'membership_expiring', 'membership_expiring'])
         ->and(array_map(fn ($push) => $push[1]->body, $this->pushes->sent))->toBe([
-            'Your Monthly membership at Demo Gym ends in 5 days, on 2026-10-27.',
-            'Your Monthly membership at Demo Gym ends in 3 days, on 2026-10-27.',
-            'Your Monthly membership at Demo Gym ends tomorrow, 2026-10-27.',
+            'Your Monthly membership at Demo Gym ends in 5 days, on 27 October 2026.',
+            'Your Monthly membership at Demo Gym ends in 3 days, on 27 October 2026.',
+            'Your Monthly membership at Demo Gym ends tomorrow, 27 October 2026.',
         ])
         ->and($this->texts->sent)->toBe([
-            ['+251922345678', 'Demo Gym: your Monthly membership ends on 2026-10-27. Renew at the desk to keep training.'],
+            ['+251922345678', 'Demo Gym: your Monthly membership ends on 27 October 2026. Renew at the desk to keep training.'],
         ]);
 });
 
@@ -79,7 +79,7 @@ it('tells the member the day after it ended, by SMS too', function () {
     expect($this->tigist->notifications()->sole()->type)->toBe('membership_expired')
         ->and($this->pushes->sent[0][1]->title)->toBe('Membership ended')
         ->and($this->texts->sent)->toBe([
-            ['+251922345678', 'Demo Gym: your Monthly membership ended on 2026-10-27. Renew at the desk to keep training.'],
+            ['+251922345678', 'Demo Gym: your Monthly membership ended on 27 October 2026. Renew at the desk to keep training.'],
         ]);
 });
 
@@ -121,7 +121,7 @@ it('texts a member in their gym\'s language, unless they chose their own', funct
     remindAt('2026-10-28 10:00');
 
     expect($this->texts->sent)->toEqualCanonicalizing([
-        ['+251922345678', 'Demo Gym፦ የMonthly አባልነትዎ 2026-10-27 ላይ አብቅቷል። ስፖርትዎን ለመቀጠል በእንግዳ መቀበያ ያድሱ።'],
-        ['+251911223344', 'Demo Gym: your Monthly membership ended on 2026-10-27. Renew at the desk to keep training.'],
+        ['+251922345678', 'Demo Gym፦ የMonthly አባልነትዎ ጥቅምት 17 ቀን 2019 ዓ.ም. አብቅቷል። ስፖርትዎን ለመቀጠል በመስተንግዶ ያድሱ።'],
+        ['+251911223344', 'Demo Gym: your Monthly membership ended on 27 October 2026. Renew at the desk to keep training.'],
     ]);
 });

@@ -17,7 +17,9 @@ use App\Filament\Staff\Resources\Memberships\MembershipResource;
 use App\Filament\Staff\Resources\Payments\Pages\ListPayments;
 use App\Filament\Staff\Resources\Payments\Pages\ViewPayment;
 use App\Filament\Staff\Support\Badges;
+use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Tables;
+use App\Filament\Staff\Support\TranslatesItsLabels;
 use BackedEnum;
 use Filament\Actions\ViewAction;
 use Filament\Infolists\Components\TextEntry;
@@ -45,6 +47,7 @@ class PaymentResource extends Resource
 {
     use LimitsToTheStaffMembersBranches;
     use ShowsGymTime;
+    use TranslatesItsLabels;
 
     protected static ?string $model = Payment::class;
 
@@ -58,53 +61,52 @@ class PaymentResource extends Resource
     {
         return $schema
             ->components([
-                Section::make('Receipt')
+                Section::make(__('Receipt'))
                     ->icon(Heroicon::OutlinedReceiptPercent)
                     ->schema([
                         Grid::make(['default' => 2, 'lg' => 4])->schema([
-                            TextEntry::make('amount')
+                            TextEntry::make('amount')->label(__('Amount'))
                                 ->state(fn (Payment $record): string => $record->amount->format())
                                 ->size('lg')
                                 ->weight(FontWeight::Bold)
                                 ->color(fn (Payment $record): string => $record->type === PaymentType::Refund ? 'danger' : 'success'),
-                            TextEntry::make('type')
+                            TextEntry::make('type')->label(__('Type'))
                                 ->badge()
                                 ->formatStateUsing(fn (PaymentType $state): string => Badges::label($state))
                                 ->color(fn (PaymentType $state): string => Badges::color($state))
                                 ->icon(fn (PaymentType $state): ?Heroicon => Badges::icon($state)),
-                            TextEntry::make('receipt_number')->label('Receipt')->copyable()->weight(FontWeight::SemiBold),
+                            TextEntry::make('receipt_number')->label(__('Receipt'))->copyable()->weight(FontWeight::SemiBold),
                             TextEntry::make('voided_at')
-                                ->label('Voided')
-                                ->dateTime('j M Y, H:i')
-                                ->timezone(self::gymTimezone())
+                                ->label(__('Voided'))
+                                ->formatStateUsing(Dates::asDateTime(self::gymTimezone()))
                                 ->badge()
                                 ->color('danger')
-                                ->placeholder('No'),
+                                ->placeholder(__('No')),
                         ]),
                     ]),
-                Section::make('Payment')
+                Section::make(__('Payment'))
                     ->icon(Heroicon::OutlinedBanknotes)
                     ->columns(['default' => 1, 'md' => 3])
                     ->schema([
                         TextEntry::make('membership.member.full_name')
-                            ->label('Member')
+                            ->label(__('Member'))
                             ->weight(FontWeight::SemiBold)
                             ->url(fn (Payment $record): ?string => $record->membership?->member_id === null ? null : MemberResource::getUrl('view', ['record' => $record->membership->member_id])),
                         TextEntry::make('membership.plan.name')
-                            ->label('Membership')
+                            ->label(__('Membership'))
                             ->badge()
                             ->color('primary')
                             ->url(fn (Payment $record): string => MembershipResource::getUrl('view', ['record' => $record->membership_id])),
-                        TextEntry::make('method')
+                        TextEntry::make('method')->label(__('Method'))
                             ->badge()
                             ->formatStateUsing(fn (PaymentMethod $state): string => Badges::label($state))
                             ->color(fn (PaymentMethod $state): string => Badges::color($state)),
-                        TextEntry::make('reference')->label('Transaction number')->copyable()->placeholder('None'),
-                        TextEntry::make('paid_on')->label('Paid on')->date('j M Y'),
-                        TextEntry::make('branch.name')->label('Branch')->badge()->color('gray'),
-                        TextEntry::make('receivedBy.user.name')->label('Taken by')->placeholder('Online, through Chapa'),
+                        TextEntry::make('reference')->label(__('Transaction number'))->copyable()->placeholder(__('None')),
+                        TextEntry::make('paid_on')->label(__('Paid on'))->formatStateUsing(Dates::asDate()),
+                        TextEntry::make('branch.name')->label(__('Branch'))->badge()->color('gray'),
+                        TextEntry::make('receivedBy.user.name')->label(__('Taken by'))->placeholder(__('Online, through Chapa')),
                         TextEntry::make('void_reason')
-                            ->label('Why it was voided')
+                            ->label(__('Why it was voided'))
                             ->columnSpan(2)
                             ->visible(fn (Payment $record): bool => $record->voided_at !== null),
                     ]),
@@ -113,20 +115,20 @@ class PaymentResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return Tables::standard($table, Heroicon::OutlinedBanknotes, 'No payments here', 'Take a payment from a membership\'s page, or change the filters.')
+        return Tables::standard($table, Heroicon::OutlinedBanknotes, __('No payments here'), __('Take a payment from a membership\'s page, or change the filters.'))
             ->defaultSort('paid_on', 'desc')
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['membership.member', 'membership.plan', 'branch', 'receivedBy.user']))
             ->description(fn (HasTable $livewire): string => self::totalsOf($livewire->getFilteredTableQuery()))
-            ->searchPlaceholder('Receipt, transaction number or member')
+            ->searchPlaceholder(__('Receipt, transaction number or member'))
             ->columns([
                 TextColumn::make('receipt_number')
-                    ->label('Receipt')
+                    ->label(__('Receipt'))
                     ->weight(FontWeight::SemiBold)
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('paid_on')->label('Paid on')->date('j M Y')->sortable(),
+                TextColumn::make('paid_on')->label(__('Paid on'))->formatStateUsing(Dates::asDate())->sortable(),
                 TextColumn::make('membership.member.full_name')
-                    ->label('Member')
+                    ->label(__('Member'))
                     ->description(fn (Payment $record): string => (string) $record->membership?->plan?->name)
                     ->searchable(),
                 Tables::badge('type'),
@@ -138,32 +140,31 @@ class PaymentResource extends Resource
                     })
                     ->extraAttributes(fn (Payment $record): array => ['class' => 'tabular-nums'.($record->voided_at !== null ? ' line-through' : '')]),
                 Tables::badge('method'),
-                TextColumn::make('reference')->label('Transaction number')->placeholder('None')->searchable()->copyable()->toggleable(),
-                TextColumn::make('branch.name')->label('Branch')->badge()->color('gray'),
-                TextColumn::make('receivedBy.user.name')->label('Taken by')->placeholder('Online')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('reference')->label(__('Transaction number'))->placeholder(__('None'))->searchable()->copyable()->toggleable(),
+                TextColumn::make('branch.name')->label(__('Branch'))->badge()->color('gray'),
+                TextColumn::make('receivedBy.user.name')->label(__('Taken by'))->placeholder(__('Online'))->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('voided_at')
-                    ->label('Voided')
-                    ->date('j M Y')
-                    ->timezone(self::gymTimezone())
+                    ->label(__('Voided'))
+                    ->formatStateUsing(Dates::asDate(self::gymTimezone()))
                     ->badge()
                     ->color('danger')
-                    ->placeholder('No')
+                    ->placeholder(__('No'))
                     ->toggleable(),
             ])
             ->filters([
-                Tables::dateRange('paid_on', 'paid_on', 'Paid'),
-                SelectFilter::make('branch')->native(false)->relationship('branch', 'name', self::onlyTheirBranches(...)),
-                SelectFilter::make('method')->native(false)->options(Badges::options(PaymentMethod::class)),
-                SelectFilter::make('type')->native(false)->options(Badges::options(PaymentType::class)),
-                TernaryFilter::make('voided')
+                Tables::dateRange('paid_on', 'paid_on', __('Paid')),
+                SelectFilter::make('branch')->label(__('Branch'))->native(false)->relationship('branch', 'name', self::onlyTheirBranches(...)),
+                SelectFilter::make('method')->label(__('Method'))->native(false)->options(Badges::options(PaymentMethod::class)),
+                SelectFilter::make('type')->label(__('Type'))->native(false)->options(Badges::options(PaymentType::class)),
+                TernaryFilter::make('voided')->label(__('Voided'))
                     ->native(false)
                     ->attribute('voided_at')
                     ->nullable()
-                    ->placeholder('Voided or not')
-                    ->trueLabel('Only voided')
-                    ->falseLabel('Not voided'),
+                    ->placeholder(__('Voided or not'))
+                    ->trueLabel(__('Only voided'))
+                    ->falseLabel(__('Not voided')),
                 SelectFilter::make('received_by')
-                    ->label('Taken by')
+                    ->label(__('Taken by'))
                     ->native(false)
                     ->options(fn (): array => Staff::query()->withTrashed()->with('user')->get()
                         ->mapWithKeys(fn (Staff $staff): array => [$staff->id => (string) $staff->user?->name])
@@ -172,7 +173,7 @@ class PaymentResource extends Resource
                     ->query(fn (Builder $query, array $data): Builder => filled($data['value'] ?? null)
                         ? $query->where('received_by_staff_id', (int) $data['value'])
                         : $query),
-                SelectFilter::make('member')
+                SelectFilter::make('member')->label(__('Member'))
                     ->native(false)
                     ->relationship('member', 'full_name')
                     ->searchable(),
@@ -223,6 +224,6 @@ class PaymentResource extends Resource
         /** @var Money $net */
         $net = $totals['net'];
 
-        return "Received {$received->format()}, refunded {$refunded->format()}, net {$net->format()}";
+        return __('Received :received, refunded :refunded, net :net', ['received' => $received->format(), 'refunded' => $refunded->format(), 'net' => $net->format()]);
     }
 }

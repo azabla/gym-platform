@@ -29,14 +29,14 @@ class CancelMembershipAction extends Action
     {
         parent::setUp();
 
-        $this->label('Cancel membership')
+        $this->label(__('Cancel membership'))
             ->icon(Heroicon::OutlinedXCircle)
             ->modalIcon(Heroicon::OutlinedXCircle)
             ->color('danger')
             ->requiresConfirmation()
             ->visible(fn (Membership $record): bool => Gate::allows('cancel', $record))
             ->schema([
-                Textarea::make('reason')->required()->maxLength(500),
+                Textarea::make('reason')->label(__('Reason'))->required()->maxLength(500),
             ])
             ->action(function (array $data, Membership $record, Action $action): void {
                 $refusal = $record->refusalToCancel(app(CurrentOrganization::class)->get()->today());
@@ -47,7 +47,7 @@ class CancelMembershipAction extends Action
 
                 $record->cancel(app(CurrentStaff::class)->get(), (string) $data['reason']);
 
-                Notification::make()->success()->title('Membership cancelled.')->send();
+                Notification::make()->success()->title(__('Membership cancelled.'))->send();
             });
     }
 }

@@ -32,14 +32,14 @@ class CheckInAction extends Action
     {
         parent::setUp();
 
-        $this->label('Check in')
+        $this->label(__('Check in'))
             ->icon(Heroicon::OutlinedArrowRightEndOnRectangle)
             ->modalIcon(Heroicon::OutlinedArrowRightEndOnRectangle)
             ->color('success')
             ->visible(fn (): bool => Gate::allows('create', CheckIn::class))
             ->schema([
                 Select::make('branch_id')
-                    ->label('Branch')
+                    ->label(__('Branch'))
                     ->required()
                     ->options(fn (): array => app(CurrentStaff::class)->get()->branchesWorkedAt()->pluck('name', 'id')->all())
                     ->default(MemberResource::onlyBranchWorkedAt()),
@@ -54,7 +54,7 @@ class CheckInAction extends Action
                 if ($checkIn->reason_code === null) {
                     Notification::make()
                         ->success()
-                        ->title("{$record->full_name} is let in.")
+                        ->title(__(':name is let in.', ['name' => $record->full_name]))
                         ->body(self::photoOf($record))
                         ->send();
 
@@ -63,8 +63,8 @@ class CheckInAction extends Action
 
                 Notification::make()
                     ->danger()
-                    ->title("{$record->full_name} is turned away.")
-                    ->body($checkIn->reason_code->label())
+                    ->title(__(':name is turned away.', ['name' => $record->full_name]))
+                    ->body(__($checkIn->reason_code->label()))
                     ->send();
             });
     }

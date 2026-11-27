@@ -35,9 +35,9 @@ class BusyHoursGrid extends TableWidget
         $hours = array_values(array_filter(range(0, 23), fn (int $hour): bool => array_sum(array_column($grid, $hour)) > 0)) ?: range(6, 21);
 
         return $table
-            ->heading('Busiest hours, weekday by hour')
+            ->heading(__('Busiest hours, weekday by hour'))
             ->records(fn (): array => array_map(fn (int $weekday): array => [
-                'weekday' => BusyHoursByWeekdayChart::WEEKDAYS[$weekday],
+                'weekday' => __(BusyHoursByWeekdayChart::WEEKDAYS[$weekday]),
                 ...array_combine(array_map(fn (int $hour): string => "h{$hour}", range(0, 23)), $grid[$weekday]),
             ], array_keys(BusyHoursByWeekdayChart::WEEKDAYS)))
             ->columns([

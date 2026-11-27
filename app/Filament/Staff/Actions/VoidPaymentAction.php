@@ -29,14 +29,14 @@ class VoidPaymentAction extends Action
     {
         parent::setUp();
 
-        $this->label('Void')
+        $this->label(__('Void'))
             ->icon(Heroicon::OutlinedNoSymbol)
             ->modalIcon(Heroicon::OutlinedNoSymbol)
             ->color('danger')
             ->requiresConfirmation()
             ->visible(fn (Payment $record): bool => Gate::allows('void', $record) && $record->voided_at === null)
             ->schema([
-                Textarea::make('reason')->required()->maxLength(500),
+                Textarea::make('reason')->label(__('Reason'))->required()->maxLength(500),
             ])
             ->action(function (array $data, Payment $record, Action $action): void {
                 $refusal = $record->refusalToVoid();
@@ -51,7 +51,7 @@ class VoidPaymentAction extends Action
                     Refusals::halt($action, $refusal);
                 }
 
-                Notification::make()->success()->title("Receipt {$record->receipt_number} voided.")->send();
+                Notification::make()->success()->title(__('Receipt :receipt voided.', ['receipt' => $record->receipt_number]))->send();
             });
     }
 }

@@ -15,7 +15,9 @@ use App\Filament\Staff\Resources\PromoCodes\Pages\CreatePromoCode;
 use App\Filament\Staff\Resources\PromoCodes\Pages\EditPromoCode;
 use App\Filament\Staff\Resources\PromoCodes\Pages\ListPromoCodes;
 use App\Filament\Staff\Support\Badges;
+use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Tables;
+use App\Filament\Staff\Support\TranslatesItsLabels;
 use App\Http\Requests\Api\V1\PromoCodes\StorePromoCodeRequest;
 use BackedEnum;
 use Closure;
@@ -51,6 +53,8 @@ use UnitEnum;
  */
 class PromoCodeResource extends Resource
 {
+    use TranslatesItsLabels;
+
     protected static ?string $model = PromoCode::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTicket;
@@ -63,86 +67,87 @@ class PromoCodeResource extends Resource
     {
         return $schema
             ->components([
-                Section::make('Code and discount')
-                    ->description('Share the code on Telegram or a poster; members type it in the app, or give it at the desk.')
+                Section::make(__('Code and discount'))
+                    ->description(__('Share the code on Telegram or a poster; members type it in the app, or give it at the desk.'))
                     ->icon(Heroicon::OutlinedTicket)
                     ->columns(2)
                     ->schema([
-                        TextInput::make('code')
-                            ->placeholder('NEWYEAR')
+                        TextInput::make('code')->label(__('Code'))
+                            ->placeholder(__('NEWYEAR'))
                             ->prefixIcon(Heroicon::OutlinedHashtag)
                             ->required()
                             ->regex(PromoCode::PATTERN)
                             ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                            ->validationMessages(['regex' => 'A code is 3 to 30 letters, digits or dashes, like NEWYEAR or GYM-2027.'])
+                            ->validationMessages(['regex' => __('A code is 3 to 30 letters, digits or dashes, like NEWYEAR or GYM-2027.')])
                             ->helperText(fn (?PromoCode $record): string => $record !== null && $record->usesCount() > 0
-                                ? 'It has been used, so its text stays. Archive it and make a new one to change it.'
-                                : 'What members type. Capitals don\'t matter.')
+                                ? __('It has been used, so its text stays. Archive it and make a new one to change it.')
+                                : __('What members type. Capitals don\'t matter.'))
                             ->disabled(fn (?PromoCode $record): bool => $record !== null && $record->usesCount() > 0)
                             ->rules(fn (?PromoCode $record): array => [self::codeNoOtherHas($record)]),
-                        TextInput::make('discount')
-                            ->placeholder('20% or 500')
+                        TextInput::make('discount')->label(__('Discount'))
+                            ->placeholder(__('20% or 500'))
                             ->required()
                             ->maxLength(20)
                             ->live(onBlur: true)
                             ->helperText(fn (Get $get): string => self::exampleOf((string) $get('discount')))
                             ->rules(fn (): array => [self::readableDiscount()]),
                     ]),
-                Section::make('Limits')
-                    ->description('All optional. A code without limits works for everyone, on every plan, until you archive it.')
+                Section::make(__('Limits'))
+                    ->description(__('All optional. A code without limits works for everyone, on every plan, until you archive it.'))
                     ->icon(Heroicon::OutlinedAdjustmentsHorizontal)
                     ->columns(['default' => 1, 'md' => 2])
                     ->schema([
-                        DatePicker::make('starts_on')->label('First day')->native(false)->displayFormat('j M Y')->placeholder('Starts now'),
-                        DatePicker::make('ends_on')->label('Last day')->native(false)->displayFormat('j M Y')->afterOrEqual('starts_on')->placeholder('No end'),
+                        DatePicker::make('starts_on')->hint(Dates::ethiopianHint())->live()->label(__('First day'))->native(false)->displayFormat('j M Y')->placeholder(__('Starts now')),
+                        DatePicker::make('ends_on')->hint(Dates::ethiopianHint())->live()->label(__('Last day'))->native(false)->displayFormat('j M Y')->afterOrEqual('starts_on')->placeholder(__('No end')),
                         TextInput::make('max_uses')
-                            ->label('Total uses')
+                            ->label(__('Total uses'))
                             ->integer()
-                            ->suffix('uses')
+                            ->suffix(__('uses'))
                             ->minValue(1)
                             ->maxValue(StorePromoCodeRequest::MOST_USES)
-                            ->placeholder('No limit')
-                            ->helperText('For example, the first 50 members.'),
+                            ->placeholder(__('No limit'))
+                            ->helperText(__('For example, the first 50 members.')),
                         Toggle::make('once_per_member')
-                            ->label('Once per member')
-                            ->helperText('Each member can use it once.')
+                            ->label(__('Once per member'))
+                            ->helperText(__('Each member can use it once.'))
                             ->default(true)
                             ->inline(false),
                         Select::make('plan_ids')
-                            ->label('Plans')
+                            ->label(__('Plans'))
                             ->multiple()
                             ->native(false)
                             ->columnSpanFull()
                             ->options(fn (): array => self::plansTheyManage())
                             ->required(fn (): bool => ! app(CurrentStaff::class)->get()->works_at_all_branches)
-                            ->placeholder('Every plan')
-                            ->helperText('Leave empty for every plan.'),
+                            ->placeholder(__('Every plan'))
+                            ->helperText(__('Leave empty for every plan.')),
                     ]),
             ]);
     }
 
     public static function table(Table $table): Table
     {
-        return Tables::standard($table, Heroicon::OutlinedTicket, 'No promo codes yet', 'Make a code such as NEWYEAR for an offer, and share it with members.')
+        return Tables::standard($table, Heroicon::OutlinedTicket, __('No promo codes yet'), __('Make a code such as NEWYEAR for an offer, and share it with members.'))
             ->defaultSort('id', 'desc')
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('plans')->withCount('memberships'))
-            ->searchPlaceholder('Code')
+            ->searchPlaceholder(__('Code'))
             ->columns([
-                TextColumn::make('code')
+                TextColumn::make('code')->label(__('Code'))
                     ->searchable()
                     ->weight(FontWeight::Bold)
                     ->fontFamily('mono')
                     ->copyable()
-                    ->copyMessage('Copied'),
-                TextColumn::make('discount')->badge()->color('primary')->formatStateUsing(fn (string $state): string => "{$state} off"),
-                TextColumn::make('status')
+                    ->copyMessage(__('Copied')),
+                TextColumn::make('discount')->label(__('Discount'))->badge()->color('primary')->formatStateUsing(fn (string $state): string => __(':discount off', ['discount' => $state])),
+                TextColumn::make('status')->label(__('Status'))
                     ->badge()
                     ->state(fn (PromoCode $record): string => self::statusOf($record))
-                    ->color(fn (string $state): string => Badges::promoCodeColor($state)),
-                TextColumn::make('dates')
+                    ->color(fn (string $state): string => Badges::promoCodeColor($state))
+                    ->formatStateUsing(fn (string $state): string => __($state)),
+                TextColumn::make('dates')->label(__('Dates'))
                     ->state(fn (PromoCode $record): string => self::datesOf($record))
                     ->color('gray'),
-                TextColumn::make('uses')
+                TextColumn::make('uses')->label(__('Uses'))
                     ->alignEnd()
                     ->weight(FontWeight::Medium)
                     ->state(fn (PromoCode $record): string => $record->max_uses === null
@@ -155,21 +160,21 @@ class PromoCodeResource extends Resource
                         default => 'success',
                     }),
                 TextColumn::make('once_per_member')
-                    ->label('Per member')
-                    ->formatStateUsing(fn (bool $state): string => $state ? 'Once' : 'Any number')
+                    ->label(__('Per member'))
+                    ->formatStateUsing(fn (bool $state): string => $state ? __('Once') : __('Any number'))
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('plans_list')
-                    ->label('Plans')
+                    ->label(__('Plans'))
                     ->badge()
                     ->color(fn (PromoCode $record): string => $record->available_for_all_plans ? 'primary' : 'gray')
-                    ->state(fn (PromoCode $record): array => $record->available_for_all_plans ? ['All plans'] : $record->plans->sortBy('name')->pluck('name')->all()),
+                    ->state(fn (PromoCode $record): array => $record->available_for_all_plans ? [__('All plans')] : $record->plans->sortBy('name')->pluck('name')->all()),
             ])
             ->filters([
-                SelectFilter::make('status')
+                SelectFilter::make('status')->label(__('Status'))
                     ->native(false)
-                    ->options(['active' => 'Active', 'upcoming' => 'Upcoming', 'ended' => 'Ended', 'used_up' => 'Used up'])
+                    ->options(['active' => __('Active'), 'upcoming' => __('Upcoming'), 'ended' => __('Ended'), 'used_up' => __('Used up')])
                     ->query(fn (Builder $query, array $data): Builder => self::withStatus($query, $data['value'] ?? null)),
-                SelectFilter::make('plan')
+                SelectFilter::make('plan')->label(__('Plan'))
                     ->native(false)
                     ->options(fn (): array => Plan::query()->orderBy('name')->pluck('name', 'id')->all())
                     ->query(fn (Builder $query, array $data): Builder => filled($data['value'] ?? null)
@@ -177,7 +182,7 @@ class PromoCodeResource extends Resource
                             ->where('available_for_all_plans', true)
                             ->orWhereHas('plans', fn (Builder $plans): Builder => $plans->whereKey((int) $data['value'])))
                         : $query),
-                TrashedFilter::make()->label('Archived')->native(false),
+                TrashedFilter::make()->label(__('Archived'))->native(false),
             ])
             ->recordActions([
                 EditAction::make(),
@@ -217,7 +222,7 @@ class PromoCodeResource extends Resource
         $planIds = array_values(array_map('intval', (array) ($data['plan_ids'] ?? [])));
 
         if (! Gate::allows('createFor', [PromoCode::class, $planIds === [] ? null : $planIds])) {
-            throw ValidationException::withMessages(['data.plan_ids' => 'Choose plans sold only at branches you work at.']);
+            throw ValidationException::withMessages(['data.plan_ids' => __('Choose plans sold only at branches you work at.')]);
         }
 
         return DB::transaction(function () use ($promoCode, $data, $planIds): PromoCode {
@@ -254,28 +259,28 @@ class PromoCodeResource extends Resource
 
     public static function archiveAction(): Action
     {
-        return Action::make('archive')
+        return Action::make('archive')->label(__('Archive'))
             ->color('danger')
             ->requiresConfirmation()
-            ->modalHeading('Archive this promo code?')
-            ->modalDescription('It can\'t be used any more, in the app or at the desk. Memberships sold with it keep their price, and it can be restored.')
+            ->modalHeading(__('Archive this promo code?'))
+            ->modalDescription(__('It can\'t be used any more, in the app or at the desk. Memberships sold with it keep their price, and it can be restored.'))
             ->visible(fn (PromoCode $record): bool => ! $record->trashed() && Gate::allows('delete', $record))
             ->action(function (PromoCode $record): void {
                 $record->delete();
 
-                Notification::make()->success()->title('Promo code archived.')->send();
+                Notification::make()->success()->title(__('Promo code archived.'))->send();
             });
     }
 
     public static function restoreAction(): Action
     {
-        return Action::make('restore')
+        return Action::make('restore')->label(__('Restore'))
             ->requiresConfirmation()
             ->visible(fn (PromoCode $record): bool => $record->trashed() && Gate::allows('restore', $record))
             ->action(function (PromoCode $record): void {
                 $record->restore();
 
-                Notification::make()->success()->title('Promo code restored.')->send();
+                Notification::make()->success()->title(__('Promo code restored.'))->send();
             });
     }
 
@@ -328,25 +333,25 @@ class PromoCodeResource extends Resource
         $plan = Plan::query()->where('name', 'Monthly')->first() ?? Plan::query()->orderByDesc('price_minor')->first();
 
         if ($plan === null || trim($typed) === '') {
-            return 'An amount, such as 500, or a percentage, such as 20%.';
+            return __('An amount, such as 500, or a percentage, such as 20%.');
         }
 
         try {
             $price = Discount::parse($typed, 'Example')->appliedTo($plan->price);
         } catch (InvalidDiscount) {
-            return 'An amount, such as 500, or a percentage, such as 20%.';
+            return __('An amount, such as 500, or a percentage, such as 20%.');
         }
 
-        return "On {$plan->name}: {$price->format()} instead of {$plan->price->format()}.";
+        return __('On :plan: :price instead of :usual.', ['plan' => $plan->name, 'price' => $price->format(), 'usual' => $plan->price->format()]);
     }
 
     private static function datesOf(PromoCode $promoCode): string
     {
         return match (true) {
-            $promoCode->starts_on === null && $promoCode->ends_on === null => 'Any time',
-            $promoCode->starts_on === null => 'Until '.$promoCode->ends_on->format('j M Y'),
-            $promoCode->ends_on === null => 'From '.$promoCode->starts_on->format('j M Y'),
-            default => $promoCode->starts_on->format('j M Y').' to '.$promoCode->ends_on->format('j M Y'),
+            $promoCode->starts_on === null && $promoCode->ends_on === null => __('Any time'),
+            $promoCode->starts_on === null => __('Until :date', ['date' => Dates::short($promoCode->ends_on)]),
+            $promoCode->ends_on === null => __('From :date', ['date' => Dates::short($promoCode->starts_on)]),
+            default => __(':from to :to', ['from' => Dates::short($promoCode->starts_on), 'to' => Dates::short($promoCode->ends_on)]),
         };
     }
 
@@ -370,7 +375,7 @@ class PromoCodeResource extends Resource
     {
         return function (string $attribute, mixed $value, Closure $fail) use ($ignoring): void {
             if (is_string($value) && PromoCode::codeTakenBy($value, $ignoring) !== null) {
-                $fail('This gym already has this code, perhaps archived. Choose another.');
+                $fail(__('This gym already has this code, perhaps archived. Choose another.'));
             }
         };
     }
@@ -381,7 +386,7 @@ class PromoCodeResource extends Resource
             try {
                 Discount::parse((string) $value, 'Promo code');
             } catch (InvalidDiscount $exception) {
-                $fail($exception->getMessage());
+                $fail(__($exception->text, $exception->values));
             }
         };
     }
