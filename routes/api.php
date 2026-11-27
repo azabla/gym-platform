@@ -31,6 +31,7 @@ use App\Http\Controllers\Api\V1\Organizations\CheckInController;
 use App\Http\Controllers\Api\V1\Organizations\DashboardController;
 use App\Http\Controllers\Api\V1\Organizations\DiscountGroupController;
 use App\Http\Controllers\Api\V1\Organizations\DoorListController;
+use App\Http\Controllers\Api\V1\Organizations\InsightController;
 use App\Http\Controllers\Api\V1\Organizations\MemberController;
 use App\Http\Controllers\Api\V1\Organizations\MemberDiscountGroupController;
 use App\Http\Controllers\Api\V1\Organizations\MemberPhotoController;
@@ -157,6 +158,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 Route::get('reports/discounts', [ReportController::class, 'discounts'])->name('reports.discounts');
                 Route::get('reports/check-ins', [ReportController::class, 'checkIns'])->name('reports.check-ins');
                 Route::get('reports/members', [ReportController::class, 'members'])->name('reports.members');
+                Route::get('insights/{insight}', [InsightController::class, 'show'])->name('insights.show');
+                Route::get('reports/insights/{insight}', [InsightController::class, 'download'])->name('reports.insights');
                 Route::get('notifications', [StaffNotificationController::class, 'index'])->name('notifications.index');
                 Route::post('notifications/read-all', [StaffNotificationController::class, 'readAll'])->name('notifications.read-all');
                 Route::get('notification-preferences', [StaffNotificationPreferenceController::class, 'show'])

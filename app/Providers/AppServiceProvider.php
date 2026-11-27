@@ -12,15 +12,18 @@ use App\Domains\Notifications\Sms\AfroMessageSmsSender;
 use App\Domains\Notifications\Sms\LogSmsSender;
 use App\Domains\Notifications\Sms\SmsSender;
 use App\Domains\Organizations\Models\Staff;
+use App\Domains\Organizations\Tenancy\CurrentStaff;
 use App\Domains\Shared\PhoneNumber\Exceptions\InvalidPhoneNumber;
 use App\Domains\Shared\PhoneNumber\PhoneNumber;
 use App\Http\ApiDocs\DocumentTheGymInThePath;
+use App\Insights\Insight;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -58,6 +61,20 @@ class AppServiceProvider extends ServiceProvider
         $this->limitSignInAttempts();
         $this->limitSmsSignIn();
         $this->describeApiCallsAsTakingBearerTokens();
+        $this->letRolesSeeTheirInsights();
+    }
+
+    /**
+     * Each insight is seen by the roles it is for, at the gym the staff
+     * member is acting at (ADR 0040).
+     */
+    private function letRolesSeeTheirInsights(): void
+    {
+        Gate::define('see-insight', function (User $user, Insight $insight): bool {
+            $staff = app(CurrentStaff::class)->get();
+
+            return $staff->user()->is($user) && $insight->isSeenBy($staff->role);
+        });
     }
 
     /**

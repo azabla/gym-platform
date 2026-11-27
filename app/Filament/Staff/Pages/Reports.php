@@ -8,8 +8,10 @@ use App\Domains\Attendance\Models\CheckIn;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Models\Membership;
+use App\Filament\Staff\Actions\DownloadInsightAction;
 use App\Filament\Staff\Actions\DownloadReportAction;
 use App\Filament\Staff\NavigationGroup;
+use App\Insights\Insight;
 use App\Reports\CheckInsReport;
 use App\Reports\DiscountsReport;
 use App\Reports\MembershipsReport;
@@ -45,7 +47,8 @@ class Reports extends Page
     public static function canAccess(): bool
     {
         return collect([Payment::class, Membership::class, CheckIn::class, Member::class])
-            ->contains(fn (string $model): bool => Gate::allows('export', $model));
+            ->contains(fn (string $model): bool => Gate::allows('export', $model))
+            || collect(Insight::cases())->contains(fn (Insight $insight): bool => Gate::allows('see-insight', $insight));
     }
 
     public function content(Schema $schema): Schema
@@ -93,6 +96,12 @@ class Reports extends Page
                         ->report(Member::class, fn (ReportPeriod $period): MembersReport => new MembersReport($period->gym, $period->branchIds)),
                     Member::class,
                 ),
+                ...array_map(fn (Insight $insight): Section => Section::make($insight->label())
+                    ->key("insight-{$insight->value}")
+                    ->description($insight->description().' One row a month over the last 3, 6 or 12 months.')
+                    ->icon(Heroicon::OutlinedPresentationChartLine)
+                    ->footerActions([DownloadInsightAction::for($insight)->color('primary')])
+                    ->visible(fn (): bool => Gate::allows('see-insight', $insight)), Insight::cases()),
             ]),
         ]);
     }
