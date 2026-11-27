@@ -22,15 +22,17 @@ use Filament\Facades\Filament;
 
 /**
  * Every English text the panel translates with __() or trans_choice(), as
- * written in the code: the staff panel, the insights and the domains'
- * refusals. Keys of lang files ("notifications.title") are left out.
+ * written in the code: the staff panel and what it shares with the admin
+ * panel, the insights and the domains' refusals. The admin panel itself is
+ * for the platform's own staff and stays English (ADR 0042). Keys of lang
+ * files ("notifications.title") are left out.
  *
  * @return list<string>
  */
 function panelTextsInTheCode(): array
 {
     $texts = [];
-    $folders = [app_path('Filament'), app_path('Insights'), ...glob(app_path('Domains/*/Exceptions')), ...glob(app_path('Domains/*/*/Exceptions'))];
+    $folders = [app_path('Filament/Staff'), app_path('Filament/Concerns'), app_path('Insights'), ...glob(app_path('Domains/*/Exceptions')), ...glob(app_path('Domains/*/*/Exceptions'))];
 
     foreach ($folders as $folder) {
         $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($folder, FilesystemIterator::SKIP_DOTS));
