@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domains\Identity\Models\User;
 use App\Domains\Members\Models\Member;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\BranchClosure;
@@ -86,6 +87,15 @@ it('says nothing when a closure that already ended is taken back', function () {
     actingAsOrganization($this->gym);
 
     $ended->takeBack();
+
+    expect($this->hana->notifications()->count())->toBe(0);
+});
+
+it('reminds nobody of a paused gym\'s closures', function () {
+    BranchClosure::factory()->for($this->main)->create(['starts_on' => '2026-11-10', 'ends_on' => '2026-11-10', 'reason' => 'Repairs']);
+    $this->gym->suspend(User::factory()->create(), 'Hasn\'t paid.');
+
+    remindOfClosuresAt('2026-11-09 09:00');
 
     expect($this->hana->notifications()->count())->toBe(0);
 });

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Staff\Middleware;
 
+use App\Domains\Organizations\Exceptions\GymSuspended;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
@@ -44,6 +45,20 @@ class ActAsTenant
             ->first();
 
         abort_if($staff === null, Response::HTTP_NOT_FOUND);
+
+        // A paused gym says so, in the staff member's language, with their other gyms (ADR 0043).
+        if ($organization->isSuspended()) {
+            // Inside a gym Filament also scopes staff to it, so the other gyms are read without any scope.
+            return response()->view('staff-panel.paused', [
+                'gym' => $organization,
+                'message' => GymSuspended::make()->getMessage(),
+                'otherGyms' => Organization::query()
+                    ->active()
+                    ->whereIn('id', Staff::query()->withoutGlobalScopes()->whereNull('deleted_at')->where('user_id', $request->user()?->getAuthIdentifier())->select('organization_id'))
+                    ->orderBy('name')
+                    ->get(),
+            ], Response::HTTP_FORBIDDEN);
+        }
 
         $staff->setRelation('organization', $organization);
         $this->currentOrganization->set($organization);

@@ -69,6 +69,7 @@ Ethiopian date first, with the Gregorian date beside it.
 | renew, renewal | እድሳት | አድስ | የታደሰ | |
 | lapsed (didn't renew) | | | ያልታደሰ | |
 | freeze | ማቆም (የአባልነት ማቆም) | አቁም | ለጊዜው የቆመ | one word family everywhere: ማቆም, የማቆሚያ ቀናት |
+| a paused gym (by the platform) | | | ለጊዜው የተቋረጠ | never the freeze words: "the gym's service is paused" is የጂሙ አገልግሎት ለጊዜው ተቋርጧል |
 | end a freeze | | ማቆሙን አንሳ | | |
 | freeze days | የማቆሚያ ቀናት | | | |
 | cancel (a membership) | መሰረዝ | ሰርዝ | የተሰረዘ | |

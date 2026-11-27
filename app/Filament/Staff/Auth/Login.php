@@ -4,54 +4,32 @@ declare(strict_types=1);
 
 namespace App\Filament\Staff\Auth;
 
-use App\Domains\Shared\PhoneNumber\Exceptions\InvalidPhoneNumber;
-use App\Domains\Shared\PhoneNumber\PhoneNumber;
-use App\Rules\ValidPhoneNumber;
+use App\Domains\Organizations\Exceptions\GymSuspended;
+use App\Filament\Concerns\SignsInWithPhone;
+use App\Filament\Staff\PanelUser;
 use Filament\Auth\Pages\Login as BaseLogin;
-use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Components\Component;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Validation\ValidationException;
-use SensitiveParameter;
 
 /**
  * Filament's sign-in page, with the phone number staff were added with
- * instead of an email, matched however it was typed. See ADR 0019.
+ * instead of an email, matched however it was typed (ADR 0019). Someone
+ * whose every gym is paused is told so rather than signed in (ADR 0043).
  */
 class Login extends BaseLogin
 {
-    protected function getEmailFormComponent(): Component
-    {
-        return TextInput::make('phone')
-            ->label(__('Phone number'))
-            ->tel()
-            ->required()
-            ->rule(new ValidPhoneNumber)
-            ->autocomplete('tel')
-            ->autofocus();
-    }
+    use SignsInWithPhone;
 
-    /**
-     * @param  array<string, mixed>  $data
-     * @return array<string, mixed>
-     */
-    protected function getCredentialsFromFormData(#[SensitiveParameter] array $data): array
+    protected function isUserAllowedToAccessPanel(Authenticatable $user): bool
     {
-        try {
-            $phone = PhoneNumber::of((string) $data['phone'])->e164;
-        } catch (InvalidPhoneNumber) {
-            $this->throwFailureValidationException();
+        if (! parent::isUserAllowedToAccessPanel($user)) {
+            return false;
         }
 
-        return [
-            'phone' => $phone,
-            'password' => $data['password'],
-        ];
-    }
+        if ($user instanceof PanelUser && $user->worksOnlyAtPausedGyms()) {
+            throw ValidationException::withMessages(['data.phone' => GymSuspended::make()->getMessage()]);
+        }
 
-    protected function throwFailureValidationException(): never
-    {
-        throw ValidationException::withMessages([
-            'data.phone' => __('filament-panels::auth/pages/login.messages.failed'),
-        ]);
+        return true;
     }
 }

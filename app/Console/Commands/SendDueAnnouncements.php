@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Domains\Announcements\Models\Announcement;
 use App\Jobs\SendAnnouncement;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 
 class SendDueAnnouncements extends Command
@@ -35,6 +36,8 @@ class SendDueAnnouncements extends Command
         Announcement::query()
             ->acrossOrganizations()
             ->due()
+            // A paused gym's announcements wait, and go out once it is resumed (ADR 0043).
+            ->whereHas('organization', fn (Builder $gym): Builder => $gym->whereNull('suspended_at'))
             ->orderBy('send_at')
             ->each(function (Announcement $announcement) use (&$due): void {
                 SendAnnouncement::dispatch($announcement);

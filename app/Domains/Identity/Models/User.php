@@ -42,7 +42,18 @@ class User extends Authenticatable
      */
     protected $attributes = [
         'message_language' => 'en',
+        'is_platform_admin' => false,
     ];
+
+    /**
+     * Make the user a platform admin, or stop them being one. Platform
+     * admins open the admin panel, across every gym; only the
+     * platform:admins command calls this (ADR 0042).
+     */
+    public function makePlatformAdmin(bool $isAdmin = true): void
+    {
+        $this->forceFill(['is_platform_admin' => $isAdmin])->save();
+    }
 
     /**
      * The user who signs in with the phone number, created the first time,
@@ -106,6 +117,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'message_language' => Language::class,
+            'is_platform_admin' => 'boolean',
         ];
     }
 }

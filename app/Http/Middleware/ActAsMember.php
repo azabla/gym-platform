@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Domains\Members\CurrentMember;
 use App\Domains\Members\Models\Member;
+use App\Domains\Organizations\Exceptions\GymSuspended;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use Closure;
 use Illuminate\Http\Request;
@@ -42,6 +43,11 @@ class ActAsMember
             ->first();
 
         abort_if($member === null, Response::HTTP_NOT_FOUND);
+
+        // Only the gym's own members learn that it is paused; everyone else got the 404 above (ADR 0043).
+        if ($member->organization->isSuspended()) {
+            throw GymSuspended::forMembers();
+        }
 
         $this->currentOrganization->set($member->organization);
         $this->currentMember->set($member);

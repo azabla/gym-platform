@@ -16,6 +16,7 @@ Every endpoint's fields and answers are also in the generated API docs at `/docs
 - **Errors:**
   - `401` not signed in, or the token was revoked;
   - `404` for anything the member can't see: an unknown gym, a gym where they aren't a member, or another member's record. The app can't tell these apart, on purpose;
+  - `403` with `"code": "GYM_PAUSED"` on a gym's routes when the platform has paused that gym: show its `message` ("ask at the gym") instead of the gym's screens. The gym stays in `GET /me/gyms`, with `paused: true` (ADR 0043);
   - `422` with `message` and `errors` per field;
   - `429` too many requests, with `Retry-After`.
 
@@ -50,7 +51,7 @@ The membership has `visits_remaining` for a visit pack (ADR 0016). Volt's `grace
 
 | Request | Answer |
 |---|---|
-| `GET /me/gyms` | Every gym where the phone number is a member: `slug`, `name`, `member` (`id`, `full_name`, `photo_url`, `home_branch`), `membership` at a glance (`id`, `plan`, `status`, `starts_on`, `ends_on`) or `null`, and `balance_due` there |
+| `GET /me/gyms` | Every gym where the phone number is a member: `slug`, `name`, `paused` (the platform paused the gym: its routes answer `403 GYM_PAUSED`), `member` (`id`, `full_name`, `photo_url`, `home_branch`), `membership` at a glance (`id`, `plan`, `status`, `starts_on`, `ends_on`) or `null`, and `balance_due` there |
 | `GET /me/gyms/{gym}/memberships` | The member's memberships, newest first |
 | `GET /me/gyms/{gym}/memberships/{id}` | One membership |
 | `POST /me/gyms/{gym}/memberships/{id}/freezes` | Freeze it: `starts_on` (optional, today when left out, never in the past), `ends_on` and an optional `reason`. `201` with the membership as it is now (new `ends_on`, `freeze_days_left`, `freezes`). `422` on `starts_on` or `ends_on` with the reason, for example "A freeze can start today at the earliest." or "This membership can be frozen for 4 more days."; a plan without freeze days answers "This membership has no freeze days left." (ADR 0026) |
@@ -208,6 +209,7 @@ The scanner is the staff app, signed in as staff (ADR 0004), under `/organizatio
 | `GET check-ins` | The gym's check-ins, newest first, each also with `offline`, `server_disagrees` and `server_reason_code`. Filters: `?on=YYYY-MM-DD`, `?branch_id=`, `?result=allowed` or `denied`, `?member_id=`, `?offline=1`, `?needs_review=1` |
 
 - `branch_id` can be left out by staff who work at only one branch.
+- A gym the platform paused answers every staff route, scans, the door list and offline uploads included, with `403` and `"code": "GYM_PAUSED"`. Show its `message` (contact the platform), keep offline scans stored, and upload them once the gym is back. `GET /me` marks each of the staff member's gyms with `organization.paused` (ADR 0043).
 - Send an `Idempotency-Key` header (any text up to 100 characters, new for each scan) so a retry after a lost answer gets the first answer back, instead of `CODE_ALREADY_USED`.
 - Money owed doesn't stop entry: show `membership.balance_due` so the desk can ask for it.
 - Show `member.photo_url` large on the scan result, so the desk sees that the person is the member. It works for 10 minutes, or is `null` without a photo. Staff take photos with `PUT members/{id}/photo` (multipart `photo`) and remove them with `DELETE members/{id}/photo` (ADR 0036).

@@ -1,6 +1,7 @@
 <?php
 
 use App\Domains\Identity\Models\User;
+use App\Filament\Admin\AdminUser;
 use App\Filament\Staff\PanelUser;
 
 return [
@@ -48,6 +49,11 @@ return [
             'driver' => 'session',
             'provider' => 'panel_users',
         ],
+
+        'admin_panel' => [
+            'driver' => 'session',
+            'provider' => 'admin_users',
+        ],
     ],
 
     /*
@@ -76,6 +82,11 @@ return [
         'panel_users' => [
             'driver' => 'eloquent',
             'model' => PanelUser::class,
+        ],
+
+        'admin_users' => [
+            'driver' => 'eloquent',
+            'model' => AdminUser::class,
         ],
 
         // 'users' => [

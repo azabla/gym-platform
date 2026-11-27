@@ -20,7 +20,7 @@ use Illuminate\Notifications\Notification;
  */
 abstract class MemberNotification extends Notification implements SendableByPush, ShouldQueue
 {
-    use Queueable;
+    use HeldWhileTheGymIsPaused, Queueable;
 
     /**
      * @param  array<string, mixed>  $details  what the message's text is filled in with

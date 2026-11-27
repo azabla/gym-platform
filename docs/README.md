@@ -20,10 +20,12 @@ app/Domains/Notifications/ Sending messages: SMS through AfroMessage, or to the 
 app/Domains/Announcements/ Announcements from a gym to its members, now or scheduled
 app/Http/                  The API: controllers, form requests, middleware and resources (v1); Me/ folders hold the members app's side
 app/Filament/Staff/        The staff panel at /staff (Filament): its user, tenant middleware, dashboard, widgets and lists
+app/Filament/Admin/        The admin panel at /admin, for platform admins: every gym, its figures, opening and pausing gyms (English)
+app/Filament/Concerns/     What both panels share, such as signing in with a phone
 app/Dashboards/            Figures drawn from several domains, shared by the API and the staff panel
 app/Reports/               CSV reports of payments, memberships, check-ins and members, shared by the API and the staff panel
-app/Providers/Filament/    The staff panel's configuration
-app/Console/Commands/      Artisan commands, such as gyms:create and the check of open payment links
+app/Providers/Filament/    The staff and admin panels' configuration
+app/Console/Commands/      Artisan commands, such as gyms:create, platform:admins and the check of open payment links
 resources/views/staff-password/ The pages where staff set or reset their password from an SMS link
 routes/api.php             API routes, versioned under /api/v1
 routes/console.php         Scheduled tasks, run by the scheduler container
@@ -63,6 +65,8 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Report | A CSV file of the gym's payments, memberships sold, check-ins or members, for a period and the staff member's branches, from the API or the panel's lists. Who may download each one depends on the role (ADR 0024). |
 | Insight | A month-by-month figure owners look at: revenue by plan and method, renewals and churn (renewed within 14 days, lapsed or waiting), busiest hours, and members and visit packs. On the panel's Insights page as charts with tables, as CSV and in the staff API, each for the roles it is for (ADR 0040). |
 | Staff panel | The website at /staff where staff sign in with their phone and password, choose a gym, see its dashboard and lists, work the front desk (members, sales, freezes, payments and check-ins), and, as owners and managers, manage the staff and set up the gym: plans, branches, opening hours and announcements (ADRs 0017 to 0019 and 0023). |
+| Platform admin | Someone who runs the platform itself, made only by `php artisan platform:admins`. They open the admin panel at /admin to see every gym's figures, open gyms and pause them, but never see a gym's members or payments (ADR 0042). |
+| Paused gym | A gym the platform has stopped for now, keeping everything: its staff can't sign in, its API and members app answer `403 GYM_PAUSED`, the door refuses and it sends nothing, until it is resumed (ADR 0043). |
 | Password link | A one-time link sent by SMS to set a staff member's first password (an invite, valid 7 days) or reset a forgotten one (valid 60 minutes). See ADR 0019. |
 | Archived staff | Staff who left: they can no longer act at the gym, what they recorded still names them, and they can be restored (ADR 0019). |
 | Members app | The app where members see their memberships, what they owe and their receipts, and pay with Chapa. It shows every gym where their phone number is registered (ADR 0010). |
@@ -142,6 +146,8 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0039](adr/0039-closure-reminders-and-yearly-holidays.md) | Closure reminders and yearly holidays |
 | [0040](adr/0040-reports-and-insights.md) | Reports and insights |
 | [0041](adr/0041-amharic-panel.md) | The staff panel in Amharic |
+| [0042](adr/0042-platform-admin-panel.md) | The platform admin panel and opening gyms |
+| [0043](adr/0043-pausing-a-gym.md) | Pausing a gym |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 

@@ -31,6 +31,11 @@ class SendAnnouncement implements ShouldQueueAfterCommit
     {
         $announcement = $this->announcement;
 
+        // Paused since it was queued: it stays unsent, and goes out once the gym is resumed (ADR 0043).
+        if ($announcement->organization->isSuspended()) {
+            return;
+        }
+
         $currentOrganization->run($announcement->organization, function () use ($announcement): void {
             if (! $announcement->claimForSending()) {
                 return;

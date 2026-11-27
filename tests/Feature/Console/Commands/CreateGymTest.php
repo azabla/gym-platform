@@ -84,3 +84,9 @@ it('asks for what it isn\'t given', function () {
 
     expect(Organization::query()->where('slug', 'bole-fitness')->exists())->toBeTrue();
 });
+
+it('takes the language the gym\'s members get messages in', function () {
+    $this->artisan('gyms:create', boleFitness(['--language' => 'am']))->assertSuccessful();
+
+    expect(Organization::query()->where('slug', 'bole-fitness')->sole()->message_language->value)->toBe('am');
+});

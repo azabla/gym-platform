@@ -27,7 +27,7 @@ use Illuminate\Notifications\Notification;
  */
 abstract class StaffNotification extends Notification implements SendableByPush, SendableBySms, ShouldQueue
 {
-    use Queueable;
+    use HeldWhileTheGymIsPaused, Queueable;
 
     /**
      * Staff get texts from this hour, where the gym is.
