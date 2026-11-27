@@ -11,6 +11,7 @@ use Filament\Forms\Components\Select;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
 use Filament\Schemas\Schema;
+use Filament\Widgets\WidgetConfiguration;
 
 /**
  * The gym at a glance, as the API's dashboard shows it, for a period (today by
@@ -20,6 +21,19 @@ use Filament\Schemas\Schema;
 class Dashboard extends BaseDashboard
 {
     use HasFiltersForm;
+
+    /**
+     * The panel's widgets, without the Insights page's (ADR 0040).
+     *
+     * @return array<class-string|WidgetConfiguration>
+     */
+    public function getWidgets(): array
+    {
+        return array_values(array_filter(
+            parent::getWidgets(),
+            fn (string|WidgetConfiguration $widget): bool => ! str_starts_with(is_string($widget) ? $widget : $widget->widget, 'App\\Filament\\Staff\\Widgets\\Insights\\'),
+        ));
+    }
 
     public function filtersForm(Schema $schema): Schema
     {

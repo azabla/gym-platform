@@ -60,6 +60,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | User | An identity that can log in: staff with their phone and a password, members with a code sent to their phone. One user per phone number. |
 | API docs | The interactive API documentation at /docs/api (and the OpenAPI document at /docs/api.json), generated from the code by Scramble, for staff signed in to the panel (ADR 0021). |
 | Report | A CSV file of the gym's payments, memberships sold, check-ins or members, for a period and the staff member's branches, from the API or the panel's lists. Who may download each one depends on the role (ADR 0024). |
+| Insight | A month-by-month figure owners look at: revenue by plan and method, renewals and churn (renewed within 14 days, lapsed or waiting), busiest hours, and members and visit packs. On the panel's Insights page as charts with tables, as CSV and in the staff API, each for the roles it is for (ADR 0040). |
 | Staff panel | The website at /staff where staff sign in with their phone and password, choose a gym, see its dashboard and lists, work the front desk (members, sales, freezes, payments and check-ins), and, as owners and managers, manage the staff and set up the gym: plans, branches, opening hours and announcements (ADRs 0017 to 0019 and 0023). |
 | Password link | A one-time link sent by SMS to set a staff member's first password (an invite, valid 7 days) or reset a forgotten one (valid 60 minutes). See ADR 0019. |
 | Archived staff | Staff who left: they can no longer act at the gym, what they recorded still names them, and they can be restored (ADR 0019). |
@@ -138,6 +139,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0037](adr/0037-closures-and-late-hours.md) | Holiday closures and late hours |
 | [0038](adr/0038-offline-scanning.md) | Offline scanning |
 | [0039](adr/0039-closure-reminders-and-yearly-holidays.md) | Closure reminders and yearly holidays |
+| [0040](adr/0040-reports-and-insights.md) | Reports and insights |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 

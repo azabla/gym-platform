@@ -67,3 +67,22 @@ it('shows a trainer only the check-ins report', function () {
         ->assertDontSee('Every payment and refund')
         ->assertDontSee('Every membership sold below its price');
 });
+
+it('lists the insights an owner may download, and downloads one', function () {
+    actingAsStaffInPanel($this->gym, StaffRole::Owner);
+
+    Livewire::test(Reports::class)
+        ->assertSee(['Revenue by month', 'Renewals and churn', 'Busiest hours', 'Members and visit packs'])
+        ->callAction(TestAction::make('downloadRenewals')->schemaComponent('insight-renewals', 'content'), ['months' => 6])
+        ->assertHasNoFormErrors()
+        ->assertFileDownloaded('demo-gym-renewals-last-6-months.csv');
+});
+
+it('shows an accountant only the revenue insight', function () {
+    actingAsStaffInPanel($this->gym, StaffRole::Accountant);
+
+    Livewire::test(Reports::class)
+        ->assertSee('Revenue by month')
+        ->assertDontSee('Renewals and churn')
+        ->assertDontSee('Busiest hours');
+});
