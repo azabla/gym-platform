@@ -633,14 +633,22 @@ To add staff, as the owner, open **Staff** and choose **Add staff member**: name
 
 ### Starting a real gym
 
-We create each gym, with its first branch and its owner; the owner adds the rest of the staff in the panel:
+We create each gym, with its first branch and its owner; the owner adds the rest of the staff in the panel. The easiest way is the admin panel (ADR 0042). Make yourself a platform admin once:
 
 ```bash
 make shell
+php artisan platform:admins add --phone="0911 00 00 00" --name="Selam Tadesse"
+```
+
+Open the printed link to set your password, then sign in at http://localhost:8080/admin. **Gyms** lists every gym with its figures; **New gym** opens one (name, address, time zone, members' message language, first branch and owner). The owner gets an SMS with a link, valid for 7 days, to set their password. On a gym's page you can change it, resend the owner's invite, and **Pause gym** with a reason: try signing in as its staff, or `GET /api/v1/me/gyms/demo-gym/branches` as a member, to see the refusal (`403 GYM_PAUSED`), then **Resume gym** (ADR 0043). `platform:admins list` and `remove` manage the admins.
+
+The command line still works, for scripts:
+
+```bash
 php artisan gyms:create --name="Bole Fitness" --slug=bole-fitness --owner-name="Meron Assefa" --owner-phone="0911 22 33 44"
 ```
 
-It asks for anything left out. `--timezone` (default `Africa/Addis_Ababa`) and `--branch` (default `Main Branch`) are optional. The owner gets an SMS with a link, valid for 7 days, to set their password. See ADR 0019.
+It asks for anything left out. `--timezone` (default `Africa/Addis_Ababa`), `--language` (`en` or `am`, default `en`) and `--branch` (default `Main Branch`) are optional. See ADR 0019.
 
 ## Deploying staging to Render
 
