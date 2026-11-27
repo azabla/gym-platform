@@ -15,7 +15,7 @@ class ListDiscountGroups extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make()->label('Add discount group'),
+            CreateAction::make()->label(__('Add discount group')),
         ];
     }
 }

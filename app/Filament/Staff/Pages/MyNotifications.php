@@ -29,7 +29,7 @@ use Filament\Support\Icons\Heroicon;
  * The staff member's own messages, reached from the user menu: the language
  * they come in, at every gym (ADR 0034), and, at this gym, whether each topic
  * the staff member's role hears about also comes by push to the staff app
- * and by SMS (ADR 0035). The panel itself stays in English.
+ * and by SMS (ADR 0035), and the panel itself.
  *
  * @property-read Schema $form
  */
@@ -59,8 +59,8 @@ class MyNotifications extends Page
         return $schema
             ->statePath('data')
             ->components([
-                Section::make('Language')
-                    ->description('The language of your inbox messages, pushes and texts, at every gym you work at. The panel itself stays in English.')
+                Section::make(__('Language'))
+                    ->description(__('The language of this panel, and of your inbox messages, pushes and texts, at every gym you work at.'))
                     ->icon(Heroicon::OutlinedLanguage)
                     ->schema([
                         Radio::make('message_language')
@@ -72,7 +72,7 @@ class MyNotifications extends Page
                             ])
                             ->required(),
                     ]),
-                Section::make('At '.self::staff()->organization->name)
+                Section::make(__('At :gym', ['gym' => self::staff()->organization->name]))
                     ->description(self::howTheyReachYou())
                     ->icon(Heroicon::OutlinedBellAlert)
                     ->visible($topics !== [])
@@ -81,11 +81,11 @@ class MyNotifications extends Page
                         ->columns(2)
                         ->schema([
                             Toggle::make("topics.{$topic->value}.push")
-                                ->label('Push')
+                                ->label(__('By push'))
                                 ->onIcon(Heroicon::OutlinedDevicePhoneMobile)
                                 ->helperText(self::describe($topic)),
                             Toggle::make("topics.{$topic->value}.sms")
-                                ->label('SMS')
+                                ->label(__('By SMS'))
                                 ->onIcon(Heroicon::OutlinedChatBubbleLeftEllipsis)
                                 ->disabled(self::user()->phone === null),
                         ]), $topics)),
@@ -100,7 +100,7 @@ class MyNotifications extends Page
                 ->livewireSubmitHandler('save')
                 ->footer([
                     Actions::make([
-                        Action::make('save')->label('Save')->submit('save'),
+                        Action::make('save')->label(__('Save'))->submit('save'),
                     ]),
                 ]),
         ]);
@@ -125,26 +125,26 @@ class MyNotifications extends Page
             self::staff()->chooseNotifications($choices);
         }
 
-        Notification::make()->success()->title('Saved. Your messages come in '.Languages::label($language).'.')->send();
+        Notification::make()->success()->title(__('Saved. Your messages come in :language.', ['language' => Languages::label($language)]))->send();
     }
 
     private static function labelOf(StaffNotificationTopic $topic): string
     {
         return match ($topic) {
-            StaffNotificationTopic::OnlinePayments => 'Paid online',
-            StaffNotificationTopic::Refunds => 'Refunds needed',
-            StaffNotificationTopic::AppFreezes => 'Freezes in the app',
-            StaffNotificationTopic::MembersToCall => 'Members to call',
+            StaffNotificationTopic::OnlinePayments => __('Paid online'),
+            StaffNotificationTopic::Refunds => __('Refunds needed'),
+            StaffNotificationTopic::AppFreezes => __('Freezes in the app'),
+            StaffNotificationTopic::MembersToCall => __('Members to call'),
         };
     }
 
     private static function describe(StaffNotificationTopic $topic): string
     {
         return match ($topic) {
-            StaffNotificationTopic::OnlinePayments => 'A member paid with Chapa at your branches.',
-            StaffNotificationTopic::Refunds => 'Chapa took money that isn\'t due and the gym must give it back.',
-            StaffNotificationTopic::AppFreezes => 'A member froze their membership in the app, or came back early.',
-            StaffNotificationTopic::MembersToCall => 'Each morning from 08:00: memberships ending within 7 days.',
+            StaffNotificationTopic::OnlinePayments => __('A member paid with Chapa at your branches.'),
+            StaffNotificationTopic::Refunds => __('Chapa took money that isn\'t due and the gym must give it back.'),
+            StaffNotificationTopic::AppFreezes => __('A member froze their membership in the app, or came back early.'),
+            StaffNotificationTopic::MembersToCall => __('Each morning from 08:00: memberships ending within 7 days.'),
         };
     }
 
@@ -152,10 +152,10 @@ class MyNotifications extends Page
     {
         $phone = self::user()->phone;
         $texts = $phone === null
-            ? 'Texts need a phone number on your account.'
-            : sprintf('Texts go to your phone from %02d:00 to %02d:00; at night they are skipped.', StaffNotification::TEXTS_FROM_HOUR, StaffNotification::TEXTS_UNTIL_HOUR);
+            ? __('Texts need a phone number on your account.')
+            : __('Texts go to your phone from :from to :until; at night they are skipped.', ['from' => sprintf('%02d:00', StaffNotification::TEXTS_FROM_HOUR), 'until' => sprintf('%02d:00', StaffNotification::TEXTS_UNTIL_HOUR)]);
 
-        return 'Every message is in your Inbox. Pushes reach the staff app on your phone. '.$texts;
+        return __('Every message is in your Inbox. Pushes reach the staff app on your phone.').' '.$texts;
     }
 
     private static function staff(): Staff

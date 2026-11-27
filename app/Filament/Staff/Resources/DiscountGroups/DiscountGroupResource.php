@@ -56,19 +56,19 @@ class DiscountGroupResource extends Resource
     {
         return $schema
             ->components([
-                Section::make('Discount group')
-                    ->description('Members in the group pay less in the app and at the desk, or a promo code\'s price when it is lower. Put members in it from their page.')
+                Section::make(__('Discount group'))
+                    ->description(__('Members in the group pay less in the app and at the desk, or a promo code\'s price when it is lower. Put members in it from their page.'))
                     ->icon(Heroicon::OutlinedReceiptPercent)
                     ->columns(2)
                     ->schema([
-                        TextInput::make('name')
-                            ->placeholder('Student')
+                        TextInput::make('name')->label(__('Name'))
+                            ->placeholder(__('Student'))
                             ->required()
                             ->maxLength(100)
-                            ->helperText('Such as Student or Staff family.')
+                            ->helperText(__('Such as Student or Staff family.'))
                             ->rules(fn (?DiscountGroup $record): array => [self::nameNoOtherGroupHas($record)]),
-                        TextInput::make('discount')
-                            ->placeholder('10% or 500')
+                        TextInput::make('discount')->label(__('Discount'))
+                            ->placeholder(__('10% or 500'))
                             ->required()
                             ->maxLength(20)
                             ->live(onBlur: true)
@@ -80,27 +80,27 @@ class DiscountGroupResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return Tables::standard($table, Heroicon::OutlinedReceiptPercent, 'No discount groups yet', 'Make a group such as Student 10%, then put members in it from their page.')
+        return Tables::standard($table, Heroicon::OutlinedReceiptPercent, __('No discount groups yet'), __('Make a group such as Student 10%, then put members in it from their page.'))
             ->defaultSort('name')
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->withCount('memberDiscounts'))
-            ->searchPlaceholder('Group name')
+            ->searchPlaceholder(__('Group name'))
             ->columns([
-                TextColumn::make('name')->searchable()->sortable()->weight(FontWeight::Bold),
-                TextColumn::make('discount')->badge()->color('primary')->formatStateUsing(fn (string $state): string => "{$state} off"),
+                TextColumn::make('name')->label(__('Name'))->searchable()->sortable()->weight(FontWeight::Bold),
+                TextColumn::make('discount')->label(__('Discount'))->badge()->color('primary')->formatStateUsing(fn (string $state): string => "{$state} off"),
                 TextColumn::make('member_discounts_count')
-                    ->label('Members')
+                    ->label(__('Members'))
                     ->badge()
                     ->color(fn (int $state): string => $state > 0 ? 'info' : 'gray')
                     ->sortable(),
                 TextColumn::make('example')
-                    ->label('Monthly for them')
+                    ->label(__('Monthly for them'))
                     ->state(fn (DiscountGroup $record): string => self::exampleOf($record->discount, short: true))
                     ->color('gray')
                     ->toggleable(),
-                TextColumn::make('deleted_at')->label('Archived')->date('j M Y')->badge()->color('gray')->placeholder('No'),
+                TextColumn::make('deleted_at')->label(__('Archived'))->date('j M Y')->badge()->color('gray')->placeholder(__('No')),
             ])
             ->filters([
-                TrashedFilter::make()->label('Archived')->native(false),
+                TrashedFilter::make()->label(__('Archived'))->native(false),
             ])
             ->recordActions([
                 EditAction::make(),
@@ -151,28 +151,28 @@ class DiscountGroupResource extends Resource
 
     public static function archiveAction(): Action
     {
-        return Action::make('archive')
+        return Action::make('archive')->label(__('Archive'))
             ->color('danger')
             ->requiresConfirmation()
-            ->modalHeading('Archive this discount group?')
-            ->modalDescription('Its members pay full price again, though they stay in it. Memberships already sold keep their price, and the group can be restored.')
+            ->modalHeading(__('Archive this discount group?'))
+            ->modalDescription(__('Its members pay full price again, though they stay in it. Memberships already sold keep their price, and the group can be restored.'))
             ->visible(fn (DiscountGroup $record): bool => ! $record->trashed() && Gate::allows('delete', $record))
             ->action(function (DiscountGroup $record): void {
                 $record->delete();
 
-                Notification::make()->success()->title('Discount group archived.')->send();
+                Notification::make()->success()->title(__('Discount group archived.'))->send();
             });
     }
 
     public static function restoreAction(): Action
     {
-        return Action::make('restore')
+        return Action::make('restore')->label(__('Restore'))
             ->requiresConfirmation()
             ->visible(fn (DiscountGroup $record): bool => $record->trashed() && Gate::allows('restore', $record))
             ->action(function (DiscountGroup $record): void {
                 $record->restore();
 
-                Notification::make()->success()->title('Discount group restored.')->send();
+                Notification::make()->success()->title(__('Discount group restored.'))->send();
             });
     }
 
@@ -182,7 +182,7 @@ class DiscountGroupResource extends Resource
      */
     private static function exampleOf(string $typed, bool $short = false): string
     {
-        $hint = 'An amount, such as 500, or a percentage, such as 10%. A change applies to future purchases.';
+        $hint = __('An amount, such as 500, or a percentage, such as 10%. A change applies to future purchases.');
         $plan = Plan::query()->where('name', 'Monthly')->first() ?? Plan::query()->orderByDesc('price_minor')->first();
 
         if ($plan === null || trim($typed) === '') {
@@ -195,14 +195,14 @@ class DiscountGroupResource extends Resource
             return $short ? '—' : $hint;
         }
 
-        return $short ? $price->format() : "On {$plan->name}: {$price->format()} instead of {$plan->price->format()}.";
+        return $short ? $price->format() : __('On :plan: :price instead of :usual.', ['plan' => $plan->name, 'price' => $price->format(), 'usual' => $plan->price->format()]);
     }
 
     private static function nameNoOtherGroupHas(?DiscountGroup $ignoring): Closure
     {
         return function (string $attribute, mixed $value, Closure $fail) use ($ignoring): void {
             if (is_string($value) && DiscountGroup::nameTakenBy($value, $ignoring) !== null) {
-                $fail('Another discount group of this gym already has this name.');
+                $fail(__('Another discount group of this gym already has this name.'));
             }
         };
     }

@@ -69,79 +69,80 @@ class StaffResource extends Resource
     {
         return $schema
             ->components([
-                Section::make('Who they are')
-                    ->description('They sign in to this panel with their phone number, and get an SMS with a link to set their password.')
+                Section::make(__('Who they are'))
+                    ->description(__('They sign in to this panel with their phone number, and get an SMS with a link to set their password.'))
                     ->icon(Heroicon::OutlinedUser)
                     ->columns(2)
                     ->schema([
-                        TextInput::make('name')
-                            ->placeholder('Meron Assefa')
+                        TextInput::make('name')->label(__('Name'))
+                            ->placeholder(__('Meron Assefa'))
                             ->required(fn (string $operation): bool => $operation === 'create')
                             ->maxLength(255)
                             ->disabled(fn (string $operation): bool => $operation === 'edit')
                             ->dehydrated(fn (string $operation): bool => $operation === 'create'),
-                        TextInput::make('phone')
+                        TextInput::make('phone')->label(__('Phone'))
                             ->tel()
                             ->placeholder('0911 22 33 44')
                             ->prefixIcon(Heroicon::OutlinedPhone)
                             ->required(fn (string $operation): bool => $operation === 'create')
                             ->rules([new ValidPhoneNumber])
                             ->helperText(fn (string $operation): string => $operation === 'edit'
-                                ? 'The name and phone belong to their account and can\'t be changed here.'
-                                : 'They sign in with this number.')
+                                ? __('The name and phone belong to their account and can\'t be changed here.')
+                                : __('They sign in with this number.'))
                             ->disabled(fn (string $operation): bool => $operation === 'edit')
                             ->dehydrated(fn (string $operation): bool => $operation === 'create'),
                     ]),
-                Section::make('What they can do')
+                Section::make(__('What they can do'))
                     ->icon(Heroicon::OutlinedKey)
                     ->columns(2)
                     ->schema([
-                        Select::make('role')
+                        Select::make('role')->label(__('Role'))
                             ->required()
                             ->native(false)
                             ->options(fn (): array => self::rolesTheStaffMemberManages())
                             ->live()
                             ->helperText(fn (Get $get): string => self::whatTheRoleDoes(StaffRole::tryFrom((string) $get('role')))),
                         Select::make('branch_ids')
-                            ->label('Branches')
+                            ->label(__('Branches'))
                             ->multiple()
                             ->native(false)
-                            ->placeholder('All branches')
+                            ->placeholder(__('All branches'))
                             ->options(fn (): array => app(CurrentStaff::class)->get()->branchesWorkedAt()->pluck('name', 'id')->all())
-                            ->helperText('Leave empty for all branches. Owners always work at all branches.'),
+                            ->helperText(__('Leave empty for all branches. Owners always work at all branches.')),
                     ]),
             ]);
     }
 
     public static function table(Table $table): Table
     {
-        return Tables::standard($table, Heroicon::OutlinedBriefcase, 'No staff here', 'Add the people who work at the gym; each gets an SMS to set a password.')
+        return Tables::standard($table, Heroicon::OutlinedBriefcase, __('No staff here'), __('Add the people who work at the gym; each gets an SMS to set a password.'))
             ->defaultSort('id')
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['user', 'branches']))
-            ->searchPlaceholder('Name')
+            ->searchPlaceholder(__('Name'))
             ->columns([
                 TextColumn::make('user.name')
-                    ->label('Name')
+                    ->label(__('Name'))
                     ->weight(FontWeight::SemiBold)
                     ->description(fn (Staff $record): string => (string) $record->user->phone)
                     ->searchable(),
                 Tables::badge('role'),
                 TextColumn::make('branches_list')
-                    ->label('Branches')
+                    ->label(__('Branches'))
                     ->badge()
                     ->color(fn (Staff $record): string => $record->works_at_all_branches ? 'primary' : 'gray')
-                    ->state(fn (Staff $record): array => $record->works_at_all_branches ? ['All branches'] : $record->branches->sortBy('name')->pluck('name')->all()),
+                    ->state(fn (Staff $record): array => $record->works_at_all_branches ? [__('All branches')] : $record->branches->sortBy('name')->pluck('name')->all()),
                 TextColumn::make('invite')
-                    ->label('Password')
+                    ->label(__('Password'))
                     ->badge()
                     ->state(fn (Staff $record): string => $record->user->password === null ? 'Invite pending' : 'Set')
                     ->color(fn (string $state): string => $state === 'Set' ? 'success' : 'warning')
-                    ->icon(fn (string $state): Heroicon => $state === 'Set' ? Heroicon::OutlinedCheckCircle : Heroicon::OutlinedEnvelope),
-                TextColumn::make('deleted_at')->label('Archived')->date('j M Y')->badge()->color('gray')->placeholder('No')->toggleable(),
+                    ->icon(fn (string $state): Heroicon => $state === 'Set' ? Heroicon::OutlinedCheckCircle : Heroicon::OutlinedEnvelope)
+                    ->formatStateUsing(fn (string $state): string => __($state)),
+                TextColumn::make('deleted_at')->label(__('Archived'))->date('j M Y')->badge()->color('gray')->placeholder(__('No'))->toggleable(),
             ])
             ->filters([
-                SelectFilter::make('role')->native(false)->options(Badges::options(StaffRole::class)),
-                SelectFilter::make('branch')
+                SelectFilter::make('role')->label(__('Role'))->native(false)->options(Badges::options(StaffRole::class)),
+                SelectFilter::make('branch')->label(__('Branch'))
                     ->native(false)
                     ->options(fn (): array => app(CurrentStaff::class)->get()->branchesWorkedAt()->pluck('name', 'id')->all())
                     ->query(fn (Builder $query, array $data): Builder => filled($data['value'] ?? null)
@@ -150,17 +151,17 @@ class StaffResource extends Resource
                             ->orWhereHas('branches', fn (Builder $branches): Builder => $branches->whereKey((int) $data['value'])))
                         : $query),
                 TernaryFilter::make('invite_pending')
-                    ->label('Password')
+                    ->label(__('Password'))
                     ->native(false)
-                    ->placeholder('Set or not')
-                    ->trueLabel('Invite pending')
-                    ->falseLabel('Password set')
+                    ->placeholder(__('Set or not'))
+                    ->trueLabel(__('Invite pending'))
+                    ->falseLabel(__('Password set'))
                     ->queries(
                         true: fn (Builder $query): Builder => $query->whereRelation('user', fn (Builder $user): Builder => $user->whereNull('password')),
                         false: fn (Builder $query): Builder => $query->whereRelation('user', fn (Builder $user): Builder => $user->whereNotNull('password')),
                         blank: fn (Builder $query): Builder => $query,
                     ),
-                TrashedFilter::make()->label('Archived')->native(false),
+                TrashedFilter::make()->label(__('Archived'))->native(false),
             ])
             ->recordActions([
                 EditAction::make(),
@@ -203,11 +204,11 @@ class StaffResource extends Resource
         $actor = app(CurrentStaff::class)->get();
 
         if (! $role->isManagedBy($actor->role)) {
-            throw ValidationException::withMessages(['data.role' => 'You can\'t give someone this role.']);
+            throw ValidationException::withMessages(['data.role' => __('You can\'t give someone this role.')]);
         }
 
         if (! $actor->mayAssign($role, ...$branches)) {
-            throw ValidationException::withMessages(['data.branch_ids' => 'Choose only branches you work at.']);
+            throw ValidationException::withMessages(['data.branch_ids' => __('Choose only branches you work at.')]);
         }
     }
 
@@ -240,11 +241,11 @@ class StaffResource extends Resource
 
     public static function archiveAction(): Action
     {
-        return Action::make('archive')
+        return Action::make('archive')->label(__('Archive'))
             ->color('danger')
             ->requiresConfirmation()
-            ->modalHeading('Archive this staff member?')
-            ->modalDescription('They can no longer sign in to this gym. What they recorded still shows their name, and they can be restored.')
+            ->modalHeading(__('Archive this staff member?'))
+            ->modalDescription(__('They can no longer sign in to this gym. What they recorded still shows their name, and they can be restored.'))
             ->visible(fn (Staff $record): bool => ! $record->trashed() && Gate::allows('delete', $record))
             ->action(function (Staff $record, Action $action): void {
                 try {
@@ -253,33 +254,33 @@ class StaffResource extends Resource
                     Refusals::halt($action, $refusal);
                 }
 
-                Notification::make()->success()->title('Staff member archived.')->send();
+                Notification::make()->success()->title(__('Staff member archived.'))->send();
             });
     }
 
     public static function restoreAction(): Action
     {
-        return Action::make('restore')
+        return Action::make('restore')->label(__('Restore'))
             ->requiresConfirmation()
             ->visible(fn (Staff $record): bool => $record->trashed() && Gate::allows('restore', $record))
             ->action(function (Staff $record): void {
                 $record->restore();
 
-                Notification::make()->success()->title('Staff member restored.')->send();
+                Notification::make()->success()->title(__('Staff member restored.'))->send();
             });
     }
 
     public static function resendInviteAction(): Action
     {
         return Action::make('resendInvite')
-            ->label('Send invite again')
+            ->label(__('Send invite again'))
             ->requiresConfirmation()
-            ->modalDescription('They get a new link by SMS to set their password. Earlier links stop working.')
+            ->modalDescription(__('They get a new link by SMS to set their password. Earlier links stop working.'))
             ->visible(fn (Staff $record): bool => ! $record->trashed() && $record->user->password === null && Gate::allows('update', $record))
             ->action(function (Staff $record): void {
                 PasswordLink::invite($record->user, app(CurrentStaff::class)->get()->organization->name);
 
-                Notification::make()->success()->title('Invite sent by SMS.')->send();
+                Notification::make()->success()->title(__('Invite sent by SMS.'))->send();
             });
     }
 
@@ -308,12 +309,12 @@ class StaffResource extends Resource
     private static function whatTheRoleDoes(?StaffRole $role): string
     {
         return match ($role) {
-            StaffRole::Owner => 'Everything, including Chapa and other owners.',
-            StaffRole::Manager => 'Runs the gym: plans, offers, staff and money, but not Chapa.',
-            StaffRole::Accountant => 'Sees and handles the money and the reports.',
-            StaffRole::Receptionist => 'Works the desk: members, sales, payments and check-ins.',
-            StaffRole::Trainer => 'Checks members in and sees who came.',
-            null => 'Choose what they do at the gym.',
+            StaffRole::Owner => __('Everything, including Chapa and other owners.'),
+            StaffRole::Manager => __('Runs the gym: plans, offers, staff and money, but not Chapa.'),
+            StaffRole::Accountant => __('Sees and handles the money and the reports.'),
+            StaffRole::Receptionist => __('Works the desk: members, sales, payments and check-ins.'),
+            StaffRole::Trainer => __('Checks members in and sees who came.'),
+            null => __('Choose what they do at the gym.'),
         };
     }
 }

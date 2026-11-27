@@ -15,7 +15,7 @@ class ListPlans extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make()->label('Add plan'),
+            CreateAction::make()->label(__('Add plan')),
         ];
     }
 }

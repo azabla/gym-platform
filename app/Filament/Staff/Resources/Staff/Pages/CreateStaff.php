@@ -51,7 +51,7 @@ class CreateStaff extends CreateRecord
 
     protected function getCreatedNotificationTitle(): ?string
     {
-        return 'Staff member added. An SMS is on its way to them.';
+        return __('Staff member added. An SMS is on its way to them.');
     }
 
     protected function getRedirectUrl(): string

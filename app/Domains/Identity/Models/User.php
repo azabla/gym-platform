@@ -56,7 +56,7 @@ class User extends Authenticatable
 
     /**
      * The language of the user's own messages as staff: their inbox and their
-     * SMS. The panel itself stays in English. See ADR 0034.
+     * SMS, and the staff panel. See ADR 0034 and ADR 0041.
      */
     public function messageLanguage(): Language
     {

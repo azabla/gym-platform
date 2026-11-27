@@ -76,3 +76,10 @@ it('keeps each Amharic text\'s placeholders', function () {
         expect($actual)->toBe($expected, "Placeholders of \"{$english}\"");
     }
 });
+
+it('has no text named like a lang file, which __() would answer with the whole file', function () {
+    $amharic = json_decode((string) file_get_contents(lang_path('am.json')), true, flags: JSON_THROW_ON_ERROR);
+    $files = array_map(fn (string $path): string => strtolower(basename($path, '.php')), glob(lang_path('en/*.php')) ?: []);
+
+    expect(array_values(array_filter(array_keys($amharic), fn (string $text): bool => in_array(strtolower($text), $files, true))))->toBe([]);
+});

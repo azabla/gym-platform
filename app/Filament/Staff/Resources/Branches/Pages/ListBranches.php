@@ -15,7 +15,7 @@ class ListBranches extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make()->label('Add branch'),
+            CreateAction::make()->label(__('Add branch')),
         ];
     }
 }

@@ -15,7 +15,7 @@ class ListStaff extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make()->label('Add staff member'),
+            CreateAction::make()->label(__('Add staff member')),
         ];
     }
 }

@@ -36,19 +36,19 @@ class ListBranchClosures extends ListRecords
     {
         return [
             Action::make('addClosure')
-                ->label('Add closure')
+                ->label(__('Add closure'))
                 ->icon(Heroicon::OutlinedPlus)
                 ->modalIcon(Heroicon::OutlinedCalendarDays)
                 ->modalWidth(Width::TwoExtraLarge)
-                ->modalDescription('Check-ins those days follow the closure, not the weekly hours. Members of the branches are told by push when it starts within 14 days.')
+                ->modalDescription(__('Check-ins those days follow the closure, not the weekly hours. Members of the branches are told by push when it starts within 14 days.'))
                 ->visible(fn (): bool => BranchClosureResource::branchesTheyMayClose() !== [])
                 ->schema([
-                    Section::make('Where and when')
+                    Section::make(__('Where and when'))
                         ->icon(Heroicon::OutlinedBuildingStorefront)
                         ->columns(2)
                         ->schema([
                             CheckboxList::make('branch_ids')
-                                ->label('Branches')
+                                ->label(__('Branches'))
                                 ->options(fn (): array => BranchClosureResource::branchesTheyMayClose())
                                 ->default(fn (): array => array_keys(BranchClosureResource::branchesTheyMayClose()))
                                 ->bulkToggleable()
@@ -57,54 +57,54 @@ class ListBranchClosures extends ListRecords
                                 ->required()
                                 ->live(),
                             DatePicker::make('starts_on')
-                                ->label('From')
+                                ->label(__('From'))
                                 ->native(false)
                                 ->displayFormat('D j M Y')
                                 ->minDate(fn (): string => self::today()->toDateString())
                                 ->required()
                                 ->live(),
                             DatePicker::make('ends_on')
-                                ->label('To')
+                                ->label(__('To'))
                                 ->native(false)
                                 ->displayFormat('D j M Y')
                                 ->afterOrEqual('starts_on')
-                                ->helperText('The same day for a single day.')
+                                ->helperText(__('The same day for a single day.'))
                                 ->required()
                                 ->live(),
-                            TextInput::make('reason')
-                                ->placeholder('Timket')
-                                ->helperText('Members see it, so keep it short.')
+                            TextInput::make('reason')->label(__('Reason'))
+                                ->placeholder(__('Timket'))
+                                ->helperText(__('Members see it, so keep it short.'))
                                 ->maxLength(100)
                                 ->required()
                                 ->columnSpanFull()
                                 ->live(onBlur: true),
                             Toggle::make('repeats_yearly')
-                                ->label('Every year, on the same Ethiopian date')
-                                ->helperText('For Genna, Timket, Meskel and other fixed holidays. Fasika and Eid move, so add those each year.')
+                                ->label(__('Every year, on the same Ethiopian date'))
+                                ->helperText(__('For Genna, Timket, Meskel and other fixed holidays. Fasika and Eid move, so add those each year.'))
                                 ->columnSpanFull()
                                 ->live(),
                         ]),
-                    Section::make('Hours')
+                    Section::make(__('Hours'))
                         ->icon(Heroicon::OutlinedClock)
                         ->columns(2)
                         ->schema([
                             Toggle::make('special_hours')
-                                ->label('Open other hours instead of closed all day')
+                                ->label(__('Open other hours instead of closed all day'))
                                 ->columnSpanFull()
                                 ->live(),
                             TimePicker::make('opens_at')
-                                ->label('Opens')
+                                ->label(__('Opens'))
                                 ->seconds(false)
                                 ->prefixIcon(Heroicon::OutlinedSun)
                                 ->visible(fn (Get $get): bool => (bool) $get('special_hours'))
                                 ->required(fn (Get $get): bool => (bool) $get('special_hours'))
                                 ->live(),
                             TimePicker::make('closes_at')
-                                ->label('Closes')
+                                ->label(__('Closes'))
                                 ->seconds(false)
                                 ->prefixIcon(Heroicon::OutlinedMoon)
                                 ->different('opens_at')
-                                ->helperText('Earlier than opening means after midnight.')
+                                ->helperText(__('Earlier than opening means after midnight.'))
                                 ->visible(fn (Get $get): bool => (bool) $get('special_hours'))
                                 ->required(fn (Get $get): bool => (bool) $get('special_hours'))
                                 ->live(),
@@ -148,7 +148,7 @@ class ListBranchClosures extends ListRecords
         $endsOn = $get('ends_on');
 
         if ($branchIds === [] || ! is_string($startsOn) || $startsOn === '' || ! is_string($endsOn) || $endsOn === '') {
-            return 'Choose the branches and the days to see what will happen.';
+            return __('Choose the branches and the days to see what will happen.');
         }
 
         $from = CarbonImmutable::parse($startsOn);
@@ -156,15 +156,15 @@ class ListBranchClosures extends ListRecords
         $names = Branch::query()->whereKey($branchIds)->orderBy('name')->pluck('name')->map(fn (mixed $name): string => (string) $name)->all();
         $days = $from->equalTo($to) ? $from->translatedFormat('D j M') : $from->translatedFormat('D j M').' – '.$to->translatedFormat('D j M');
         $hours = $get('special_hours') && is_string($get('opens_at')) && is_string($get('closes_at'))
-            ? 'open only '.substr($get('opens_at'), 0, 5).'–'.substr($get('closes_at'), 0, 5)
-            : 'closed';
+            ? __('open only :hours', ['hours' => substr($get('opens_at'), 0, 5).'–'.substr($get('closes_at'), 0, 5)])
+            : __('closed');
 
         $told = $from->lte(self::today()->addDays(TellTheMember::TELL_CLOSURES_DAYS_AHEAD))
             ? trans_choice('{0} No members to tell.|{1} 1 member will get a push.|[2,*] :count members will get a push.', Member::query()->homeAtAnyOf($branchIds)->count())
-            : 'It is more than 14 days away, so members aren\'t told now; they see it in the app.';
+            : __('It is more than 14 days away, so members aren\'t told now; they see it in the app.');
 
         $yearly = $get('repeats_yearly')
-            ? ' Repeats every year on '.EthiopianDate::fromGregorian($from->toDateString())->dayAndMonth().'.'
+            ? ' '.__('Repeats every year on :date.', ['date' => EthiopianDate::fromGregorian($from->toDateString())->dayAndMonth()])
             : '';
 
         return implode(', ', $names)." {$hours} {$days}.{$yearly} {$told}";
