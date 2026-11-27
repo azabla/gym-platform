@@ -169,6 +169,7 @@ This is how the project has been built so far; keep to it so any session, local 
 - Domains announce events (dispatched after commit); messages to members live in `App\Notifications`, and listeners in `App\Listeners`, never inside `app/Domains`.
 - Store times in UTC (convert before saving an offset time). "Today" is the gym's date, `Organization::today()`, never the server's.
 - Message text lives in `lang/en` and `lang/am` under the same keys and placeholders, never in code; `AmharicMessagesTest` checks they match (ADR 0034).
+- Staff panel text is English inside `__()`/`trans_choice()` with placeholders, its Amharic in `lang/am.json`; `AmharicPanelTextTest` fails CI on a missing one. Dates with names use `translatedFormat()` (ADR 0041).
 - Money is a `Money` value object, stored as minor units; phone numbers are `PhoneNumber`, stored as E.164.
 
 ### The staff panel standard (ADR 0033)
@@ -187,7 +188,7 @@ This is how the project has been built so far; keep to it so any session, local 
 ### Where to look
 
 - `docs/README.md`: where things live, conventions and the glossary.
-- `docs/adr/`: why things are the way they are (0001 to 0040 so far).
+- `docs/adr/`: why things are the way they are (0001 to 0041 so far).
 - `docs/api/members-app.md`: the contract with the members app.
 - `/docs/api`: the API docs Scramble generates from the code, for staff signed in to the panel (ADR 0021).
-- Not built yet, and candidates for the next piece: an Amharic panel interface, the real server (always on, separate worker and scheduler, Redis, a domain; ADR 0028 has the accounts, Sentry and backups ready to switch on).
+- Not built yet, and candidates for the next piece: the real server (always on, separate worker and scheduler, Redis, a domain; ADR 0028 has the accounts, Sentry and backups ready to switch on).

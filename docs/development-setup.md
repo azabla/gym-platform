@@ -572,6 +572,8 @@ grep 'SMS to' storage/logs/laravel.log | tail -3
 
 A member's own language (on their form) wins over the gym's. **My notifications** in the user menu changes the language of your own Inbox, and turns push and SMS on or off for each kind of staff message at this gym (ADR 0035). Turn SMS on for Members to call, then run `make artisan c=notifications:send-staff-morning-list` (from 08:00 gym time) and read the text in the log; staff get no texts from 21:00 to 07:00. Ask for a sign-in code with `-H 'Accept-Language: am'` to get it in Amharic.
 
+The panel in Amharic (ADR 0041): on **My notifications**, choose Amharic and save. The whole panel, including its menus, forms, refusals and dates (with Amharic month names), is now in Amharic for you; the API stays English. A panel text added without its Amharic in `lang/am.json` fails `tests/Feature/Lang/AmharicPanelTextTest.php`.
+
 Member photos (ADR 0036): open a member, choose **Add photo** and pick any picture; it is kept as a small square. It shows on the member's page, in the members and check-ins lists, and when you check the member in. In development photos go to `storage/app/private/member-photos` (`PHOTOS_DISK=local`), and their links work for 10 minutes.
 
 Closures and late hours (ADR 0037): give a branch late hours such as Friday 18:00–02:00 (closing earlier than opening means after midnight). Then open **Gym setup > Closures**, choose **Add closure**, and close Main Branch tomorrow for "Timket". A desk check-in there that day is turned away, its members get an inbox message (and a push once the queue worker runs), and `GET /api/v1/me/gyms/demo-gym/branches` lists the closure.

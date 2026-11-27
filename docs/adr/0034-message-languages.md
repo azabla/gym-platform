@@ -35,7 +35,7 @@ Pushes and the app's inbox already took the phone's language (`PushToken.locale`
 - **Gyms.** `organizations.message_language`, English by default. Owners change it on the panel's **Gym settings** page or with `PATCH organizations/{gym}/settings`; every staff member sees it.
 - **Members.** `members.message_language`, null meaning "the gym's". The desk sets it on the member form, or with the staff API's `message_language` on a member.
 - **The members app.** `PUT /me/language` sets it on every member record of the signed-in phone, at every gym, and on the user. The app calls it when the member changes language, beside the push token's locale.
-- **Staff.** `users.message_language`, English by default. Each staff member picks it from **Message language** in the panel's user menu. It covers every gym they work at, because a person reads one language. The panel's own words stay English.
+- **Staff.** `users.message_language`, English by default. Each staff member picks it from **Message language** in the panel's user menu. It covers every gym they work at, because a person reads one language. The panel's own words stay English (since ADR 0041, the panel follows this language too).
 
 A check constraint keeps all three columns to `en` and `am`.
 
