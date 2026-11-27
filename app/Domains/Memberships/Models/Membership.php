@@ -168,7 +168,7 @@ class Membership extends Model
      */
     public static function refusalToSell(Member $member, Plan $plan, CarbonImmutable $startsOn, CarbonImmutable $today): ?MembershipRefused
     {
-        return static::refusalToCover($member, $startsOn, $plan->endsOnFor($startsOn), $today);
+        return self::refusalToCover($member, $startsOn, $plan->endsOnFor($startsOn), $today);
     }
 
     /**
@@ -184,7 +184,7 @@ class Membership extends Model
             return MembershipRefused::endsBeforeItStarts();
         }
 
-        return static::refusalToCover($member, $startsOn, $endsOn, $today);
+        return self::refusalToCover($member, $startsOn, $endsOn, $today);
     }
 
     /**
