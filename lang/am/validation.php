@@ -9,7 +9,7 @@
 
 return [
 
-    'accepted' => ':attribute መቀበል አለበት።',
+    'accepted' => ':attribute መመረጥ አለበት።',
     'after' => ':attribute ከ:date በኋላ መሆን አለበት።',
     'after_or_equal' => ':attribute ከ:date ጋር እኩል ወይም በኋላ መሆን አለበት።',
     'array' => ':attribute ዝርዝር መሆን አለበት።',
@@ -21,18 +21,18 @@ return [
         'array' => ':attribute ከ:min እስከ :max ነገሮች ሊኖሩት ይገባል።',
         'file' => ':attribute ከ:min እስከ :max ኪሎባይት መሆን አለበት።',
     ],
-    'boolean' => ':attribute አዎ ወይም አይደለም መሆን አለበት።',
+    'boolean' => ':attribute አዎ ወይም አይ መሆን አለበት።',
     'confirmed' => ':attribute ማረጋገጫው አይዛመድም።',
     'date' => ':attribute ትክክለኛ ቀን መሆን አለበት።',
-    'date_format' => ':attribute ከ:format ቅርጽ ጋር መዛመድ አለበት።',
+    'date_format' => ':attribute በ:format አጻጻፍ መሆን አለበት።',
     'different' => ':attribute እና :other የተለያዩ መሆን አለባቸው።',
     'digits' => ':attribute :digits አሃዝ መሆን አለበት።',
-    'distinct' => ':attribute የተደገመ ዋጋ አለው።',
+    'distinct' => ':attribute ተደግሟል፤ እያንዳንዱን አንድ ጊዜ ብቻ ያስገቡ።',
     'email' => ':attribute ትክክለኛ የኢሜይል አድራሻ መሆን አለበት።',
     'enum' => 'የተመረጠው :attribute ትክክል አይደለም።',
     'exists' => 'የተመረጠው :attribute ትክክል አይደለም።',
     'file' => ':attribute ፋይል መሆን አለበት።',
-    'filled' => ':attribute ዋጋ ሊኖረው ይገባል።',
+    'filled' => ':attribute ባዶ መሆን የለበትም።',
     'gt' => [
         'numeric' => ':attribute ከ:value በላይ መሆን አለበት።',
     ],
@@ -65,7 +65,7 @@ return [
     'present' => ':attribute መኖር አለበት።',
     'prohibited' => ':attribute አይፈቀድም።',
     'prohibited_if' => ':other :value ሲሆን :attribute አይፈቀድም።',
-    'regex' => ':attribute ቅርጹ ትክክል አይደለም።',
+    'regex' => 'የ:attribute አጻጻፍ ትክክል አይደለም።',
     'required' => ':attribute ያስፈልጋል።',
     'required_if' => ':other :value ሲሆን :attribute ያስፈልጋል።',
     'required_with' => ':values ሲኖር :attribute ያስፈልጋል።',
@@ -78,7 +78,7 @@ return [
     'string' => ':attribute ጽሑፍ መሆን አለበት።',
     'unique' => ':attribute አስቀድሞ ተይዟል።',
     'uploaded' => ':attribute መጫን አልተቻለም።',
-    'url' => ':attribute ትክክለኛ አድራሻ መሆን አለበት።',
+    'url' => ':attribute ትክክለኛ የድረ ገጽ አድራሻ መሆን አለበት።',
 
     'attributes' => [],
 
