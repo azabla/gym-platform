@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Insights;
 
+use App\Domains\Attendance\Access\Visits;
+use App\Domains\Attendance\Enums\CheckInResult;
+use App\Domains\Attendance\Models\CheckIn;
 use App\Domains\Billing\Enums\PaymentMethod;
 use App\Domains\Billing\Enums\PaymentType;
 use App\Domains\Billing\Models\Payment;
@@ -24,6 +27,8 @@ use Illuminate\Database\Eloquent\Builder;
  */
 final class GymInsights
 {
+    public function __construct(private Visits $visits) {}
+
     /** How many months an insight may cover. */
     public const MONTHS = [3, 6, 12];
 
@@ -160,6 +165,96 @@ final class GymInsights
                 'waiting' => $waiting,
                 'rate' => $renewed + $lapsed === 0 ? null : round($renewed / ($renewed + $lapsed), 3),
                 'by_plan' => $plans,
+            ];
+        }, $covered);
+    }
+
+    /**
+     * Check-ins that let members in, by weekday (1 is Monday) and hour, where
+     * the gym is, over the months covered, at the branches given: the
+     * busiest hours.
+     *
+     * @param  list<int>|null  $branchIds
+     * @return array{grid: array<int, list<int>>, total: int}
+     */
+    public function busyHours(Organization $gym, int $months, ?array $branchIds): array
+    {
+        $since = CarbonImmutable::parse($this->months($gym, $months)[0]->toDateString(), $gym->timezone)->utc();
+
+        $counts = CheckIn::query()
+            ->madeAtAnyOf($branchIds)
+            ->where('result', CheckInResult::Allowed)
+            ->where('checked_in_at', '>=', $since)
+            ->selectRaw('EXTRACT(ISODOW FROM checked_in_at AT TIME ZONE ?)::int AS weekday', [$gym->timezone])
+            ->selectRaw('EXTRACT(HOUR FROM checked_in_at AT TIME ZONE ?)::int AS hour', [$gym->timezone])
+            ->selectRaw('COUNT(*) AS total')
+            ->groupByRaw('1, 2')
+            ->toBase()
+            ->get();
+
+        $grid = [];
+
+        foreach (range(1, 7) as $weekday) {
+            $grid[$weekday] = array_fill(0, 24, 0);
+        }
+
+        foreach ($counts as $count) {
+            $grid[(int) $count->weekday][(int) $count->hour] = (int) $count->total;
+        }
+
+        return ['grid' => $grid, 'total' => array_sum(array_map('array_sum', $grid))];
+    }
+
+    /**
+     * For each month: members with a valid membership at its end (today, for
+     * this month), new members registered in it, and the visit packs that
+     * ended in it: how many, the visits bought and used, and how many ended
+     * with visits left. By home branch.
+     *
+     * @param  list<int>|null  $branchIds
+     * @return list<array{month: string, active: int, new: int, packs_ended: int, visits_bought: int, visits_used: int, packs_with_visits_left: int}>
+     */
+    public function members(Organization $gym, int $months, ?array $branchIds): array
+    {
+        $covered = $this->months($gym, $months);
+        $today = $gym->today();
+
+        $newByMonth = $this->membersAt($branchIds)
+            ->where('created_at', '>=', CarbonImmutable::parse($covered[0]->toDateString(), $gym->timezone)->utc())
+            ->selectRaw("to_char(created_at AT TIME ZONE ?, 'YYYY-MM') AS month, COUNT(*) AS total", [$gym->timezone])
+            ->groupByRaw('1')
+            ->toBase()
+            ->pluck('total', 'month');
+
+        $packs = Membership::query()
+            ->notCancelled()
+            ->whereNotNull('visit_limit')
+            ->whereIn('member_id', $this->membersAt($branchIds)->select('id'))
+            ->where('ends_on', '>=', $covered[0]->toDateString())
+            ->where('ends_on', '<', $today->toDateString())
+            ->get();
+        $used = $this->visits->usedOn($gym->timezone, ...$packs->all());
+
+        return array_map(function (CarbonImmutable $month) use ($branchIds, $today, $newByMonth, $packs, $used): array {
+            $key = $month->format('Y-m');
+            $endOfMonth = $month->endOfMonth()->startOfDay();
+            $day = $endOfMonth->gt($today) ? $today : $endOfMonth;
+            $ended = $packs->filter(fn (Membership $pack): bool => $pack->ends_on->format('Y-m') === $key);
+
+            return [
+                'month' => $key,
+                'active' => Membership::query()
+                    ->notCancelled()
+                    ->whereIn('member_id', $this->membersAt($branchIds)->select('id'))
+                    ->where('starts_on', '<=', $day->toDateString())
+                    ->where('ends_on', '>=', $day->toDateString())
+                    ->distinct()
+                    ->count('member_id'),
+                'new' => (int) ($newByMonth[$key] ?? 0),
+                'packs_ended' => $ended->count(),
+                'visits_bought' => (int) $ended->sum('visit_limit'),
+                'visits_used' => (int) $ended->sum(fn (Membership $pack): int => min((int) $pack->visit_limit, $used[$pack->id] ?? 0)),
+                'packs_with_visits_left' => $ended->filter(fn (Membership $pack): bool => ($used[$pack->id] ?? 0) < (int) $pack->visit_limit)->count(),
             ];
         }, $covered);
     }
