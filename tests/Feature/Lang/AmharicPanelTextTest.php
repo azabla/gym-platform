@@ -138,3 +138,17 @@ it('has Amharic for the labels the panel works out as it runs', function () {
 
     expect(array_values(array_unique(array_filter($labels, fn (string $label): bool => $label !== '' && ! isset($amharic[$label])))))->toBe([]);
 });
+
+it('gives every list a real Amharic name and plural, never an English "s"', function () {
+    app()->setLocale('am');
+
+    $labels = [];
+
+    foreach (Filament::getPanel('staff')->getResources() as $resource) {
+        $labels[$resource] = [$resource::getModelLabel(), $resource::getPluralModelLabel(), $resource::getNavigationLabel()];
+    }
+
+    app()->setLocale('en');
+
+    expect(array_filter($labels, fn (array $names): bool => preg_match('/[A-Za-z]/', implode(' ', $names)) === 1))->toBe([]);
+});

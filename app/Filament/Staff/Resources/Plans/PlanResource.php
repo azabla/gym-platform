@@ -41,7 +41,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use UnitEnum;
 
@@ -305,7 +304,9 @@ class PlanResource extends Resource
 
     private static function durationOf(Plan $plan): string
     {
-        return $plan->duration_count.' '.Str::plural($plan->duration_unit === DurationUnit::Month ? 'month' : 'day', $plan->duration_count);
+        return $plan->duration_unit === DurationUnit::Month
+            ? trans_choice('{1} 1 month|[2,*] :count months', $plan->duration_count)
+            : trans_choice('{1} 1 day|[2,*] :count days', $plan->duration_count);
     }
 
     /**
