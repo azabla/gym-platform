@@ -28,6 +28,8 @@ class MyGymResource extends JsonResource
         return [
             'slug' => $this->organization->slug,
             'name' => $this->organization->name,
+            // A paused gym's routes answer 403 GYM_PAUSED; show "ask at the gym" instead (ADR 0043).
+            'paused' => $this->organization->isSuspended(),
             'member' => [
                 'id' => $this->id,
                 'full_name' => $this->full_name,
