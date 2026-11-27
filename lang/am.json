@@ -1,0 +1,8 @@
+{
+    "{1} 1 day|[2,*] :count days": "{1} 1 ቀን|[2,*] :count ቀናት",
+    "{1} Closure added.|[2,*] :count closures added.": "{1} መዝጊያው ተጨምሯል።|[2,*] :count መዝጊያዎች ተጨምረዋል።",
+    "{0} No members to tell.|{1} 1 member will get a push.|[2,*] :count members will get a push.": "{0} የሚነገረው አባል የለም።|{1} 1 አባል ማሳወቂያ ይደርሰዋል።|[2,*] :count አባላት ማሳወቂያ ይደርሳቸዋል።",
+    "{0} No member owes|{1} By 1 member|[2,*] By :count members": "{0} ዕዳ ያለበት አባል የለም|{1} በ1 አባል|[2,*] በ:count አባላት",
+    "{0} None waiting|{1} 1 waiting to be paid|[2,*] :count waiting to be paid": "{0} የሚጠብቅ የለም|{1} 1 ክፍያ ይጠብቃል|[2,*] :count ክፍያ ይጠብቃሉ",
+    "{1} 1 payment link|[2,*] :count payment links": "{1} 1 የክፍያ ሊንክ|[2,*] :count የክፍያ ሊንኮች"
+}
