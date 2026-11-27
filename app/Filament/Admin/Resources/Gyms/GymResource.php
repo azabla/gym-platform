@@ -7,6 +7,7 @@ namespace App\Filament\Admin\Resources\Gyms;
 use App\Dashboards\GymFigures;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Branch;
+use App\Domains\Organizations\Models\GymSuspension;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Onboarding\NewGym;
@@ -31,7 +32,9 @@ use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -66,6 +69,11 @@ class GymResource extends Resource
                     ->description(fn (Organization $record): string => '/'.$record->slug)
                     ->searchable(['name', 'slug'])
                     ->sortable(),
+                TextColumn::make('status')
+                    ->state(fn (Organization $record): string => $record->isSuspended() ? 'Paused' : 'Active')
+                    ->badge()
+                    ->color(fn (string $state): string => $state === 'Paused' ? 'danger' : 'success')
+                    ->icon(fn (string $state): Heroicon => $state === 'Paused' ? Heroicon::OutlinedPauseCircle : Heroicon::OutlinedCheckCircle),
                 TextColumn::make('owner')
                     ->state(fn (Organization $record, HasTable $livewire): string => self::ownersOf($livewire)[(int) $record->getKey()] ?? '—')
                     ->color('gray'),
@@ -83,6 +91,16 @@ class GymResource extends Resource
                     ->placeholder('Nothing yet')
                     ->color('gray'),
                 TextColumn::make('created_at')->label('Opened')->date('j M Y')->sortable()->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                SelectFilter::make('status')
+                    ->native(false)
+                    ->options(['active' => 'Active', 'paused' => 'Paused'])
+                    ->query(fn (Builder $query, array $data): Builder => match ($data['value'] ?? null) {
+                        'active' => $query->whereNull('suspended_at'),
+                        'paused' => $query->whereNotNull('suspended_at'),
+                        default => $query,
+                    }),
             ])
             ->recordActions([
                 ViewAction::make(),
@@ -193,6 +211,24 @@ class GymResource extends Resource
                     TextEntry::make('message_language')->label('Members\' message language')->formatStateUsing(fn (Organization $record): string => $record->messageLanguage()->label()),
                     TextEntry::make('created_at')->label('Opened')->date('j M Y'),
                 ]),
+            Section::make('Paused')
+                ->description('Its staff, members\' app, door and messages are stopped until it is resumed.')
+                ->icon(Heroicon::OutlinedPauseCircle)
+                ->iconColor('danger')
+                ->visible(fn (Organization $record): bool => $record->isSuspended())
+                ->columns(['default' => 1, 'md' => 3])
+                ->schema([
+                    TextEntry::make('paused_since')
+                        ->label('Since')
+                        ->state(fn (Organization $record): ?CarbonImmutable => $record->suspensions()->first()?->suspended_at)
+                        ->dateTime('j M Y, H:i'),
+                    TextEntry::make('paused_by')
+                        ->label('By')
+                        ->state(fn (Organization $record): ?string => $record->suspensions()->with('suspendedBy')->first()?->suspendedBy?->name),
+                    TextEntry::make('paused_why')
+                        ->label('Why')
+                        ->state(fn (Organization $record): ?string => $record->suspensions()->first()?->reason),
+                ]),
             Section::make('Owners and branches')
                 ->icon(Heroicon::OutlinedUsers)
                 ->columns(['default' => 1, 'md' => 2])
@@ -206,6 +242,18 @@ class GymResource extends Resource
                         ->state(fn (Organization $record): array => Branch::query()->acrossOrganizations()->where('organization_id', $record->getKey())->orderBy('name')->pluck('name')->map(fn (mixed $name): string => (string) $name)->all())
                         ->listWithLineBreaks(),
                 ]),
+            Section::make('Pause history')
+                ->icon(Heroicon::OutlinedClock)
+                ->collapsible()
+                ->collapsed()
+                ->schema([
+                    TextEntry::make('pause_history')
+                        ->hiddenLabel()
+                        ->state(fn (Organization $record): array => self::pauseHistory($record))
+                        ->listWithLineBreaks()
+                        ->bulleted()
+                        ->placeholder('Never paused'),
+                ]),
         ]);
     }
 
@@ -217,6 +265,24 @@ class GymResource extends Resource
             'view' => ViewGym::route('/{record}'),
             'edit' => EditGym::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Each pause, newest first: "Paused 1 Nov 2026 by Selam: hasn't paid · Resumed 3 Nov 2026 by Abel: paid"
+     *
+     * @return list<string>
+     */
+    private static function pauseHistory(Organization $gym): array
+    {
+        return array_values($gym->suspensions()->with(['suspendedBy', 'resumedBy'])->get()->map(function (GymSuspension $pause): string {
+            $line = 'Paused '.$pause->suspended_at->format('j M Y').' by '.$pause->suspendedBy->name.': '.$pause->reason;
+
+            if ($pause->resumed_at !== null) {
+                $line .= ' · Resumed '.$pause->resumed_at->format('j M Y').' by '.$pause->resumedBy->name.($pause->resume_note === null ? '' : ': '.$pause->resume_note);
+            }
+
+            return $line;
+        })->all());
     }
 
     private static function figure(string $name, string $label): TextColumn
