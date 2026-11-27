@@ -46,6 +46,11 @@ final class MembershipRefused extends DomainException
         return new self(__('This membership has already ended.'), 'membership');
     }
 
+    public static function endsBeforeItStarts(): self
+    {
+        return new self(__('A membership can\'t end before its first day.'), 'ends_on');
+    }
+
     public static function freezeEndsBeforeItStarts(): self
     {
         return new self(__('The last day of the freeze can\'t be before its first day.'), 'ends_on');

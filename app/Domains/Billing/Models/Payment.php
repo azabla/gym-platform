@@ -65,6 +65,17 @@ class Payment extends Model
     }
 
     /**
+     * Record money the member paid before their gym joined the platform, as
+     * the gym's import brings it in: paid on the membership's first day, at
+     * the branch, received by the staff member who ran the import. It counts
+     * towards what the member owes, never as money taken (ADR 0044).
+     */
+    public static function bringIn(Membership $membership, Money $amount, Branch $branch, Staff $broughtInBy): self
+    {
+        return self::receive($membership, $amount, PaymentMethod::BroughtIn, null, $branch, $membership->starts_on, $broughtInBy);
+    }
+
+    /**
      * Give money back to the member for the cancelled membership: by the given
      * method, at the branch, on the gym's date it was given. The membership is
      * locked first, like receive(). See refusalToRefund().
