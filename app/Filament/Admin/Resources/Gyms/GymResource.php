@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Admin\Resources\Gyms;
 
 use App\Dashboards\GymFigures;
+use App\Domains\Identity\Models\User;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\GymSuspension;
@@ -272,7 +273,11 @@ class GymResource extends Resource
                         ->dateTime('j M Y, H:i'),
                     TextEntry::make('paused_by')
                         ->label('By')
-                        ->state(fn (Organization $record): ?string => $record->suspensions()->with('suspendedBy')->first()?->suspendedBy?->name),
+                        ->state(function (Organization $record): ?string {
+                            $pause = $record->suspensions()->with('suspendedBy')->first();
+
+                            return $pause === null ? null : self::byWhom($pause->suspendedBy);
+                        }),
                     TextEntry::make('paused_why')
                         ->label('Why')
                         ->state(fn (Organization $record): ?string => $record->suspensions()->first()?->reason),
@@ -323,14 +328,22 @@ class GymResource extends Resource
     private static function pauseHistory(Organization $gym): array
     {
         return array_values($gym->suspensions()->with(['suspendedBy', 'resumedBy'])->get()->map(function (GymSuspension $pause): string {
-            $line = 'Paused '.$pause->suspended_at->format('j M Y').' by '.$pause->suspendedBy->name.': '.$pause->reason;
+            $line = 'Paused '.$pause->suspended_at->format('j M Y').' by '.self::byWhom($pause->suspendedBy).': '.$pause->reason;
 
             if ($pause->resumed_at !== null) {
-                $line .= ' · Resumed '.$pause->resumed_at->format('j M Y').' by '.$pause->resumedBy->name.($pause->resume_note === null ? '' : ': '.$pause->resume_note);
+                $line .= ' · Resumed '.$pause->resumed_at->format('j M Y').' by '.self::byWhom($pause->resumedBy).($pause->resume_note === null ? '' : ': '.$pause->resume_note);
             }
 
             return $line;
         })->all());
+    }
+
+    /**
+     * The admin who paused or resumed, or "the platform" when billing did.
+     */
+    private static function byWhom(?User $admin): string
+    {
+        return $admin === null ? 'the platform' : $admin->name;
     }
 
     private static function figure(string $name, string $label): TextColumn

@@ -9,6 +9,7 @@ use App\Domains\PlatformBilling\Models\PlatformPlan;
 use App\Domains\PlatformBilling\SubscriptionTerms;
 use App\Filament\Admin\Resources\GymInvoices\Pages\ListGymInvoices;
 use App\Filament\Admin\Resources\Gyms\Pages\ListGyms;
+use App\Filament\Admin\Resources\Gyms\Pages\ViewGym;
 use App\Filament\Admin\Widgets\PlatformBillingOverview;
 use Carbon\CarbonImmutable;
 use Livewire\Livewire;
@@ -67,6 +68,21 @@ it('records a payment from the gym\'s receipt, and shows it on the invoice', fun
 
     $this->get(route('platform-bill.invoice', $this->overdue->getKey()))
         ->assertSee(['Paid', 'Telebirr · TB123', '1,200.00 ETB', '800.00 ETB']);
+});
+
+it('gives a gym paused for its bill more time, and shows the platform paused it', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-12-04 10:00', 'Africa/Addis_Ababa'));
+    $this->artisan('platform-billing:run');
+
+    Livewire::test(ViewGym::class, ['record' => $this->gym->getRouteKey()])
+        ->assertSee(['Paused, unpaid', 'by the platform: Unpaid invoice INV-000001, due 20 Nov 2026.']);
+
+    Livewire::test(ListGymInvoices::class)
+        ->callTableAction('giveMoreTime', $this->overdue, ['pauses_on' => '2026-12-10'])
+        ->assertNotified('The gym has until 10 Dec 2026 to pay.');
+
+    expect($this->gym->refresh()->isSuspended())->toBeFalse()
+        ->and($this->overdue->refresh()->pauses_on->toDateString())->toBe('2026-12-10');
 });
 
 it('says why a payment is refused', function () {

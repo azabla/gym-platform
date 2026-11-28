@@ -12,6 +12,7 @@ use App\Domains\Organizations\Tenancy\BelongsToOrganization;
 use App\Domains\PlatformBilling\Enums\GymPaymentMethod;
 use App\Domains\PlatformBilling\Events\GymInvoiceIssued;
 use App\Domains\PlatformBilling\Events\GymInvoicePaid;
+use App\Domains\PlatformBilling\Events\GymPausedForUnpaidBill;
 use App\Domains\PlatformBilling\Exceptions\BillingRefused;
 use App\Domains\Shared\Money\Money;
 use Carbon\CarbonImmutable;
@@ -46,6 +47,7 @@ use Illuminate\Support\Facades\DB;
  * @property string|null $tin
  * @property CarbonImmutable|null $paid_at
  * @property CarbonImmutable|null $voided_at
+ * @property CarbonImmutable|null $paused_gym_at
  * @property string|null $void_reason
  * @property-read User|null $voidedBy
  */
@@ -219,12 +221,86 @@ class GymInvoice extends Model
 
             if ($invoice->balance()->isZero()) {
                 $this->forceFill(['paid_at' => CarbonImmutable::now()])->save();
+                $this->resumeGymIfSettled('Paid '.$this->reference());
 
                 GymInvoicePaid::dispatch($this);
             }
 
             return $payment;
         });
+    }
+
+    /**
+     * Pause the gym if one of its invoices is still unpaid on its pause day.
+     * Each invoice pauses its gym once: a gym an admin resumed by hand isn't
+     * paused again for the same invoice. A gym already paused stays as it is.
+     *
+     * @return self|null the invoice that paused the gym
+     */
+    public static function pauseGymIfUnpaid(Organization $gym): ?self
+    {
+        return DB::transaction(function () use ($gym): ?self {
+            $invoice = self::query()->acrossOrganizations()->open()
+                ->where('organization_id', $gym->getKey())
+                ->whereNull('paused_gym_at')
+                ->where('pauses_on', '<=', $gym->today()->toDateString())
+                ->orderBy('due_on')
+                ->lockForUpdate()
+                ->first();
+
+            if ($invoice === null || ! $gym->suspendForUnpaidBill('Unpaid invoice '.$invoice->reference().', due '.$invoice->due_on->format('j M Y').'.')) {
+                return null;
+            }
+
+            $invoice->forceFill(['paused_gym_at' => CarbonImmutable::now()])->save();
+
+            GymPausedForUnpaidBill::dispatch($invoice);
+
+            return $invoice;
+        });
+    }
+
+    /**
+     * Give the gym more time to pay: the invoice pauses it on a later day.
+     * A gym this invoice already paused reopens, if nothing else unpaid is
+     * past its pause day.
+     *
+     * @throws BillingRefused when the invoice isn't open or the day is before its due day or not after today
+     */
+    public function moveGraceTo(CarbonImmutable $pausesOn, User $by): void
+    {
+        $gym = Organization::query()->findOrFail($this->organization_id);
+
+        if (! $this->isOpen()) {
+            throw BillingRefused::notOpen();
+        }
+
+        if (! $pausesOn->greaterThan($gym->today()) || $pausesOn->lessThan($this->due_on)) {
+            throw BillingRefused::graceNotLater();
+        }
+
+        DB::transaction(function () use ($pausesOn, $by): void {
+            self::query()->acrossOrganizations()->whereKey($this->getKey())->update(['pauses_on' => $pausesOn->toDateString(), 'paused_gym_at' => null]);
+            $this->refresh();
+            $this->resumeGymIfSettled('Given until '.$pausesOn->format('j M Y').' to pay '.$this->reference(), $by);
+        });
+    }
+
+    /**
+     * Reopen the gym from a pause for an unpaid bill once none of its open
+     * invoices is past its pause day.
+     */
+    private function resumeGymIfSettled(string $note, ?User $by = null): void
+    {
+        $gym = Organization::query()->findOrFail($this->organization_id);
+        $stillUnpaid = self::query()->acrossOrganizations()->open()
+            ->where('organization_id', $gym->getKey())
+            ->where('pauses_on', '<=', $gym->today()->toDateString())
+            ->exists();
+
+        if (! $stillUnpaid) {
+            $gym->resumeFromUnpaidBill($note, $by);
+        }
     }
 
     /**
@@ -315,6 +391,7 @@ class GymInvoice extends Model
             'vat' => AsMoney::class.':vat_minor,currency',
             'paid_at' => 'immutable_datetime',
             'voided_at' => 'immutable_datetime',
+            'paused_gym_at' => 'immutable_datetime',
         ];
     }
 }

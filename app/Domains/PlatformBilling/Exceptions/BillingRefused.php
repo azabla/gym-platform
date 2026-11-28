@@ -84,6 +84,16 @@ final class BillingRefused extends DomainException
         return new self('A payment with this transaction number is already recorded.');
     }
 
+    public static function notOpen(): self
+    {
+        return new self('This invoice is paid or voided.');
+    }
+
+    public static function graceNotLater(): self
+    {
+        return new self('Choose a day after today, and not before the invoice\'s due day.');
+    }
+
     public static function paidInTheFuture(): self
     {
         return new self('The day it was paid can\'t be after today.');

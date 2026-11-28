@@ -7,6 +7,7 @@ namespace App\Domains\Organizations\Models;
 use App\Domains\Identity\Models\PasswordLink;
 use App\Domains\Identity\Models\User;
 use App\Domains\Organizations\Enums\StaffRole;
+use App\Domains\Organizations\Enums\SuspensionCause;
 use App\Domains\Organizations\Exceptions\GymSuspensionRefused;
 use App\Domains\Organizations\Onboarding\NewGym;
 use App\Domains\Organizations\Policies\OrganizationPolicy;
@@ -139,9 +140,79 @@ class Organization extends Model
         });
     }
 
+    /**
+     * Pause the gym for an unpaid invoice, as the platform itself rather than
+     * an admin (ADR 0045). A gym already paused stays as it is.
+     *
+     * @return bool whether it was paused now
+     */
+    public function suspendForUnpaidBill(string $reason): bool
+    {
+        return DB::transaction(function () use ($reason): bool {
+            $gym = self::query()->lockForUpdate()->findOrFail($this->getKey());
+
+            if ($gym->suspended_at !== null) {
+                return false;
+            }
+
+            $now = CarbonImmutable::now();
+            $suspension = new GymSuspension;
+            $suspension->forceFill([
+                'organization_id' => $this->getKey(),
+                'suspended_at' => $now,
+                'cause' => SuspensionCause::UnpaidBill,
+                'reason' => $reason,
+            ])->save();
+
+            $this->forceFill(['suspended_at' => $now])->save();
+
+            return true;
+        });
+    }
+
+    /**
+     * Resume the gym when its unpaid bill is settled (paid, or given more
+     * time), but only a pause for an unpaid bill: a pause by an admin stays
+     * until an admin resumes it.
+     *
+     * @return bool whether it was resumed now
+     */
+    public function resumeFromUnpaidBill(string $note, ?User $by = null): bool
+    {
+        return DB::transaction(function () use ($note, $by): bool {
+            self::query()->lockForUpdate()->findOrFail($this->getKey());
+
+            $resumed = GymSuspension::query()->acrossOrganizations()
+                ->where('organization_id', $this->getKey())
+                ->whereNull('resumed_at')
+                ->where('cause', SuspensionCause::UnpaidBill)
+                ->update(['resumed_at' => CarbonImmutable::now(), 'resumed_by_user_id' => $by?->getKey(), 'resume_note' => $note]);
+
+            if ($resumed === 0) {
+                return false;
+            }
+
+            $this->forceFill(['suspended_at' => null])->save();
+
+            return true;
+        });
+    }
+
     public function isSuspended(): bool
     {
         return $this->suspended_at !== null;
+    }
+
+    /**
+     * Whether the gym is paused, by the platform, for an unpaid bill.
+     */
+    public function isSuspendedForUnpaidBill(): bool
+    {
+        return $this->isSuspended() && GymSuspension::query()->acrossOrganizations()
+            ->where('organization_id', $this->getKey())
+            ->whereNull('resumed_at')
+            ->where('cause', SuspensionCause::UnpaidBill)
+            ->exists();
     }
 
     /**

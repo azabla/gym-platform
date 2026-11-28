@@ -129,6 +129,7 @@ class GymInvoiceResource extends Resource
                     ->url(fn (GymInvoice $record): string => route('platform-bill.invoice', $record->getKey()))
                     ->openUrlInNewTab(),
                 self::recordPaymentAction(),
+                self::giveMoreTimeAction(),
                 self::voidAction(),
             ]);
     }
@@ -220,6 +221,39 @@ class GymInvoiceResource extends Resource
                 }
 
                 Notification::make()->success()->title($record->refresh()->paid_at === null ? 'Payment recorded.' : 'Payment recorded. The invoice is paid.')->send();
+            });
+    }
+
+    public static function giveMoreTimeAction(): Action
+    {
+        return Action::make('giveMoreTime')
+            ->label('Give more time')
+            ->icon(Heroicon::OutlinedClock)
+            ->color('gray')
+            ->visible(fn (GymInvoice $record): bool => $record->isOpen())
+            ->modalIcon(Heroicon::OutlinedClock)
+            ->modalHeading(fn (GymInvoice $record): string => 'More time to pay '.$record->reference())
+            ->modalDescription(fn (GymInvoice $record): string => 'It pauses '.$record->organization->name.' on '.$record->pauses_on->format('j M Y').' now. If it has already paused the gym, the gym reopens until the new day.')
+            ->fillForm(fn (GymInvoice $record): array => ['pauses_on' => $record->organization->today()->addDays(7)->toDateString()])
+            ->schema([
+                DatePicker::make('pauses_on')
+                    ->label('Pauses the gym on')
+                    ->native(false)
+                    ->required()
+                    ->minDate(fn (GymInvoice $record): string => $record->organization->today()->addDay()->max($record->due_on)->toDateString()),
+            ])
+            ->action(function (GymInvoice $record, array $data, Action $action): void {
+                $admin = Filament::auth()->user();
+                abort_unless($admin instanceof User, 403);
+
+                try {
+                    $record->moveGraceTo(CarbonImmutable::parse((string) $data['pauses_on']), $admin);
+                } catch (BillingRefused $refused) {
+                    Notification::make()->danger()->title($refused->getMessage())->send();
+                    $action->halt();
+                }
+
+                Notification::make()->success()->title('The gym has until '.CarbonImmutable::parse((string) $data['pauses_on'])->format('j M Y').' to pay.')->send();
             });
     }
 

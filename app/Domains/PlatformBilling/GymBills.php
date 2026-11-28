@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domains\PlatformBilling;
 
+use App\Domains\Organizations\Enums\SuspensionCause;
+use App\Domains\Organizations\Models\GymSuspension;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\PlatformBilling\Enums\GymBillStatus;
 use App\Domains\PlatformBilling\Models\GymInvoice;
@@ -53,6 +55,7 @@ class GymBills
     {
         $subscriptions = $this->subscriptionsOf($gyms);
         $earliestDue = $this->earliestOpenDueDaysOf($gyms);
+        $pausedForUnpaidBills = $this->pausedForUnpaidBills($gyms);
         $statuses = [];
 
         foreach ($gyms as $gym) {
@@ -60,6 +63,7 @@ class GymBills
             $subscription = $subscriptions[$id] ?? null;
             $dueOn = $earliestDue[$id] ?? null;
             $statuses[$id] = match (true) {
+                in_array($id, $pausedForUnpaidBills, true) => GymBillStatus::PausedUnpaid,
                 $subscription === null && $dueOn === null => GymBillStatus::NotBilled,
                 $dueOn !== null && $gym->today()->greaterThan($dueOn) => GymBillStatus::Overdue,
                 $dueOn !== null => GymBillStatus::Due,
@@ -99,14 +103,19 @@ class GymBills
         $onTrial = fn (): QueryBuilder => $subscription()->whereRaw("gym_subscriptions.trial_ends_on >= {$today}");
         $open = fn (): QueryBuilder => DB::table('gym_invoices')->whereColumn('gym_invoices.organization_id', 'organizations.id')->whereNull('paid_at')->whereNull('voided_at');
         $overdue = fn (): QueryBuilder => $open()->whereRaw("gym_invoices.due_on < {$today}");
+        $pausedUnpaid = fn (): QueryBuilder => DB::table('gym_suspensions')->whereColumn('gym_suspensions.organization_id', 'organizations.id')
+            ->whereNull('resumed_at')
+            ->where('cause', SuspensionCause::UnpaidBill->value);
+
+        $gyms = $status === GymBillStatus::PausedUnpaid ? $gyms : $gyms->whereNotExists($pausedUnpaid());
 
         return match ($status) {
+            GymBillStatus::PausedUnpaid => $gyms->whereExists($pausedUnpaid()),
             GymBillStatus::NotBilled => $gyms->whereNotExists($subscription())->whereNotExists($open()),
             GymBillStatus::Overdue => $gyms->whereExists($overdue()),
             GymBillStatus::Due => $gyms->whereExists($open())->whereNotExists($overdue()),
             GymBillStatus::Trial => $gyms->whereExists($onTrial())->whereNotExists($open()),
             GymBillStatus::PaidUp => $gyms->whereExists($subscription())->whereNotExists($onTrial())->whereNotExists($open()),
-            GymBillStatus::PausedUnpaid => $gyms->whereRaw('false'),
         };
     }
 
@@ -161,6 +170,22 @@ class GymBills
         }
 
         return $owed;
+    }
+
+    /**
+     * The ids of the gyms paused, by the platform, for an unpaid bill.
+     *
+     * @param  iterable<Organization>  $gyms
+     * @return list<int>
+     */
+    private function pausedForUnpaidBills(iterable $gyms): array
+    {
+        return array_map('intval', GymSuspension::query()->acrossOrganizations()
+            ->whereIn('organization_id', $this->idsOf($gyms))
+            ->whereNull('resumed_at')
+            ->where('cause', SuspensionCause::UnpaidBill)
+            ->pluck('organization_id')
+            ->all());
     }
 
     /**
