@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Domains\Activity\Models;
 
 use App\Domains\Activity\Enums\ActivityAction;
+use App\Domains\Activity\Policies\ActivityRecordPolicy;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -32,6 +34,7 @@ use LogicException;
  * @property-read Staff|null $staff
  * @property-read Branch|null $branch
  */
+#[UsePolicy(ActivityRecordPolicy::class)]
 class ActivityRecord extends Model
 {
     use BelongsToOrganization;

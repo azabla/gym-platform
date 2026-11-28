@@ -16,6 +16,7 @@ use App\Filament\Staff\Resources\Members\MemberResource;
 use App\Filament\Staff\Resources\Memberships\MembershipResource;
 use App\Filament\Staff\Resources\Payments\Pages\ListPayments;
 use App\Filament\Staff\Resources\Payments\Pages\ViewPayment;
+use App\Filament\Staff\Support\ActivityHistory;
 use App\Filament\Staff\Support\Badges;
 use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Tables;
@@ -110,6 +111,7 @@ class PaymentResource extends Resource
                             ->columnSpan(2)
                             ->visible(fn (Payment $record): bool => $record->voided_at !== null),
                     ]),
+                ActivityHistory::section(),
             ]);
     }
 

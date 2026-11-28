@@ -15,6 +15,7 @@ use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\Plans\Pages\CreatePlan;
 use App\Filament\Staff\Resources\Plans\Pages\EditPlan;
 use App\Filament\Staff\Resources\Plans\Pages\ListPlans;
+use App\Filament\Staff\Support\ActivityHistory;
 use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Tables;
 use App\Filament\Staff\Support\TranslatesItsLabels;
@@ -150,6 +151,7 @@ class PlanResource extends Resource
                             ->placeholder(__('Every branch'))
                             ->helperText(__('Leave empty to sell it at every branch. A membership is valid where its plan was sold.')),
                     ]),
+                ActivityHistory::section(),
             ]);
     }
 

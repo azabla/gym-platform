@@ -13,6 +13,7 @@ use App\Filament\Staff\Resources\Members\MemberResource;
 use App\Filament\Staff\Resources\PaymentLinks\Pages\ListPaymentLinks;
 use App\Filament\Staff\Resources\PaymentLinks\Pages\ViewPaymentLink;
 use App\Filament\Staff\Resources\Payments\PaymentResource;
+use App\Filament\Staff\Support\ActivityHistory;
 use App\Filament\Staff\Support\Badges;
 use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Tables;
@@ -112,6 +113,7 @@ class PaymentLinkResource extends Resource
                         TextEntry::make('refundedBy.user.name')->label(__('Refunded by')),
                         TextEntry::make('refund_note')->label(__('Refund note'))->placeholder(__('None')),
                     ]),
+                ActivityHistory::section(),
             ]);
     }
 
