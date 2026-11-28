@@ -122,6 +122,20 @@ Ethiopian date first, with the Gregorian date beside it.
 | (next day), past midnight | (በማግስቱ) | | |
 | time zone | የሰዓት ሰቅ | | never የሰዓት ዞን |
 
+### The platform's bill to the gym
+
+| English | Amharic | Button | Notes |
+|---|---|---|---|
+| platform bill (what the gym pays the platform) | የአገልግሎት ክፍያ | | never the members' ክፍያ alone, so the two don't mix |
+| invoice | የክፍያ መጠየቂያ (የክፍያ መጠየቂያዎች) | | not ደረሰኝ, which is a receipt for money taken |
+| due (to be paid) / due on | የሚከፈል / የመክፈያ ቀን | | |
+| overdue | የመክፈያ ጊዜው ያለፈ | | |
+| still to pay | ቀሪ ዕዳ | | as for members |
+| free trial | ነፃ የሙከራ ጊዜ | | |
+| VAT | ተ.እ.ታ | | ተጨማሪ እሴት ታክስ written out |
+| TIN | የግብር ከፋይ መለያ ቁጥር | | |
+| paused for an unpaid bill | ባልተከፈለ ክፍያ ለጊዜው የተቋረጠ | | the paused words, never the freeze words |
+
 ### Importing members
 
 | English | Amharic | Button | Notes |
