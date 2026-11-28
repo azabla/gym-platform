@@ -46,6 +46,10 @@ final class ActivityText
                 : __(':plan price changed from :from to :to', ['plan' => $text('plan'), 'from' => $text('from'), 'to' => $text('to')]),
             ActivityAction::PromoCodeSaved => self::changed($details, __('Promo code :code', ['code' => $text('code')]), $text('discount'), $text('was_discount')),
             ActivityAction::DiscountGroupSaved => self::changed($details, __('Discount group :group', ['group' => $text('group')]), $text('discount'), $text('was_discount')),
+            ActivityAction::CashCounted => __('Counted :counted, should have had :expected', ['counted' => $text('counted'), 'expected' => $text('expected')])
+                .($text('note') === '' ? '' : ': '.$text('note')),
+            ActivityAction::CashCountChecked => __('Checked a count of :counted', ['counted' => $text('counted')])
+                .($text('note') === '' ? '' : ': '.$text('note')),
         };
 
         return ($details['backdated'] ?? false) === true ? $line.' · '.__('backdated') : $line;

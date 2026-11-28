@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Domains\Attendance\DoorList\DoorListSigner;
+use App\Domains\Billing\Models\CashCount;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Billing\Models\PaymentLink;
 use App\Domains\Identity\Models\User;
@@ -167,6 +168,7 @@ class AppServiceProvider extends ServiceProvider
             'plan' => Plan::class,
             'promo_code' => PromoCode::class,
             'discount_group' => DiscountGroup::class,
+            'cash_count' => CashCount::class,
         ]);
     }
 

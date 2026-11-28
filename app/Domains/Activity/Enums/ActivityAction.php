@@ -22,6 +22,8 @@ enum ActivityAction: string
     case PlanPriced = 'plan_priced';
     case PromoCodeSaved = 'promo_code_saved';
     case DiscountGroupSaved = 'discount_group_saved';
+    case CashCounted = 'cash_counted';
+    case CashCountChecked = 'cash_count_checked';
 
     public function label(): string
     {
@@ -39,6 +41,8 @@ enum ActivityAction: string
             self::PlanPriced => 'Plan price set',
             self::PromoCodeSaved => 'Promo code saved',
             self::DiscountGroupSaved => 'Discount group saved',
+            self::CashCounted => 'Cash counted',
+            self::CashCountChecked => 'Cash count checked',
         };
     }
 
