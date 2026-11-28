@@ -16,5 +16,8 @@ final class GymInvoicePaid implements ShouldDispatchAfterCommit
 {
     use Dispatchable;
 
-    public function __construct(public readonly GymInvoice $invoice) {}
+    public function __construct(
+        public readonly GymInvoice $invoice,
+        public readonly bool $reopenedTheGym = false,
+    ) {}
 }

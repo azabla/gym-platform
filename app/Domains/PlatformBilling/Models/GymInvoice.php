@@ -9,7 +9,9 @@ use App\Domains\Identity\Models\User;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
+use App\Domains\PlatformBilling\Enums\GymBillReminder;
 use App\Domains\PlatformBilling\Enums\GymPaymentMethod;
+use App\Domains\PlatformBilling\Events\GymBillReminderDue;
 use App\Domains\PlatformBilling\Events\GymInvoiceIssued;
 use App\Domains\PlatformBilling\Events\GymInvoicePaid;
 use App\Domains\PlatformBilling\Events\GymPausedForUnpaidBill;
@@ -221,9 +223,8 @@ class GymInvoice extends Model
 
             if ($invoice->balance()->isZero()) {
                 $this->forceFill(['paid_at' => CarbonImmutable::now()])->save();
-                $this->resumeGymIfSettled('Paid '.$this->reference());
 
-                GymInvoicePaid::dispatch($this);
+                GymInvoicePaid::dispatch($this, $this->resumeGymIfSettled('Paid '.$this->reference()));
             }
 
             return $payment;
@@ -261,6 +262,61 @@ class GymInvoice extends Model
     }
 
     /**
+     * Announce the reminders of the gym's unpaid invoices that have come due:
+     * on the due day (unless the invoice was issued that day, which told the
+     * owners already), a week after it, and the day before the pause. Each
+     * goes once; one whose day has passed is skipped.
+     *
+     * @return int how many reminders were announced
+     */
+    public static function remindOwnersOf(Organization $gym): int
+    {
+        $today = $gym->today();
+        $reminded = 0;
+
+        $invoices = self::query()->acrossOrganizations()->open()
+            ->where('organization_id', $gym->getKey())
+            ->where('due_on', '<=', $today->addDay()->toDateString())
+            ->orderBy('due_on')
+            ->get();
+
+        foreach ($invoices as $invoice) {
+            foreach (GymBillReminder::cases() as $reminder) {
+                if ($invoice->getAttribute($reminder->sentColumn()) !== null || ! $invoice->isTimeFor($reminder, $today)) {
+                    continue;
+                }
+
+                $claimed = self::query()->acrossOrganizations()
+                    ->whereKey($invoice->getKey())
+                    ->whereNull($reminder->sentColumn())
+                    ->update([$reminder->sentColumn() => CarbonImmutable::now()]);
+
+                if ($claimed === 1) {
+                    GymBillReminderDue::dispatch($invoice, $reminder);
+                    $reminded++;
+                }
+            }
+        }
+
+        return $reminded;
+    }
+
+    /**
+     * Whether today is the day for this reminder of the invoice.
+     */
+    private function isTimeFor(GymBillReminder $reminder, CarbonImmutable $today): bool
+    {
+        $overdueOn = $this->due_on->addDays(GymBillReminder::OVERDUE_AFTER_DAYS);
+        $warnOn = $this->pauses_on->subDay();
+
+        return match ($reminder) {
+            GymBillReminder::DueToday => $today->equalTo($this->due_on) && ! $this->issued_on->equalTo($this->due_on),
+            GymBillReminder::Overdue => $today->equalTo($overdueOn) && $overdueOn->lessThan($warnOn),
+            GymBillReminder::PausesTomorrow => $today->equalTo($warnOn) && $this->paused_gym_at === null && $warnOn->greaterThan($this->issued_on),
+        };
+    }
+
+    /**
      * Give the gym more time to pay: the invoice pauses it on a later day.
      * A gym this invoice already paused reopens, if nothing else unpaid is
      * past its pause day.
@@ -289,8 +345,10 @@ class GymInvoice extends Model
     /**
      * Reopen the gym from a pause for an unpaid bill once none of its open
      * invoices is past its pause day.
+     *
+     * @return bool whether the gym reopened
      */
-    private function resumeGymIfSettled(string $note, ?User $by = null): void
+    private function resumeGymIfSettled(string $note, ?User $by = null): bool
     {
         $gym = Organization::query()->findOrFail($this->organization_id);
         $stillUnpaid = self::query()->acrossOrganizations()->open()
@@ -298,9 +356,7 @@ class GymInvoice extends Model
             ->where('pauses_on', '<=', $gym->today()->toDateString())
             ->exists();
 
-        if (! $stillUnpaid) {
-            $gym->resumeFromUnpaidBill($note, $by);
-        }
+        return ! $stillUnpaid && $gym->resumeFromUnpaidBill($note, $by);
     }
 
     /**
@@ -392,6 +448,9 @@ class GymInvoice extends Model
             'paid_at' => 'immutable_datetime',
             'voided_at' => 'immutable_datetime',
             'paused_gym_at' => 'immutable_datetime',
+            'due_reminder_sent_at' => 'immutable_datetime',
+            'overdue_reminder_sent_at' => 'immutable_datetime',
+            'pause_warning_sent_at' => 'immutable_datetime',
         ];
     }
 }

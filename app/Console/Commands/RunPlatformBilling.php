@@ -28,8 +28,9 @@ class RunPlatformBilling extends Command
     /**
      * Run every hour, over every billed gym, paused ones included: this is
      * the one scheduled job that must still see them. In each gym's own
-     * today it issues each invoice 7 days before its period starts, and
-     * pauses a gym whose invoice is still unpaid on its pause day. A missed
+     * today it issues each invoice 7 days before its period starts, reminds
+     * the owners of an unpaid one, and pauses a gym whose invoice is still
+     * unpaid on its pause day. A missed
      * run is caught up on the next. See ADR 0045.
      */
     public function handle(CurrentOrganization $currentOrganization): int
@@ -40,6 +41,7 @@ class RunPlatformBilling extends Command
 
         foreach (Organization::query()->whereKey($billedGymIds)->orderBy('id')->get() as $gym) {
             $issued += (int) $currentOrganization->run($gym, fn (): int => count(GymInvoice::issueDue($gym)));
+            $currentOrganization->run($gym, fn (): int => GymInvoice::remindOwnersOf($gym));
             $paused += (int) $currentOrganization->run($gym, fn (): bool => GymInvoice::pauseGymIfUnpaid($gym) !== null);
         }
 
