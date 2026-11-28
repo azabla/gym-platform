@@ -6,17 +6,25 @@ namespace App\Filament\Admin\Resources\GymInvoices;
 
 use App\Domains\Identity\Models\User;
 use App\Domains\Organizations\Models\Organization;
+use App\Domains\PlatformBilling\Enums\GymPaymentMethod;
 use App\Domains\PlatformBilling\Exceptions\BillingRefused;
+use App\Domains\PlatformBilling\GymBills;
 use App\Domains\PlatformBilling\Models\GymInvoice;
 use App\Domains\Shared\Money\Money;
 use App\Filament\Admin\Resources\GymInvoices\Pages\ListGymInvoices;
 use App\Filament\Staff\Support\Tables;
+use App\Rules\ValidMoneyAmount;
 use BackedEnum;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -53,7 +61,7 @@ class GymInvoiceResource extends Resource
      */
     public static function getEloquentQuery(): Builder
     {
-        return GymInvoice::query()->acrossOrganizations()->with('organization');
+        return GymInvoice::query()->acrossOrganizations()->with('organization')->withSum('payments as paid_minor', 'amount_minor');
     }
 
     public static function table(Table $table): Table
@@ -85,6 +93,7 @@ class GymInvoiceResource extends Resource
                     ->color('gray'),
                 Tables::money('total', fn (GymInvoice $record): Money => $record->total)
                     ->sortable(query: fn (Builder $query, string $direction): Builder => $query->orderBy('total_minor', $direction)),
+                Tables::money('paid', fn (GymInvoice $record): Money => self::paidOn($record), 'Paid')->toggleable(),
                 TextColumn::make('due_on')->label('Due')->date('j M Y')->sortable(),
                 TextColumn::make('status')
                     ->state(fn (GymInvoice $record): string => self::statusOf($record))
@@ -99,8 +108,8 @@ class GymInvoiceResource extends Resource
                     ->native(false)
                     ->options(self::STATUSES)
                     ->query(fn (Builder $query, array $data): Builder => match ($data['value'] ?? null) {
-                        'due' => $query->whereNull('paid_at')->whereNull('voided_at')->whereRaw('due_on >= (SELECT (now() AT TIME ZONE timezone)::date FROM organizations WHERE organizations.id = gym_invoices.organization_id)'),
-                        'overdue' => $query->whereNull('paid_at')->whereNull('voided_at')->whereRaw('due_on < (SELECT (now() AT TIME ZONE timezone)::date FROM organizations WHERE organizations.id = gym_invoices.organization_id)'),
+                        'due' => $query->whereNull('paid_at')->whereNull('voided_at')->whereRaw('due_on >= (SELECT '.GymBills::gymTodaySql('timezone').' FROM organizations WHERE organizations.id = gym_invoices.organization_id)'),
+                        'overdue' => $query->whereNull('paid_at')->whereNull('voided_at')->whereRaw('due_on < (SELECT '.GymBills::gymTodaySql('timezone').' FROM organizations WHERE organizations.id = gym_invoices.organization_id)'),
                         'paid' => $query->whereNotNull('paid_at'),
                         'voided' => $query->whereNotNull('voided_at'),
                         default => $query,
@@ -119,6 +128,7 @@ class GymInvoiceResource extends Resource
                     ->color('gray')
                     ->url(fn (GymInvoice $record): string => route('platform-bill.invoice', $record->getKey()))
                     ->openUrlInNewTab(),
+                self::recordPaymentAction(),
                 self::voidAction(),
             ]);
     }
@@ -141,6 +151,76 @@ class GymInvoiceResource extends Resource
             $invoice->isOverdueOn($invoice->organization->today()) => 'overdue',
             default => 'due',
         };
+    }
+
+    /**
+     * What has been paid on the invoice, from the page's query.
+     */
+    public static function paidOn(GymInvoice $invoice): Money
+    {
+        return Money::ofMinor((int) $invoice->getAttribute('paid_minor'), $invoice->total->currency);
+    }
+
+    public static function recordPaymentAction(): Action
+    {
+        return Action::make('recordPayment')
+            ->label('Record payment')
+            ->icon(Heroicon::OutlinedBanknotes)
+            ->color('success')
+            ->visible(fn (GymInvoice $record): bool => $record->isOpen())
+            ->modalIcon(Heroicon::OutlinedBanknotes)
+            ->modalHeading(fn (GymInvoice $record): string => 'Record a payment on '.$record->reference())
+            ->modalDescription(fn (GymInvoice $record): string => $record->organization->name.' owes '.$record->balance()->format().' of '.$record->total->format().'. Once its payments reach the total the invoice is paid, and a gym paused for it reopens.')
+            ->modalSubmitActionLabel('Record payment')
+            ->fillForm(fn (GymInvoice $record): array => [
+                'amount' => $record->balance()->toDecimal(),
+                'method' => GymPaymentMethod::BankTransfer->value,
+                'paid_on' => $record->organization->today()->toDateString(),
+            ])
+            ->schema([
+                TextInput::make('amount')
+                    ->prefix('ETB')
+                    ->required()
+                    ->rules([new ValidMoneyAmount])
+                    ->helperText('Less than the balance for a part payment.'),
+                Select::make('method')
+                    ->label('Paid by')
+                    ->options(collect(GymPaymentMethod::cases())->mapWithKeys(fn (GymPaymentMethod $method): array => [$method->value => $method->label()])->all())
+                    ->native(false)
+                    ->required()
+                    ->live(),
+                TextInput::make('reference')
+                    ->label('Transaction number')
+                    ->placeholder('FT26332ABCDE')
+                    ->maxLength(100)
+                    ->helperText('From the gym\'s receipt. Each number is recorded once.')
+                    ->visible(fn (Get $get): bool => GymPaymentMethod::tryFrom((string) $get('method'))?->hasReference() ?? true)
+                    ->required(fn (Get $get): bool => GymPaymentMethod::tryFrom((string) $get('method'))?->hasReference() ?? true),
+                DatePicker::make('paid_on')
+                    ->label('Paid on')
+                    ->native(false)
+                    ->required()
+                    ->maxDate(fn (GymInvoice $record): string => $record->organization->today()->toDateString()),
+            ])
+            ->action(function (GymInvoice $record, array $data, Action $action): void {
+                $admin = Filament::auth()->user();
+                abort_unless($admin instanceof User, 403);
+
+                try {
+                    $record->recordPayment(
+                        Money::of((string) $data['amount']),
+                        GymPaymentMethod::from((string) $data['method']),
+                        isset($data['reference']) ? (string) $data['reference'] : null,
+                        CarbonImmutable::parse((string) $data['paid_on']),
+                        $admin,
+                    );
+                } catch (BillingRefused $refused) {
+                    Notification::make()->danger()->title($refused->getMessage())->send();
+                    $action->halt();
+                }
+
+                Notification::make()->success()->title($record->refresh()->paid_at === null ? 'Payment recorded.' : 'Payment recorded. The invoice is paid.')->send();
+            });
     }
 
     public static function voidAction(): Action

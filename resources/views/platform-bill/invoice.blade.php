@@ -108,6 +108,27 @@
             </tbody>
         </table>
 
+        @php($payments = $invoice->payments()->get())
+        @if ($payments->isNotEmpty())
+            <table>
+                <thead>
+                    <tr><th>{{ __('Paid on') }}</th><th>{{ __('Paid by') }}</th><th class="amount">{{ __('Amount') }}</th></tr>
+                </thead>
+                <tbody>
+                    @foreach ($payments as $payment)
+                        <tr>
+                            <td>{{ $date($payment->paid_on) }}</td>
+                            <td>{{ __($payment->method->label()) }}@if ($payment->reference !== null) · {{ $payment->reference }}@endif</td>
+                            <td class="amount">{{ $payment->amount->format() }}</td>
+                        </tr>
+                    @endforeach
+                    @if ($invoice->paid_at === null && $invoice->voided_at === null)
+                        <tr class="total"><td colspan="2">{{ __('Still to pay') }}</td><td class="amount">{{ $invoice->balance()->format() }}</td></tr>
+                    @endif
+                </tbody>
+            </table>
+        @endif
+
         @if ($invoice->voided_at !== null)
             <p class="muted">{{ __('Voided: :reason', ['reason' => $invoice->void_reason]) }}</p>
         @elseif ($invoice->paid_at === null && $platform['pay_to'] !== [])

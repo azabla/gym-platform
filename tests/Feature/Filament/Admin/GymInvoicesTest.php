@@ -9,6 +9,7 @@ use App\Domains\PlatformBilling\Models\PlatformPlan;
 use App\Domains\PlatformBilling\SubscriptionTerms;
 use App\Filament\Admin\Resources\GymInvoices\Pages\ListGymInvoices;
 use App\Filament\Admin\Resources\Gyms\Pages\ListGyms;
+use App\Filament\Admin\Widgets\PlatformBillingOverview;
 use Carbon\CarbonImmutable;
 use Livewire\Livewire;
 
@@ -47,6 +48,38 @@ it('voids an invoice with a reason', function () {
 
     expect($this->due->refresh()->void_reason)->toBe('Wrong plan.')
         ->and($this->due->voided_by_user_id)->toBe($this->admin->id);
+});
+
+it('records a payment from the gym\'s receipt, and shows it on the invoice', function () {
+    Livewire::test(ListGymInvoices::class)
+        ->mountTableAction('recordPayment', $this->overdue)
+        ->assertTableActionDataSet(['amount' => '2000.00', 'paid_on' => '2026-11-28'])
+        ->setTableActionData(['amount' => '1,200', 'method' => 'telebirr', 'reference' => 'TB123'])
+        ->callMountedTableAction()
+        ->assertHasNoTableActionErrors()
+        ->assertNotified('Payment recorded.');
+
+    Livewire::test(ListGymInvoices::class)
+        ->callTableAction('recordPayment', $this->overdue, ['amount' => '800', 'method' => 'cash'])
+        ->assertNotified('Payment recorded. The invoice is paid.');
+
+    expect($this->overdue->refresh()->paid_at)->not->toBeNull();
+
+    $this->get(route('platform-bill.invoice', $this->overdue->getKey()))
+        ->assertSee(['Paid', 'Telebirr · TB123', '1,200.00 ETB', '800.00 ETB']);
+});
+
+it('says why a payment is refused', function () {
+    Livewire::test(ListGymInvoices::class)
+        ->callTableAction('recordPayment', $this->overdue, ['amount' => '5,000', 'method' => 'cash'])
+        ->assertNotified('That is more than is owed on this invoice: 2,000.00 ETB.');
+
+    expect($this->overdue->payments()->count())->toBe(0);
+});
+
+it('shows the platform\'s figures on the dashboard', function () {
+    Livewire::test(PlatformBillingOverview::class)
+        ->assertSee(['Owed by gyms', '4,000.00 ETB', 'Overdue gyms', 'Collected this month']);
 });
 
 it('shows what each gym owes and its bill in the gym list', function () {

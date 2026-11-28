@@ -9,7 +9,9 @@ use App\Domains\Identity\Models\User;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
+use App\Domains\PlatformBilling\Enums\GymPaymentMethod;
 use App\Domains\PlatformBilling\Events\GymInvoiceIssued;
+use App\Domains\PlatformBilling\Events\GymInvoicePaid;
 use App\Domains\PlatformBilling\Exceptions\BillingRefused;
 use App\Domains\Shared\Money\Money;
 use Carbon\CarbonImmutable;
@@ -17,6 +19,7 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -148,7 +151,7 @@ class GymInvoice extends Model
                 throw BillingRefused::alreadyVoided();
             }
 
-            if ($invoice->paid_at !== null) {
+            if ($invoice->paid_at !== null || GymInvoicePayment::query()->acrossOrganizations()->where('gym_invoice_id', $this->getKey())->exists()) {
                 throw BillingRefused::paidInvoice();
             }
 
@@ -160,6 +163,84 @@ class GymInvoice extends Model
                 $subscription->forceFill(['next_period_starts_on' => $this->period_starts_on])->save();
             }
         });
+    }
+
+    /**
+     * Record money the gym paid towards the invoice, from its receipt. The
+     * invoice is paid once its payments reach the total.
+     *
+     * @throws BillingRefused when it is voided or paid, the amount is more than is owed, the transaction number is missing or already used, or the day is in the future
+     */
+    public function recordPayment(Money $amount, GymPaymentMethod $method, ?string $reference, CarbonImmutable $paidOn, User $by): GymInvoicePayment
+    {
+        $reference = $method->hasReference() ? strtoupper((string) preg_replace('/\s+/', '', (string) $reference)) : null;
+
+        if ($method->hasReference() && $reference === '') {
+            throw BillingRefused::referenceNeeded();
+        }
+
+        if (! $amount->isPositive()) {
+            throw BillingRefused::nothingPaid();
+        }
+
+        return DB::transaction(function () use ($amount, $method, $reference, $paidOn, $by): GymInvoicePayment {
+            $invoice = self::query()->acrossOrganizations()->lockForUpdate()->findOrFail($this->getKey());
+
+            if ($invoice->voided_at !== null) {
+                throw BillingRefused::alreadyVoided();
+            }
+
+            if ($invoice->paid_at !== null) {
+                throw BillingRefused::alreadyPaid();
+            }
+
+            if ($amount->isGreaterThan($invoice->balance())) {
+                throw BillingRefused::moreThanOwed($invoice->balance());
+            }
+
+            if ($paidOn->greaterThan(Organization::query()->findOrFail($this->organization_id)->today())) {
+                throw BillingRefused::paidInTheFuture();
+            }
+
+            if ($reference !== null && GymInvoicePayment::query()->acrossOrganizations()->where('method', $method)->where('reference', $reference)->exists()) {
+                throw BillingRefused::referenceUsed();
+            }
+
+            $payment = new GymInvoicePayment;
+            $payment->forceFill([
+                'organization_id' => $this->organization_id,
+                'gym_invoice_id' => $this->getKey(),
+                'amount' => $amount,
+                'method' => $method,
+                'reference' => $reference,
+                'paid_on' => $paidOn,
+                'recorded_by_user_id' => $by->getKey(),
+            ])->save();
+
+            if ($invoice->balance()->isZero()) {
+                $this->forceFill(['paid_at' => CarbonImmutable::now()])->save();
+
+                GymInvoicePaid::dispatch($this);
+            }
+
+            return $payment;
+        });
+    }
+
+    /**
+     * What is still owed on the invoice.
+     */
+    public function balance(): Money
+    {
+        $paid = (int) GymInvoicePayment::query()->acrossOrganizations()->where('gym_invoice_id', $this->getKey())->sum('amount_minor');
+
+        return $this->total->subtract(Money::ofMinor($paid, $this->total->currency));
+    }
+
+    /** @return HasMany<GymInvoicePayment, $this> */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(GymInvoicePayment::class)->acrossOrganizations()->orderBy('paid_on')->orderBy('id');
     }
 
     /**

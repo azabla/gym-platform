@@ -7,6 +7,7 @@ namespace App\Domains\PlatformBilling;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\PlatformBilling\Enums\GymBillStatus;
 use App\Domains\PlatformBilling\Models\GymInvoice;
+use App\Domains\PlatformBilling\Models\GymInvoicePayment;
 use App\Domains\PlatformBilling\Models\GymSubscription;
 use App\Domains\Shared\Money\Money;
 use Carbon\CarbonImmutable;
@@ -76,6 +77,16 @@ class GymBills
     }
 
     /**
+     * SQL for each gym's today, from the app's clock rather than the
+     * database's, so it agrees with Organization::today(). The moment is
+     * written by the app, never taken from input.
+     */
+    public static function gymTodaySql(string $timezoneColumn = 'organizations.timezone'): string
+    {
+        return sprintf("(TIMESTAMPTZ '%s' AT TIME ZONE %s)::date", CarbonImmutable::now()->utc()->format('Y-m-d H:i:s').'+00', $timezoneColumn);
+    }
+
+    /**
      * Limit a query of gyms to those with this status, in each gym's own today.
      *
      * @param  Builder<Organization>  $gyms
@@ -83,7 +94,7 @@ class GymBills
      */
     public function whereStatus(Builder $gyms, GymBillStatus $status): Builder
     {
-        $today = '(now() AT TIME ZONE organizations.timezone)::date';
+        $today = self::gymTodaySql();
         $subscription = fn (): QueryBuilder => DB::table('gym_subscriptions')->whereColumn('gym_subscriptions.organization_id', 'organizations.id');
         $onTrial = fn (): QueryBuilder => $subscription()->whereRaw("gym_subscriptions.trial_ends_on >= {$today}");
         $open = fn (): QueryBuilder => DB::table('gym_invoices')->whereColumn('gym_invoices.organization_id', 'organizations.id')->whereNull('paid_at')->whereNull('voided_at');
@@ -100,6 +111,36 @@ class GymBills
     }
 
     /**
+     * The platform's own figures, counts and totals only: what gyms owe now,
+     * how many are overdue, what was paid this month (in Addis Ababa's
+     * month) and how many gyms are on their trial.
+     *
+     * @return array{owed: Money, overdue_gyms: int, collected_this_month: Money, on_trial: int}
+     */
+    public function platformFigures(): array
+    {
+        $today = self::gymTodaySql();
+        $month = CarbonImmutable::now('Africa/Addis_Ababa');
+
+        return [
+            'owed' => Money::ofMinor((int) GymInvoice::query()->acrossOrganizations()->open()->sum('total_minor')
+                - (int) GymInvoicePayment::query()->acrossOrganizations()->whereIn('gym_invoice_id', GymInvoice::query()->acrossOrganizations()->open()->select('id'))->sum('amount_minor')),
+            'overdue_gyms' => (int) GymInvoice::query()->acrossOrganizations()->open()
+                ->join('organizations', 'organizations.id', '=', 'gym_invoices.organization_id')
+                ->whereRaw("gym_invoices.due_on < {$today}")
+                ->distinct()
+                ->count('gym_invoices.organization_id'),
+            'collected_this_month' => Money::ofMinor((int) GymInvoicePayment::query()->acrossOrganizations()
+                ->whereBetween('paid_on', [$month->startOfMonth()->toDateString(), $month->endOfMonth()->toDateString()])
+                ->sum('amount_minor')),
+            'on_trial' => GymSubscription::query()->acrossOrganizations()
+                ->join('organizations', 'organizations.id', '=', 'gym_subscriptions.organization_id')
+                ->whereRaw("gym_subscriptions.trial_ends_on >= {$today}")
+                ->count(),
+        ];
+    }
+
+    /**
      * What each gym owes now: the total of its open invoices, by gym id.
      *
      * @param  iterable<Organization>  $gyms
@@ -111,7 +152,7 @@ class GymBills
         $rows = GymInvoice::query()->acrossOrganizations()->open()
             ->whereIn('organization_id', $this->idsOf($gyms))
             ->groupBy('organization_id')
-            ->selectRaw('organization_id, SUM(total_minor) AS owed')
+            ->selectRaw('organization_id, SUM(total_minor) - COALESCE(SUM((SELECT SUM(amount_minor) FROM gym_invoice_payments WHERE gym_invoice_payments.gym_invoice_id = gym_invoices.id)), 0) AS owed')
             ->toBase()
             ->get();
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\PlatformBilling\Exceptions;
 
+use App\Domains\Shared\Money\Money;
 use DomainException;
 
 /**
@@ -56,5 +57,35 @@ final class BillingRefused extends DomainException
     public static function paidInvoice(): self
     {
         return new self('This invoice has payments on it, so it can\'t be voided.');
+    }
+
+    public static function alreadyPaid(): self
+    {
+        return new self('This invoice is already paid.');
+    }
+
+    public static function moreThanOwed(Money $owed): self
+    {
+        return new self('That is more than is owed on this invoice: '.$owed->format().'.');
+    }
+
+    public static function nothingPaid(): self
+    {
+        return new self('Enter the amount the gym paid.');
+    }
+
+    public static function referenceNeeded(): self
+    {
+        return new self('Enter the transaction number from the gym\'s receipt.');
+    }
+
+    public static function referenceUsed(): self
+    {
+        return new self('A payment with this transaction number is already recorded.');
+    }
+
+    public static function paidInTheFuture(): self
+    {
+        return new self('The day it was paid can\'t be after today.');
     }
 }
