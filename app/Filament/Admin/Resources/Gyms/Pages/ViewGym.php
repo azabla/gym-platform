@@ -7,6 +7,7 @@ namespace App\Filament\Admin\Resources\Gyms\Pages;
 use App\Domains\Identity\Models\PasswordLink;
 use App\Domains\Identity\Models\User;
 use App\Domains\Organizations\Models\Organization;
+use App\Filament\Admin\Resources\GymInvoices\GymInvoiceResource;
 use App\Filament\Admin\Resources\Gyms\GymBilling;
 use App\Filament\Admin\Resources\Gyms\GymResource;
 use Filament\Actions\Action;
@@ -69,6 +70,10 @@ class ViewGym extends ViewRecord
             GymBilling::setUpAction($this->gym()),
             GymBilling::changeAction($this->gym()),
             GymBilling::extendTrialAction($this->gym()),
+            Action::make('invoices')
+                ->icon(Heroicon::OutlinedDocumentText)
+                ->color('gray')
+                ->url(fn (): string => GymInvoiceResource::getUrl('index', ['filters' => ['gym' => ['value' => $this->gym()->getKey()]]])),
             Action::make('resendInvite')
                 ->label('Resend owner invite')
                 ->icon(Heroicon::OutlinedPaperAirplane)

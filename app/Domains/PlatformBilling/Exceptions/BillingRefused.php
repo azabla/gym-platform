@@ -37,4 +37,24 @@ final class BillingRefused extends DomainException
     {
         return new self('Choose a day after the trial\'s current end.');
     }
+
+    public static function firstInvoiceIssued(): self
+    {
+        return new self('The first invoice after the trial is already issued. Void it first, then extend the trial.');
+    }
+
+    public static function noVoidReason(): self
+    {
+        return new self('Say why the invoice is voided, so the next admin knows.');
+    }
+
+    public static function alreadyVoided(): self
+    {
+        return new self('This invoice is already voided.');
+    }
+
+    public static function paidInvoice(): self
+    {
+        return new self('This invoice has payments on it, so it can\'t be voided.');
+    }
 }

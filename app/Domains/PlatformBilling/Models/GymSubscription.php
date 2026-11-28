@@ -123,6 +123,16 @@ class GymSubscription extends Model
             throw BillingRefused::trialNotLonger();
         }
 
+        $firstInvoiceIssued = GymInvoice::query()->acrossOrganizations()
+            ->where('organization_id', $this->organization_id)
+            ->whereNull('voided_at')
+            ->where('period_starts_on', '>', $this->trial_ends_on)
+            ->exists();
+
+        if ($firstInvoiceIssued) {
+            throw BillingRefused::firstInvoiceIssued();
+        }
+
         $this->forceFill(['trial_ends_on' => $until, 'next_period_starts_on' => $until->addDay()])->save();
     }
 

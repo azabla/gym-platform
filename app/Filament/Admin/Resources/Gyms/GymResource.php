@@ -82,6 +82,7 @@ class GymResource extends Resource
                     ->state(fn (Organization $record, HasTable $livewire): string => self::billStatusesOf($livewire)[(int) $record->getKey()]->label())
                     ->badge()
                     ->color(fn (Organization $record, HasTable $livewire): string => GymBilling::STATUS_COLORS[self::billStatusesOf($livewire)[(int) $record->getKey()]->value]),
+                Tables::money('owes', fn (Organization $record, HasTable $livewire): Money => self::owedBy($livewire)[(int) $record->getKey()] ?? Money::zero(), 'Owes'),
                 TextColumn::make('owner')
                     ->state(fn (Organization $record, HasTable $livewire): string => self::ownersOf($livewire)[(int) $record->getKey()] ?? '—')
                     ->color('gray'),
@@ -367,6 +368,16 @@ class GymResource extends Resource
     private static function billStatusesOf(HasTable $livewire): array
     {
         return once(fn (): array => app(GymBills::class)->statusesOf(self::gymsOnThePage($livewire)));
+    }
+
+    /**
+     * What each gym on the page owes the platform, looked up once for the page.
+     *
+     * @return array<int, Money>
+     */
+    private static function owedBy(HasTable $livewire): array
+    {
+        return once(fn (): array => app(GymBills::class)->owedBy(self::gymsOnThePage($livewire)));
     }
 
     /**

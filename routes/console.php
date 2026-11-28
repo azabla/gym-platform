@@ -30,6 +30,9 @@ Schedule::command('notifications:send-closure-reminders')->hourly()->withoutOver
 // Yearly holidays come back on the same Ethiopian date once they end (ADR 0039).
 Schedule::command('branch-closures:repeat-yearly')->hourly()->withoutOverlapping();
 
+// The platform's invoices to gyms are issued a week before each period, paused gyms included (ADR 0045).
+Schedule::command('platform-billing:run')->hourly()->withoutOverlapping();
+
 // Scheduled announcements go out within a minute of their time (ADR 0015).
 Schedule::command('announcements:send-due')->everyMinute()->withoutOverlapping();
 
