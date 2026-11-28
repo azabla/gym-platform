@@ -24,6 +24,8 @@ enum ActivityAction: string
     case DiscountGroupSaved = 'discount_group_saved';
     case CashCounted = 'cash_counted';
     case CashCountChecked = 'cash_count_checked';
+    case ExpenseRecorded = 'expense_recorded';
+    case ExpenseVoided = 'expense_voided';
 
     public function label(): string
     {
@@ -43,6 +45,8 @@ enum ActivityAction: string
             self::DiscountGroupSaved => 'Discount group saved',
             self::CashCounted => 'Cash counted',
             self::CashCountChecked => 'Cash count checked',
+            self::ExpenseRecorded => 'Expense recorded',
+            self::ExpenseVoided => 'Expense voided',
         };
     }
 
@@ -51,6 +55,6 @@ enum ActivityAction: string
      */
     public function isAlwaysFlagged(): bool
     {
-        return in_array($this, [self::PaymentRefunded, self::PaymentVoided, self::MembershipCancelled, self::PaymentLinkRefunded], true);
+        return in_array($this, [self::PaymentRefunded, self::PaymentVoided, self::MembershipCancelled, self::PaymentLinkRefunded, self::ExpenseVoided], true);
     }
 }

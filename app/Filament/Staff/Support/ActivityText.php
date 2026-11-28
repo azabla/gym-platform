@@ -51,6 +51,9 @@ final class ActivityText
                 .($text('note') === '' ? '' : ': '.$text('note')),
             ActivityAction::CashCountChecked => __('Checked a count of :counted', ['counted' => $text('counted')])
                 .($text('note') === '' ? '' : ': '.$text('note')),
+            ActivityAction::ExpenseRecorded => __(':category: :amount by :method, paid on :paid_on', ['category' => $text('category'), 'amount' => $text('amount'), 'method' => $method(), 'paid_on' => $date('paid_on')])
+                .($text('payee') === '' ? '' : ' · '.$text('payee')),
+            ActivityAction::ExpenseVoided => __(':category expense of :amount voided: :reason', ['category' => $text('category'), 'amount' => $text('amount'), 'reason' => $text('reason')]),
         };
 
         return ($details['backdated'] ?? false) === true ? $line.' · '.__('backdated') : $line;
