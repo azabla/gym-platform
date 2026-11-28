@@ -8,6 +8,7 @@ use App\Domains\Attendance\Enums\CheckInDenial;
 use App\Domains\Attendance\Enums\CheckInMethod;
 use App\Domains\Attendance\Enums\CheckInResult;
 use App\Domains\Billing\Enums\ChapaMode;
+use App\Domains\Billing\Enums\DefaultExpenseCategory;
 use App\Domains\Billing\Enums\PaymentLinkStatus;
 use App\Domains\Billing\Enums\PaymentMethod;
 use App\Domains\Billing\Enums\PaymentType;
@@ -124,6 +125,11 @@ it('has Amharic for the labels the panel works out as it runs', function () {
     // What the money log says was done (ADR 0046).
     foreach (ActivityAction::cases() as $action) {
         $labels[] = $action->label();
+    }
+
+    // The expense categories every gym starts with (ADR 0047).
+    foreach (DefaultExpenseCategory::cases() as $category) {
+        $labels[] = $category->label();
     }
 
     // A discount the panel can't read, shown from its text (InvalidDiscount).

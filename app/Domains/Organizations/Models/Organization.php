@@ -8,6 +8,7 @@ use App\Domains\Identity\Models\PasswordLink;
 use App\Domains\Identity\Models\User;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Enums\SuspensionCause;
+use App\Domains\Organizations\Events\GymOpened;
 use App\Domains\Organizations\Exceptions\GymSuspensionRefused;
 use App\Domains\Organizations\Onboarding\NewGym;
 use App\Domains\Organizations\Policies\OrganizationPolicy;
@@ -55,7 +56,11 @@ class Organization extends Model
             return app(CurrentOrganization::class)->run($gym, function () use ($gym, $newGym): Staff {
                 $gym->branches()->create(['name' => $newGym->branchName, 'code' => 'MAIN']);
 
-                return Staff::add(User::forPhone($newGym->ownerPhone, $newGym->ownerName), StaffRole::Owner);
+                $owner = Staff::add(User::forPhone($newGym->ownerPhone, $newGym->ownerName), StaffRole::Owner);
+
+                GymOpened::dispatch($gym);
+
+                return $owner;
             });
         });
 
