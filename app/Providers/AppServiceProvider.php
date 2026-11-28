@@ -3,8 +3,14 @@
 namespace App\Providers;
 
 use App\Domains\Attendance\DoorList\DoorListSigner;
+use App\Domains\Billing\Models\Payment;
+use App\Domains\Billing\Models\PaymentLink;
 use App\Domains\Identity\Models\User;
 use App\Domains\Members\Models\Member;
+use App\Domains\Memberships\Models\DiscountGroup;
+use App\Domains\Memberships\Models\Membership;
+use App\Domains\Memberships\Models\Plan;
+use App\Domains\Memberships\Models\PromoCode;
 use App\Domains\Notifications\Push\FcmPushSender;
 use App\Domains\Notifications\Push\LogPushSender;
 use App\Domains\Notifications\Push\PushSender;
@@ -154,6 +160,13 @@ class AppServiceProvider extends ServiceProvider
             'user' => User::class,
             'member' => Member::class,
             'staff' => Staff::class,
+            // What the money log is about (ADR 0046).
+            'payment' => Payment::class,
+            'payment_link' => PaymentLink::class,
+            'membership' => Membership::class,
+            'plan' => Plan::class,
+            'promo_code' => PromoCode::class,
+            'discount_group' => DiscountGroup::class,
         ]);
     }
 
