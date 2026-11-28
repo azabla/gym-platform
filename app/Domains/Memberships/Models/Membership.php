@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domains\Memberships\Models;
 
 use App\Casts\AsMoney;
+use App\Domains\Activity\Activity;
+use App\Domains\Activity\Enums\ActivityAction;
 use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Discount\Discount;
 use App\Domains\Memberships\Enums\MembershipStatus;
@@ -14,6 +16,7 @@ use App\Domains\Memberships\Exceptions\MembershipRefused;
 use App\Domains\Memberships\Policies\MembershipPolicy;
 use App\Domains\Memberships\Pricing\PriceChoice;
 use App\Domains\Organizations\Models\Branch;
+use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
 use App\Domains\Shared\Money\Money;
@@ -110,12 +113,12 @@ class Membership extends Model
      */
     public static function bringIn(Member $member, Plan $plan, CarbonImmutable $startsOn, ?CarbonImmutable $endsOn, Staff $broughtInBy): self
     {
-        return self::record($member, $plan, $startsOn, $broughtInBy, $plan->price, $plan->price, null, endsOn: $endsOn);
+        return self::record($member, $plan, $startsOn, $broughtInBy, $plan->price, $plan->price, null, endsOn: $endsOn, broughtIn: true);
     }
 
-    private static function record(Member $member, Plan $plan, CarbonImmutable $startsOn, ?Staff $soldBy, Money $listPrice, Money $price, ?string $discountReason, ?PromoCode $promoCode = null, ?DiscountGroup $discountGroup = null, ?CarbonImmutable $endsOn = null): self
+    private static function record(Member $member, Plan $plan, CarbonImmutable $startsOn, ?Staff $soldBy, Money $listPrice, Money $price, ?string $discountReason, ?PromoCode $promoCode = null, ?DiscountGroup $discountGroup = null, ?CarbonImmutable $endsOn = null, bool $broughtIn = false): self
     {
-        return DB::transaction(function () use ($member, $plan, $startsOn, $soldBy, $listPrice, $price, $discountReason, $promoCode, $discountGroup, $endsOn): self {
+        return DB::transaction(function () use ($member, $plan, $startsOn, $soldBy, $listPrice, $price, $discountReason, $promoCode, $discountGroup, $endsOn, $broughtIn): self {
             $membership = new self;
             $membership->organization()->associate($member->organization_id);
             $membership->member()->associate($member);
@@ -140,6 +143,25 @@ class Membership extends Model
                     ['organization_id' => $membership->organization_id],
                 );
             }
+
+            // Who sold what at which price, flagged when backdated or below the plan's price (ADR 0046).
+            // An import brings in memberships that began long ago, so those aren't flagged.
+            $backdated = $startsOn->lessThan(Organization::query()->findOrFail($member->organization_id)->today());
+            $discounted = $listPrice->isGreaterThan($price) || $price->isLessThan($plan->price);
+            Activity::record(ActivityAction::MembershipSold, $membership, $soldBy, $member->home_branch_id, [
+                'plan' => $plan->name,
+                'starts_on' => $startsOn,
+                'ends_on' => $membership->ends_on,
+                'list_price' => $listPrice,
+                'price' => $price,
+                'plan_price' => $plan->price,
+                'discount_reason' => $discountReason,
+                'promo_code' => $promoCode?->code,
+                'in_app' => $soldBy === null,
+                'brought_in' => $broughtIn,
+                'backdated' => $backdated,
+                'discounted' => $discounted,
+            ], flagged: ! $broughtIn && ($backdated || $discounted));
 
             return $membership;
         });
@@ -331,6 +353,16 @@ class Membership extends Model
 
             $this->unsetRelation('freezes');
 
+            if ($frozenBy !== null) {
+                Activity::record(ActivityAction::MembershipFrozen, $this, $frozenBy, $this->homeBranchIdOfTheMember(), [
+                    'starts_on' => $firstDay,
+                    'ends_on' => $lastDay,
+                    'days' => $days,
+                    'reason' => $reason,
+                    'membership_ends_on' => $this->ends_on,
+                ]);
+            }
+
             MembershipFrozen::dispatch($freeze);
 
             return $freeze;
@@ -386,10 +418,29 @@ class Membership extends Model
      */
     public function cancel(Staff $cancelledBy, string $reason): void
     {
-        $this->cancelled_at = CarbonImmutable::now();
-        $this->cancelledBy()->associate($cancelledBy);
-        $this->cancellation_reason = $reason;
-        $this->save();
+        DB::transaction(function () use ($cancelledBy, $reason): void {
+            $this->cancelled_at = CarbonImmutable::now();
+            $this->cancelledBy()->associate($cancelledBy);
+            $this->cancellation_reason = $reason;
+            $this->save();
+
+            Activity::record(ActivityAction::MembershipCancelled, $this, $cancelledBy, $this->homeBranchIdOfTheMember(), [
+                'plan' => Plan::query()->acrossOrganizations()->withTrashed()->whereKey($this->plan_id)->value('name'),
+                'price' => $this->price,
+                'reason' => $reason,
+            ]);
+        });
+    }
+
+    /**
+     * The member's home branch, for the money log: read by id, so it works
+     * outside a request too.
+     */
+    private function homeBranchIdOfTheMember(): ?int
+    {
+        $branchId = Member::query()->acrossOrganizations()->withTrashed()->whereKey($this->member_id)->value('home_branch_id');
+
+        return $branchId === null ? null : (int) $branchId;
     }
 
     /**

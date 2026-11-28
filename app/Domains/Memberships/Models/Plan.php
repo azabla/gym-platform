@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domains\Memberships\Models;
 
 use App\Casts\AsMoney;
+use App\Domains\Activity\Enums\ActivityAction;
+use App\Domains\Activity\LogsMoneyChanges;
 use App\Domains\Memberships\Enums\DurationUnit;
 use App\Domains\Memberships\Policies\PlanPolicy;
 use App\Domains\Organizations\Models\Branch;
@@ -38,7 +40,7 @@ use Illuminate\Support\Facades\DB;
 class Plan extends Model
 {
     /** @use HasFactory<PlanFactory> */
-    use BelongsToOrganization, HasFactory, SoftDeletes;
+    use BelongsToOrganization, HasFactory, LogsMoneyChanges, SoftDeletes;
 
     /** The longest plan counted in months. */
     public const MOST_MONTHS = 36;
@@ -152,6 +154,29 @@ class Plan extends Model
         $sameDayLater = $startsOn->addMonthsNoOverflow($this->duration_count);
 
         return $sameDayLater->day === $startsOn->day ? $sameDayLater->subDay() : $sameDayLater;
+    }
+
+    protected function moneyChangeAction(): ActivityAction
+    {
+        return ActivityAction::PlanPriced;
+    }
+
+    /**
+     * A new plan's price, or a change of price (ADR 0046).
+     *
+     * @return array<string, scalar|Money|CarbonImmutable|null>|null
+     */
+    protected function moneyChangeDetails(bool $created): ?array
+    {
+        if (! $created && ! $this->wasChanged('price_minor')) {
+            return null;
+        }
+
+        return [
+            'plan' => $this->name,
+            'from' => $created ? null : Money::ofMinor((int) $this->getRawOriginal('price_minor'), $this->price->currency),
+            'to' => $this->price,
+        ];
     }
 
     /**

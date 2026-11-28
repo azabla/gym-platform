@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domains\Billing\Models;
 
 use App\Casts\AsMoney;
+use App\Domains\Activity\Activity;
+use App\Domains\Activity\Enums\ActivityAction;
 use App\Domains\Billing\Balances\MembershipBalance;
 use App\Domains\Billing\Enums\PaymentMethod;
 use App\Domains\Billing\Enums\PaymentType;
@@ -14,6 +16,7 @@ use App\Domains\Billing\Policies\PaymentPolicy;
 use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Models\Membership;
 use App\Domains\Organizations\Models\Branch;
+use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
 use App\Domains\Shared\Money\Currency;
@@ -299,6 +302,13 @@ class Payment extends Model
             $this->voidedBy()->associate($voidedBy);
             $this->void_reason = $reason;
             $this->save();
+
+            Activity::record(ActivityAction::PaymentVoided, $this, $voidedBy, $this->branch_id, [
+                'receipt' => $this->receipt_number,
+                'amount' => $this->amount,
+                'type' => $this->type->value,
+                'reason' => $reason,
+            ]);
         });
     }
 
@@ -424,6 +434,24 @@ class Payment extends Model
         $payment->branch()->associate($branch);
         $payment->receivedBy()->associate($receivedBy);
         $payment->save();
+
+        // Who took or gave back money, flagged when it is dated before today (ADR 0046).
+        $backdated = $paidOn->lessThan(Organization::query()->findOrFail($membership->organization_id)->today());
+        Activity::record(
+            $type === PaymentType::Refund ? ActivityAction::PaymentRefunded : ActivityAction::PaymentReceived,
+            $payment,
+            $receivedBy,
+            $branch->id,
+            [
+                'receipt' => $payment->receipt_number,
+                'amount' => $amount,
+                'method' => $method->value,
+                'reference' => $payment->reference,
+                'paid_on' => $paidOn,
+                'backdated' => $backdated,
+            ],
+            flagged: $backdated && ! $method->isBroughtIn(),
+        );
 
         PaymentRecorded::dispatch($payment);
 

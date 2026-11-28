@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Domains\Memberships\Models;
 
+use App\Domains\Activity\Activity;
+use App\Domains\Activity\Enums\ActivityAction;
 use App\Domains\Members\Models\Member;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\DB;
 
 /**
  * A member's place in a discount group, optionally until a day (a student
@@ -33,7 +36,16 @@ class MemberDiscount extends Model
         $memberDiscount->discountGroup()->associate($group);
         $memberDiscount->until = $until;
         $memberDiscount->assignedBy()->associate($assignedBy);
-        $memberDiscount->save();
+
+        DB::transaction(function () use ($memberDiscount, $member, $group, $until, $assignedBy): void {
+            $memberDiscount->save();
+
+            Activity::record(ActivityAction::DiscountGiven, $member, $assignedBy, $member->home_branch_id, [
+                'group' => $group->name,
+                'discount' => $group->discount()->reason,
+                'until' => $until,
+            ]);
+        });
 
         return $memberDiscount;
     }
@@ -41,9 +53,21 @@ class MemberDiscount extends Model
     /**
      * Take the member out of their group, if they are in one.
      */
-    public static function remove(Member $member): void
+    public static function remove(Member $member, ?Staff $removedBy = null): void
     {
-        self::query()->where('member_id', $member->id)->delete();
+        DB::transaction(function () use ($member, $removedBy): void {
+            $memberDiscount = self::of($member);
+
+            if ($memberDiscount === null) {
+                return;
+            }
+
+            $memberDiscount->delete();
+
+            Activity::record(ActivityAction::DiscountRemoved, $member, $removedBy, $member->home_branch_id, [
+                'group' => $memberDiscount->discountGroup()->withTrashed()->first()?->name,
+            ]);
+        });
     }
 
     public static function of(Member $member): ?self

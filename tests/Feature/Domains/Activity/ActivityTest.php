@@ -28,7 +28,7 @@ it('records who did what to which record, keeping money and dates as written', f
         'on' => CarbonImmutable::parse('2026-11-28'),
     ]);
 
-    $record = ActivityRecord::query()->about($this->plan)->sole();
+    $record = ActivityRecord::query()->about($this->plan)->whereNotNull('staff_id')->sole();
 
     expect($record->subject_type)->toBe('plan')
         ->and($record->staff?->is($this->staff))->toBeTrue()
@@ -57,6 +57,8 @@ it('shows a staff member limited to some branches their branches\' records and t
     Activity::record(ActivityAction::PaymentReceived, $this->plan, $this->staff, $bole->id);
     Activity::record(ActivityAction::PlanPriced, $this->plan, $this->staff, null);
 
-    expect(ActivityRecord::query()->seenAtBranches([$main->id])->count())->toBe(2)
-        ->and(ActivityRecord::query()->seenAtBranches(null)->count())->toBe(3);
+    $byTheStaff = fn () => ActivityRecord::query()->where('staff_id', $this->staff->id);
+
+    expect($byTheStaff()->seenAtBranches([$main->id])->count())->toBe(2)
+        ->and($byTheStaff()->seenAtBranches(null)->count())->toBe(3);
 });

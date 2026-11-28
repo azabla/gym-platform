@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domains\Memberships\Models;
 
+use App\Domains\Activity\Enums\ActivityAction;
+use App\Domains\Activity\LogsMoneyChanges;
 use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Discount\Discount;
 use App\Domains\Memberships\Discount\Exceptions\InvalidDiscount;
@@ -40,7 +42,7 @@ use Illuminate\Support\Facades\DB;
 class PromoCode extends Model
 {
     /** @use HasFactory<PromoCodeFactory> */
-    use BelongsToOrganization, HasFactory, SoftDeletes;
+    use BelongsToOrganization, HasFactory, LogsMoneyChanges, SoftDeletes;
 
     /** A code is 3 to 30 letters, digits or dashes. */
     public const PATTERN = '/^[A-Za-z0-9-]{3,30}$/';
@@ -255,6 +257,32 @@ class PromoCode extends Model
     protected function code(): Attribute
     {
         return Attribute::make(set: fn (string $value): string => self::tidy($value));
+    }
+
+    protected function moneyChangeAction(): ActivityAction
+    {
+        return ActivityAction::PromoCodeSaved;
+    }
+
+    /**
+     * A new code, or a change to what it takes off, when, or how often (ADR 0046).
+     *
+     * @return array<string, scalar|Money|CarbonImmutable|null>|null
+     */
+    protected function moneyChangeDetails(bool $created): ?array
+    {
+        if (! $created && ! $this->wasChanged(['discount', 'starts_on', 'ends_on', 'max_uses'])) {
+            return null;
+        }
+
+        return [
+            'code' => $this->code,
+            'discount' => $this->discount,
+            'was_discount' => ! $created && $this->wasChanged('discount') ? (string) $this->getRawOriginal('discount') : null,
+            'starts_on' => $this->starts_on,
+            'ends_on' => $this->ends_on,
+            'max_uses' => $this->max_uses,
+        ];
     }
 
     /**

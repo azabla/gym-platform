@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domains\Billing\Models;
 
 use App\Casts\AsMoney;
+use App\Domains\Activity\Activity;
+use App\Domains\Activity\Enums\ActivityAction;
 use App\Domains\Billing\Chapa\ChapaClient;
 use App\Domains\Billing\Chapa\ChapaTransaction;
 use App\Domains\Billing\Chapa\Exceptions\ChapaRequestFailed;
@@ -196,10 +198,14 @@ class PaymentLink extends Model
      */
     public function cancel(Staff $cancelledBy): void
     {
-        $this->status = PaymentLinkStatus::Cancelled;
-        $this->cancelled_at = CarbonImmutable::now();
-        $this->cancelledBy()->associate($cancelledBy);
-        $this->save();
+        DB::transaction(function () use ($cancelledBy): void {
+            $this->status = PaymentLinkStatus::Cancelled;
+            $this->cancelled_at = CarbonImmutable::now();
+            $this->cancelledBy()->associate($cancelledBy);
+            $this->save();
+
+            Activity::record(ActivityAction::PaymentLinkCancelled, $this, $cancelledBy, $this->branch_id, ['amount' => $this->amount]);
+        });
     }
 
     /**
@@ -232,6 +238,11 @@ class PaymentLink extends Model
             $paymentLink->refundedBy()->associate($refundedBy);
             $paymentLink->refund_note = $note === null || trim($note) === '' ? null : trim($note);
             $paymentLink->save();
+
+            Activity::record(ActivityAction::PaymentLinkRefunded, $paymentLink, $refundedBy, $paymentLink->branch_id, [
+                'amount' => $paymentLink->amount,
+                'note' => $paymentLink->refund_note,
+            ]);
         });
 
         $this->refresh();
