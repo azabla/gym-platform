@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             PlanSeeder::class,
             MembershipSeeder::class,
             PaymentSeeder::class,
+            PlatformPlanSeeder::class,
         ]);
     }
 }
