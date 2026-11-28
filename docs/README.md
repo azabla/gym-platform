@@ -19,6 +19,7 @@ app/Domains/Billing/       Payments and refunds against memberships, receipts an
 app/Domains/Notifications/ Sending messages: SMS through AfroMessage, or to the log in development
 app/Domains/Announcements/ Announcements from a gym to its members, now or scheduled
 app/Domains/Imports/       Bringing in the members a gym had before joining, from a CSV file, with their memberships and what they paid
+app/Domains/PlatformBilling/ What the platform charges gyms: plans, each gym's subscription, invoices, payments, reminders and pausing for an unpaid bill
 app/Http/                  The API: controllers, form requests, middleware and resources (v1); Me/ folders hold the members app's side
 app/Filament/Staff/        The staff panel at /staff (Filament): its user, tenant middleware, dashboard, widgets and lists
 app/Filament/Admin/        The admin panel at /admin, for platform admins: every gym, its figures, opening and pausing gyms (English)
@@ -69,7 +70,9 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Platform admin | Someone who runs the platform itself, made only by `php artisan platform:admins`. They open the admin panel at /admin to see every gym's figures, open gyms and pause them, but never see a gym's members or payments (ADR 0042). |
 | Member import | A CSV file of the members a gym had before joining, uploaded by an owner or manager: each row is checked and shown first, then the ready ones are imported with their memberships and what they paid; duplicates are skipped (ADR 0044). |
 | Money brought in | What a member paid before their gym joined, recorded by a member import as a payment of method `brought_in`. It counts towards what they owe, never as money taken (ADR 0044). |
-| Paused gym | A gym the platform has stopped for now, keeping everything: its staff can't sign in, its API and members app answer `403 GYM_PAUSED`, the door refuses and it sends nothing, until it is resumed (ADR 0043). |
+| Paused gym | A gym the platform has stopped for now, keeping everything: its staff can't sign in, its API and members app answer `403 GYM_PAUSED`, the door refuses and it sends nothing, until it is resumed (ADR 0043). An admin pauses it, or the platform does for an unpaid bill and reopens it once paid (ADR 0045). |
+| Platform plan | What the platform charges a gym each month: a price for the first branch, one for each extra branch and discounts for paying 3, 6 or 12 months at once, VAT included (ADR 0045). |
+| Platform invoice | The platform's bill to a gym for 1, 3, 6 or 12 months (`INV-000123`), issued a week before its period, due on its first day, and pausing the gym if still unpaid after its grace. Admins record what the gym paid; owners see it on their Platform bill page (ADR 0045). |
 | Password link | A one-time link sent by SMS to set a staff member's first password (an invite, valid 7 days) or reset a forgotten one (valid 60 minutes). See ADR 0019. |
 | Archived staff | Staff who left: they can no longer act at the gym, what they recorded still names them, and they can be restored (ADR 0019). |
 | Members app | The app where members see their memberships, what they owe and their receipts, and pay with Chapa. It shows every gym where their phone number is registered (ADR 0010). |
@@ -152,6 +155,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0042](adr/0042-platform-admin-panel.md) | The platform admin panel and opening gyms |
 | [0043](adr/0043-pausing-a-gym.md) | Pausing a gym |
 | [0044](adr/0044-importing-members.md) | Importing members and money brought in |
+| [0045](adr/0045-billing-gyms.md) | Billing gyms for the platform |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 

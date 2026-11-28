@@ -5,20 +5,25 @@ declare(strict_types=1);
 namespace App\Domains\Organizations\Models;
 
 use App\Domains\Identity\Models\User;
+use App\Domains\Organizations\Enums\SuspensionCause;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * One time the platform paused a gym: who paused it, when and why, and who
- * resumed it. A gym has at most one open pause. Written only by
- * Organization::suspend() and resume(). See ADR 0043.
+ * One time a gym was paused: by an admin, who is named, or by the platform
+ * for an unpaid bill; when and why; and who resumed it, if anyone did (a
+ * payment resumes a pause for an unpaid bill by itself). A gym has at most
+ * one open pause. Written only by Organization. See ADRs 0043 and 0045.
  *
  * @property CarbonImmutable $suspended_at
+ * @property SuspensionCause $cause
  * @property string $reason
  * @property CarbonImmutable|null $resumed_at
  * @property string|null $resume_note
+ * @property-read User|null $suspendedBy
+ * @property-read User|null $resumedBy
  */
 class GymSuspension extends Model
 {
@@ -45,6 +50,7 @@ class GymSuspension extends Model
     {
         return [
             'suspended_at' => 'immutable_datetime',
+            'cause' => SuspensionCause::class,
             'resumed_at' => 'immutable_datetime',
         ];
     }

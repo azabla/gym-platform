@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\PlatformBillController;
 use App\Http\Controllers\Staff\ForgotStaffPasswordController;
 use App\Http\Controllers\Staff\StaffPasswordController;
 use Illuminate\Support\Facades\Route;
@@ -10,6 +11,11 @@ Route::get('/', function () {
 
 // Where Chapa sends a member after paying: back to the app, which has the API confirm the payment (ADR 0022).
 Route::view('payments/returned', 'payments.returned')->name('payments.returned');
+
+// The platform's invoice to a gym, to read or print, for platform admins and the gym's owners (ADR 0045).
+Route::get('platform-bill/invoices/{invoice}', [PlatformBillController::class, 'show'])
+    ->whereNumber('invoice')
+    ->name('platform-bill.invoice');
 
 // Staff set their password from a link sent by SMS, and ask for one when they forget it (ADR 0019).
 Route::prefix('password')->name('staff.password.')->group(function (): void {

@@ -6,9 +6,13 @@ namespace App\Filament\Admin\Resources\Gyms\Pages;
 
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Onboarding\NewGym;
+use App\Domains\PlatformBilling\Models\GymSubscription;
+use App\Domains\PlatformBilling\Models\PlatformPlan;
+use App\Domains\PlatformBilling\SubscriptionTerms;
 use App\Filament\Admin\Resources\Gyms\GymResource;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Opening a gym, as gyms:create does: the gym, its first branch and its
@@ -25,10 +29,21 @@ class CreateGym extends CreateRecord
      */
     protected function handleRecordCreation(array $data): Model
     {
-        /** @var array{name: string, slug: string, timezone: string, message_language: string, branch: string, owner_name: string, owner_phone: string} $data */
-        $owner = Organization::open(NewGym::fromValidated($data));
+        /** @var array{name: string, slug: string, timezone: string, message_language: string, branch: string, owner_name: string, owner_phone: string, billing_plan?: int|string|null, trial_days?: int|string|null, months_per_invoice?: int|string|null} $data */
+        return DB::transaction(function () use ($data): Organization {
+            $owner = Organization::open(NewGym::fromValidated($data));
+            $gym = Organization::query()->findOrFail($owner->organization_id);
 
-        return Organization::query()->findOrFail($owner->organization_id);
+            if (filled($data['billing_plan'] ?? null)) {
+                GymSubscription::start(
+                    $gym,
+                    new SubscriptionTerms(PlatformPlan::query()->findOrFail((int) $data['billing_plan']), monthsPerInvoice: (int) ($data['months_per_invoice'] ?? 1)),
+                    trialDays: (int) ($data['trial_days'] ?? 0),
+                );
+            }
+
+            return $gym;
+        });
     }
 
     protected function getCreatedNotificationTitle(): string

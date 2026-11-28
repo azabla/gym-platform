@@ -160,7 +160,7 @@ class Staff extends Model
     {
         $choices = [];
 
-        foreach (StaffNotificationTopic::cases() as $topic) {
+        foreach (StaffNotificationTopic::chosenByStaff() as $topic) {
             $choices[$topic->value] = ['push' => $this->wantsPushesAbout($topic), 'sms' => $this->wantsTextsAbout($topic)];
         }
 

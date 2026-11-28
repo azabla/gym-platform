@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
+use App\Domains\PlatformBilling\Models\PlatformPlan;
 
 /*
  * Architecture tests turn our conventions into rules the test suite enforces.
@@ -34,6 +35,7 @@ arch('value objects are final and readonly')
         'App\Domains\Attendance\Credentials\Gq1Payload',
         'App\Domains\Organizations\Hours\OpeningWindow',
         'App\Domains\Shared\EthiopianCalendar\EthiopianDate',
+        'App\Domains\PlatformBilling\GymCharge',
     ])
     ->toBeFinal()
     ->toBeReadonly();
@@ -47,9 +49,10 @@ arch('organization-owned models are scoped to the current organization')
         'App\Domains\Attendance\Models',
         'App\Domains\Announcements\Models',
         'App\Domains\Imports\Models',
+        'App\Domains\PlatformBilling\Models',
     ])
     ->toUseTrait(BelongsToOrganization::class)
-    ->ignoring(Organization::class);
+    ->ignoring([Organization::class, PlatformPlan::class]);
 
 arch('the Identity domain does not depend on Organizations, Members, Memberships, Billing or Attendance')
     ->expect('App\Domains\Identity')
@@ -82,6 +85,14 @@ arch('no other domain depends on Imports, which brings a gym\'s members, members
 arch('Imports does not depend on Attendance or Announcements')
     ->expect('App\Domains\Imports')
     ->not->toUse(['App\Domains\Attendance', 'App\Domains\Announcements']);
+
+arch('no other domain depends on PlatformBilling, how the platform charges gyms (ADR 0045)')
+    ->expect(['App\Domains\Identity', 'App\Domains\Organizations', 'App\Domains\Members', 'App\Domains\Memberships', 'App\Domains\Billing', 'App\Domains\Attendance', 'App\Domains\Notifications', 'App\Domains\Announcements', 'App\Domains\Imports'])
+    ->not->toUse('App\Domains\PlatformBilling');
+
+arch('PlatformBilling knows gyms and their branches, never their members, memberships, payments or visits')
+    ->expect('App\Domains\PlatformBilling')
+    ->not->toUse(['App\Domains\Members', 'App\Domains\Memberships', 'App\Domains\Billing', 'App\Domains\Attendance', 'App\Domains\Announcements', 'App\Domains\Imports']);
 
 arch('the Notifications domain depends on no other domain but Shared')
     ->expect('App\Domains\Notifications')

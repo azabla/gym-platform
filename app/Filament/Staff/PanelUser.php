@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Filament\Staff;
 
 use App\Domains\Identity\Models\User;
+use App\Domains\Organizations\Enums\StaffRole;
+use App\Domains\Organizations\Enums\SuspensionCause;
+use App\Domains\Organizations\Models\GymSuspension;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Models\Staff;
 use Filament\Models\Contracts\FilamentUser;
@@ -43,14 +46,26 @@ class PanelUser extends User implements FilamentUser, HasTenants
 
     /**
      * Whether every gym the user works at is paused, so there is nowhere to
-     * sign in to. See ADR 0043.
+     * sign in to (ADR 0043). An owner of a gym the platform paused for an
+     * unpaid bill still signs in, to see what to pay (ADR 0045).
      */
     public function worksOnlyAtPausedGyms(): bool
     {
-        return Organization::query()
+        $worksAtAnActiveGym = Organization::query()
             ->active()
             ->whereIn('id', $this->staffRecords()->select('organization_id'))
-            ->doesntExist();
+            ->exists();
+
+        return ! $worksAtAnActiveGym && ! $this->ownsAGymPausedForAnUnpaidBill();
+    }
+
+    private function ownsAGymPausedForAnUnpaidBill(): bool
+    {
+        return GymSuspension::query()->acrossOrganizations()
+            ->whereNull('resumed_at')
+            ->where('cause', SuspensionCause::UnpaidBill)
+            ->whereIn('organization_id', $this->staffRecords()->where('role', StaffRole::Owner)->select('organization_id'))
+            ->exists();
     }
 
     public function canAccessTenant(Model $tenant): bool

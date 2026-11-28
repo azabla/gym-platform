@@ -264,6 +264,7 @@ The staff app registers its push token like the members app, with `"app": "staff
 | `staff_member_froze` | a member froze in the app | `membership_id` | that membership |
 | `staff_member_ended_freeze` | a member ended a freeze early in the app | `membership_id` | that membership |
 | `staff_members_to_call` | each morning from 08:00 | none | the members to call |
+| `staff_bill_issued`, `staff_bill_due_today`, `staff_bill_overdue`, `staff_bill_pauses_tomorrow`, `staff_bill_paused`, `staff_bill_paid`, `staff_bill_paid_reopened` | the platform's invoice to the gym, for owners only (ADR 0045) | `gym_invoice_id` | the platform bill |
 
 - **Every push** also has `notification_id` (mark it read with `POST notifications/{id}/read`) and `gym`, the gym's slug. Its title and body are in the staff member's message language.
 - **The Inbox** is `GET notifications`, as in the panel.
@@ -271,6 +272,7 @@ The staff app registers its push token like the members app, with `"app": "staff
   - `PATCH` with any of those topics, each with `push`, `sms` or both as `true` or `false`, returns them all.
   - An unknown topic or another value gets a `422`.
 - **Defaults.** Push is on and SMS off until changed. No SMS goes out between 21:00 and 07:00 gym time.
+- **The platform's bill** isn't a topic staff choose: its messages always reach owners by inbox, push and SMS, waiting for 07:00 when sent at night, and they come even while the gym is paused.
 
 ### Reason codes
 

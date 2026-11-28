@@ -39,4 +39,48 @@ return [
         'sms' => '{1} :gym: 1 member to call today, a membership ending within 7 days.|[2,*] :gym: :count members to call today, memberships ending within 7 days.',
     ],
 
+    // The platform's bill to the gym, for its owners only (ADR 0045).
+
+    'staff_bill_issued' => [
+        'title' => 'New platform invoice',
+        'body' => 'Invoice :invoice for :amount, for :starts_on to :ends_on, is due on :due_on. If it isn\'t paid by :pauses_on, the gym is paused. See Platform bill for how to pay.',
+        'sms' => ':gym: platform invoice :invoice for :amount is due on :due_on. Unpaid by :pauses_on, the gym is paused. Pay with :invoice as the reason.',
+    ],
+
+    'staff_bill_due_today' => [
+        'title' => 'Platform invoice due today',
+        'body' => 'Invoice :invoice is due today: :amount still to pay. If it isn\'t paid by :pauses_on, the gym is paused.',
+        'sms' => ':gym: platform invoice :invoice is due today, :amount to pay. Unpaid by :pauses_on, the gym is paused.',
+    ],
+
+    'staff_bill_overdue' => [
+        'title' => 'Platform invoice overdue',
+        'body' => 'Invoice :invoice was due on :due_on: :amount still to pay. If it isn\'t paid by :pauses_on, the gym is paused.',
+        'sms' => ':gym: platform invoice :invoice is overdue, :amount to pay. Unpaid by :pauses_on, the gym is paused.',
+    ],
+
+    'staff_bill_pauses_tomorrow' => [
+        'title' => 'The gym pauses tomorrow',
+        'body' => 'Invoice :invoice is still unpaid: :amount. Tomorrow the gym is paused: staff can\'t sign in, the door and the members\' app stop. Pay today to keep it open.',
+        'sms' => ':gym: platform invoice :invoice is unpaid, :amount. The gym is paused tomorrow unless it is paid today.',
+    ],
+
+    'staff_bill_paused' => [
+        'title' => 'Gym paused for an unpaid invoice',
+        'body' => 'Invoice :invoice wasn\'t paid, so the gym is paused: staff can\'t sign in, the door and the members\' app are stopped. Nothing is deleted. Pay :amount and it reopens by itself.',
+        'sms' => ':gym is paused: platform invoice :invoice is unpaid. Pay :amount with :invoice as the reason and it reopens by itself.',
+    ],
+
+    'staff_bill_paid' => [
+        'title' => 'Platform invoice paid',
+        'body' => 'Thank you: invoice :invoice for :amount is paid.',
+        'sms' => ':gym: thank you, platform invoice :invoice for :amount is paid.',
+    ],
+
+    'staff_bill_paid_reopened' => [
+        'title' => 'Paid: the gym is open again',
+        'body' => 'Thank you: invoice :invoice for :amount is paid, and the gym is open again. Staff can sign in, and the door and the members\' app work.',
+        'sms' => ':gym: thank you, platform invoice :invoice is paid. The gym is open again.',
+    ],
+
 ];

@@ -15,7 +15,7 @@ use Carbon\CarbonImmutable;
 final class MessageText
 {
     /** Details kept as a date ("2026-11-27") and written out for the reader. */
-    private const DATES = ['starts_on', 'ends_on', 'membership_ends_on'];
+    private const DATES = ['starts_on', 'ends_on', 'membership_ends_on', 'due_on', 'pauses_on'];
 
     /**
      * "27 November 2026" in English; in Amharic the Ethiopian date, with the

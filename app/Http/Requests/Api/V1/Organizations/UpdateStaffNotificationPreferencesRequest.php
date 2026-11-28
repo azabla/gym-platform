@@ -34,7 +34,7 @@ class UpdateStaffNotificationPreferencesRequest extends FormRequest
 
         $rules = [];
 
-        foreach (StaffNotificationTopic::cases() as $topic) {
+        foreach (StaffNotificationTopic::chosenByStaff() as $topic) {
             $rules[$topic->value] = ['sometimes', 'array:push,sms'];
             $rules["{$topic->value}.push"] = ['sometimes', $trueOrFalse];
             $rules["{$topic->value}.sms"] = ['sometimes', $trueOrFalse];
@@ -52,7 +52,7 @@ class UpdateStaffNotificationPreferencesRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
-                $topics = array_map(fn (StaffNotificationTopic $topic): string => $topic->value, StaffNotificationTopic::cases());
+                $topics = array_map(fn (StaffNotificationTopic $topic): string => $topic->value, StaffNotificationTopic::chosenByStaff());
 
                 foreach (array_diff(array_keys($this->all()), $topics) as $unknown) {
                     $validator->errors()->add((string) $unknown, 'There is no such topic. Use online_payments, refunds, app_freezes or members_to_call.');

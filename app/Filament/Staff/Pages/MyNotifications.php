@@ -139,6 +139,7 @@ class MyNotifications extends Page
             StaffNotificationTopic::Refunds => __('Refunds needed'),
             StaffNotificationTopic::AppFreezes => __('Freezes in the app'),
             StaffNotificationTopic::MembersToCall => __('Members to call'),
+            StaffNotificationTopic::PlatformBill => __('Platform bill'),
         };
     }
 
@@ -149,6 +150,7 @@ class MyNotifications extends Page
             StaffNotificationTopic::Refunds => __('Chapa took money that isn\'t due and the gym must give it back.'),
             StaffNotificationTopic::AppFreezes => __('A member froze their membership in the app, or came back early.'),
             StaffNotificationTopic::MembersToCall => __('Each morning from 08:00: memberships ending within 7 days.'),
+            StaffNotificationTopic::PlatformBill => __('The platform\'s invoices to the gym, for owners: always by push and SMS.'),
         };
     }
 
