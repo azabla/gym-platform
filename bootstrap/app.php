@@ -3,6 +3,7 @@
 use App\Domains\Announcements\Exceptions\AnnouncementRefused;
 use App\Domains\Attendance\DoorList\Exceptions\DoorListNotSetUp;
 use App\Domains\Billing\Chapa\Exceptions\ChapaRequestFailed;
+use App\Domains\Billing\Exceptions\CashCountRefused;
 use App\Domains\Billing\Exceptions\PaymentRefused;
 use App\Domains\Members\Exceptions\MemberPhotoRefused;
 use App\Domains\Memberships\Exceptions\MembershipRefused;
@@ -63,6 +64,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // A payment that another desk's payment made too large gets the same
         // answer as one the request refused.
         $exceptions->map(fn (PaymentRefused $exception) => ValidationException::withMessages([
+            $exception->field => $exception->getMessage(),
+        ]));
+
+        // A cash count that can't be closed or checked (ADR 0046).
+        $exceptions->map(fn (CashCountRefused $exception) => ValidationException::withMessages([
             $exception->field => $exception->getMessage(),
         ]));
 

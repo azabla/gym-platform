@@ -7,6 +7,7 @@ namespace App\Filament\Staff\Support;
 use App\Domains\Activity\Enums\ActivityAction;
 use App\Domains\Activity\Models\ActivityRecord;
 use App\Domains\Billing\Enums\PaymentMethod;
+use App\Filament\Staff\Resources\CashCounts\CashCountResource;
 use App\Filament\Staff\Resources\DiscountGroups\DiscountGroupResource;
 use App\Filament\Staff\Resources\Members\MemberResource;
 use App\Filament\Staff\Resources\Memberships\MembershipResource;
@@ -68,6 +69,7 @@ final class ActivityText
             'plan' => PlanResource::getUrl('edit', ['record' => $record->subject_id]),
             'promo_code' => PromoCodeResource::getUrl('edit', ['record' => $record->subject_id]),
             'discount_group' => DiscountGroupResource::getUrl('edit', ['record' => $record->subject_id]),
+            'cash_count' => CashCountResource::getUrl('index'),
             default => null,
         };
     }

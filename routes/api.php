@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\V1\Organizations\AnnouncementController;
 use App\Http\Controllers\Api\V1\Organizations\BranchClosureController;
 use App\Http\Controllers\Api\V1\Organizations\BranchController;
 use App\Http\Controllers\Api\V1\Organizations\BranchOpeningHoursController;
+use App\Http\Controllers\Api\V1\Organizations\CashCountController;
 use App\Http\Controllers\Api\V1\Organizations\ChapaAccountController;
 use App\Http\Controllers\Api\V1\Organizations\CheckInController;
 use App\Http\Controllers\Api\V1\Organizations\DashboardController;
@@ -219,6 +220,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 Route::apiResource('payments', PaymentController::class)->only(['index', 'show']);
                 Route::post('payments/{payment}/void', [PaymentController::class, 'void'])
                     ->name('payments.void');
+                // End-of-shift cash counts (ADR 0046).
+                Route::get('cash-counts/expected', [CashCountController::class, 'expected'])->name('cash-counts.expected');
+                Route::apiResource('cash-counts', CashCountController::class)->only(['index', 'store']);
+                Route::post('cash-counts/{cash_count}/check', [CashCountController::class, 'check'])->name('cash-counts.check');
                 Route::apiSingleton('chapa-account', ChapaAccountController::class)->destroyable();
                 Route::apiSingleton('settings', OrganizationSettingsController::class);
                 Route::post('memberships/{membership}/payment-links', [PaymentLinkController::class, 'store'])
