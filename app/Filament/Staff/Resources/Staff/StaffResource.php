@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Filament\Staff\Resources\Staff;
 
+use App\Domains\Identity\Enums\SignInApp;
 use App\Domains\Identity\Models\PasswordLink;
+use App\Domains\Identity\SignIns;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Exceptions\StaffRefused;
 use App\Domains\Organizations\Models\Branch;
@@ -268,6 +270,29 @@ class StaffResource extends Resource
                 $record->restore();
 
                 Notification::make()->success()->title(__('Staff member restored.'))->send();
+            });
+    }
+
+    /**
+     * Sign the staff member out of the staff app on every phone, such as when
+     * one is lost or they leave (ADR 0046). Their members-app sign-ins, as a
+     * member of any gym, are theirs and stay.
+     */
+    public static function signOutEverywhereAction(): Action
+    {
+        return Action::make('signOutEverywhere')
+            ->label(__('Sign out of the staff app'))
+            ->icon(Heroicon::OutlinedDevicePhoneMobile)
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalIcon(Heroicon::OutlinedDevicePhoneMobile)
+            ->modalHeading(fn (Staff $record): string => __('Sign :name out of the staff app?', ['name' => $record->user->name]))
+            ->modalDescription(__('Every phone signed in to the staff app as them has to sign in again, say when a phone is lost. Their members app stays signed in.'))
+            ->visible(fn (Staff $record): bool => Gate::allows('update', $record) && $record->user->tokens()->where('app', SignInApp::Staff->value)->exists())
+            ->action(function (Staff $record): void {
+                $ended = SignIns::endEverywhere($record->user, SignInApp::Staff);
+
+                Notification::make()->success()->title(trans_choice('{0} No phone was signed in.|{1} 1 phone signed out.|[2,*] :count phones signed out.', $ended))->send();
             });
     }
 

@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Me\MyAnnouncementController;
 use App\Http\Controllers\Api\V1\Me\MyBranchController;
 use App\Http\Controllers\Api\V1\Me\MyCheckInController;
 use App\Http\Controllers\Api\V1\Me\MyDashboardController;
+use App\Http\Controllers\Api\V1\Me\MyDeviceController;
 use App\Http\Controllers\Api\V1\Me\MyFreezeController;
 use App\Http\Controllers\Api\V1\Me\MyGymController;
 use App\Http\Controllers\Api\V1\Me\MyLanguageController;
@@ -92,6 +93,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::delete('me/photo', [MyPhotoController::class, 'destroy'])->name('me.photo.destroy');
 
         // The members app: the gyms where my phone number is registered, and my records at each (ADR 0010).
+        // The phones signed in as the user, to sign out a lost one (ADR 0046).
+        Route::get('me/devices', [MyDeviceController::class, 'index'])->name('me.devices.index');
+        Route::delete('me/devices/{device}', [MyDeviceController::class, 'destroy'])->whereNumber('device')->name('me.devices.destroy');
+
         Route::get('me/gyms', [MyGymController::class, 'index'])->name('me.gyms.index');
 
         Route::prefix('me/gyms/{organization}')
