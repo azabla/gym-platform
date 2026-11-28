@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Me\MyAnnouncementController;
 use App\Http\Controllers\Api\V1\Me\MyBranchController;
 use App\Http\Controllers\Api\V1\Me\MyCheckInController;
 use App\Http\Controllers\Api\V1\Me\MyDashboardController;
+use App\Http\Controllers\Api\V1\Me\MyDeviceController;
 use App\Http\Controllers\Api\V1\Me\MyFreezeController;
 use App\Http\Controllers\Api\V1\Me\MyGymController;
 use App\Http\Controllers\Api\V1\Me\MyLanguageController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\Api\V1\Organizations\AnnouncementController;
 use App\Http\Controllers\Api\V1\Organizations\BranchClosureController;
 use App\Http\Controllers\Api\V1\Organizations\BranchController;
 use App\Http\Controllers\Api\V1\Organizations\BranchOpeningHoursController;
+use App\Http\Controllers\Api\V1\Organizations\CashCountController;
 use App\Http\Controllers\Api\V1\Organizations\ChapaAccountController;
 use App\Http\Controllers\Api\V1\Organizations\CheckInController;
 use App\Http\Controllers\Api\V1\Organizations\DashboardController;
@@ -91,6 +93,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::delete('me/photo', [MyPhotoController::class, 'destroy'])->name('me.photo.destroy');
 
         // The members app: the gyms where my phone number is registered, and my records at each (ADR 0010).
+        // The phones signed in as the user, to sign out a lost one (ADR 0046).
+        Route::get('me/devices', [MyDeviceController::class, 'index'])->name('me.devices.index');
+        Route::delete('me/devices/{device}', [MyDeviceController::class, 'destroy'])->whereNumber('device')->name('me.devices.destroy');
+
         Route::get('me/gyms', [MyGymController::class, 'index'])->name('me.gyms.index');
 
         Route::prefix('me/gyms/{organization}')
@@ -219,6 +225,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 Route::apiResource('payments', PaymentController::class)->only(['index', 'show']);
                 Route::post('payments/{payment}/void', [PaymentController::class, 'void'])
                     ->name('payments.void');
+                // End-of-shift cash counts (ADR 0046).
+                Route::get('cash-counts/expected', [CashCountController::class, 'expected'])->name('cash-counts.expected');
+                Route::apiResource('cash-counts', CashCountController::class)->only(['index', 'store']);
+                Route::post('cash-counts/{cash_count}/check', [CashCountController::class, 'check'])->name('cash-counts.check');
                 Route::apiSingleton('chapa-account', ChapaAccountController::class)->destroyable();
                 Route::apiSingleton('settings', OrganizationSettingsController::class);
                 Route::post('memberships/{membership}/payment-links', [PaymentLinkController::class, 'store'])

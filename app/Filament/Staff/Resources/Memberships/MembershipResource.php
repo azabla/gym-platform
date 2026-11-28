@@ -19,6 +19,7 @@ use App\Filament\Staff\Resources\Members\MemberResource;
 use App\Filament\Staff\Resources\Memberships\Pages\ListMemberships;
 use App\Filament\Staff\Resources\Memberships\Pages\ViewMembership;
 use App\Filament\Staff\Resources\PaymentLinks\PaymentLinkResource;
+use App\Filament\Staff\Support\ActivityHistory;
 use App\Filament\Staff\Support\Badges;
 use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Tables;
@@ -162,6 +163,7 @@ class MembershipResource extends Resource
                             ->copyable()
                             ->copyMessage(__('Copied')),
                     ]),
+                ActivityHistory::section(),
             ]);
     }
 

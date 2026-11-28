@@ -27,6 +27,7 @@ use App\Filament\Staff\Resources\Members\Pages\CreateMember;
 use App\Filament\Staff\Resources\Members\Pages\EditMember;
 use App\Filament\Staff\Resources\Members\Pages\ListMembers;
 use App\Filament\Staff\Resources\Members\Pages\ViewMember;
+use App\Filament\Staff\Support\ActivityHistory;
 use App\Filament\Staff\Support\Badges;
 use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Languages;
@@ -236,6 +237,7 @@ class MemberResource extends Resource
                         TextEntry::make('emergency_contact_name')->label(__('Name'))->placeholder(__('None')),
                         TextEntry::make('emergency_contact_phone')->label(__('Phone'))->placeholder(__('None'))->copyable(),
                     ]),
+                ActivityHistory::section(),
             ]);
     }
 

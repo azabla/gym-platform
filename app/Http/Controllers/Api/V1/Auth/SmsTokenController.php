@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
+use App\Domains\Identity\Enums\SignInApp;
 use App\Domains\Identity\Models\SignInCode;
 use App\Domains\Identity\Models\User;
+use App\Domains\Identity\SignIns;
 use App\Domains\Members\Models\Member;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\IssueSmsTokenRequest;
@@ -33,7 +35,7 @@ class SmsTokenController extends Controller
         }
 
         $user = User::forPhone($phone, $member->full_name);
-        $token = $user->createToken($request->string('device_name')->toString());
+        $token = SignIns::start($user, $request->string('device_name')->toString(), SignInApp::Members);
 
         return response()->json([
             'data' => [

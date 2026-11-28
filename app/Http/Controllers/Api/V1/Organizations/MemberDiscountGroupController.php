@@ -33,7 +33,7 @@ class MemberDiscountGroupController extends Controller
     {
         Gate::authorize('assign', DiscountGroup::class);
 
-        MemberDiscount::remove($member);
+        MemberDiscount::remove($member, app(CurrentStaff::class)->get());
 
         return response()->noContent();
     }

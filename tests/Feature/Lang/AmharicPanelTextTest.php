@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domains\Activity\Enums\ActivityAction;
 use App\Domains\Announcements\Enums\AnnouncementStatus;
 use App\Domains\Attendance\Enums\CheckInDenial;
 use App\Domains\Attendance\Enums\CheckInMethod;
@@ -118,6 +119,11 @@ it('has Amharic for the labels the panel works out as it runs', function () {
 
     foreach (CheckInDenial::cases() as $denial) {
         $labels[] = $denial->label();
+    }
+
+    // What the money log says was done (ADR 0046).
+    foreach (ActivityAction::cases() as $action) {
+        $labels[] = $action->label();
     }
 
     // A discount the panel can't read, shown from its text (InvalidDiscount).

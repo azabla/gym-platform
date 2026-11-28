@@ -122,6 +122,21 @@ Ethiopian date first, with the Gregorian date beside it.
 | (next day), past midnight | (በማግስቱ) | | |
 | time zone | የሰዓት ሰቅ | | never የሰዓት ዞን |
 
+### Money safety
+
+| English | Amharic | Button | Notes |
+|---|---|---|---|
+| activity (the money log) | እንቅስቃሴ | | |
+| history (on a record) | ታሪክ | | |
+| flagged | ምልክት የተደረገበት | | |
+| cash count | የጥሬ ገንዘብ ቆጠራ (የጥሬ ገንዘብ ቆጠራዎች) | ጥሬ ገንዘቤን ዝጋ | |
+| short / over / exact | የጎደለ / የተረፈ / ትክክል | | |
+| checked (a count) | የታየ | እንደታየ ምልክት አድርግ | |
+| backdated | ወደ ኋላ ቀን የተደረገ | | |
+| my devices | የእኔ መሳሪያዎች | | |
+| sign out (a phone) | | አስወጣ | "signed out" is ወጥቷል |
+| staff app / members app | የሰራተኞች መተግበሪያ / የአባላት መተግበሪያ | | |
+
 ### The platform's bill to the gym
 
 | English | Amharic | Button | Notes |

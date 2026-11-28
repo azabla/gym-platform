@@ -67,7 +67,7 @@ class DiscountGroupAction extends Action
             ])
             ->action(function (array $data, Member $record): void {
                 if ((bool) ($data['remove'] ?? false)) {
-                    MemberDiscount::remove($record);
+                    MemberDiscount::remove($record, app(CurrentStaff::class)->get());
 
                     Notification::make()->success()->title(__('Taken out of their discount group.'))->send();
 

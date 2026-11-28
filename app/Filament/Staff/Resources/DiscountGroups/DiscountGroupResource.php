@@ -13,6 +13,7 @@ use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\DiscountGroups\Pages\CreateDiscountGroup;
 use App\Filament\Staff\Resources\DiscountGroups\Pages\EditDiscountGroup;
 use App\Filament\Staff\Resources\DiscountGroups\Pages\ListDiscountGroups;
+use App\Filament\Staff\Support\ActivityHistory;
 use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Tables;
 use App\Filament\Staff\Support\TranslatesItsLabels;
@@ -76,6 +77,7 @@ class DiscountGroupResource extends Resource
                             ->helperText(fn (Get $get): string => self::exampleOf((string) $get('discount')))
                             ->rules(fn (): array => [self::readableDiscount()]),
                     ]),
+                ActivityHistory::section(),
             ]);
     }
 

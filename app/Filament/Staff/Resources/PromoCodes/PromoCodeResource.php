@@ -14,6 +14,7 @@ use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Resources\PromoCodes\Pages\CreatePromoCode;
 use App\Filament\Staff\Resources\PromoCodes\Pages\EditPromoCode;
 use App\Filament\Staff\Resources\PromoCodes\Pages\ListPromoCodes;
+use App\Filament\Staff\Support\ActivityHistory;
 use App\Filament\Staff\Support\Badges;
 use App\Filament\Staff\Support\Dates;
 use App\Filament\Staff\Support\Tables;
@@ -122,6 +123,7 @@ class PromoCodeResource extends Resource
                             ->placeholder(__('Every plan'))
                             ->helperText(__('Leave empty for every plan.')),
                     ]),
+                ActivityHistory::section(),
             ]);
     }
 

@@ -23,6 +23,7 @@ class EditStaff extends EditRecord
     {
         return [
             StaffResource::resendInviteAction(),
+            StaffResource::signOutEverywhereAction(),
             StaffResource::restoreAction(),
             StaffResource::archiveAction(),
         ];

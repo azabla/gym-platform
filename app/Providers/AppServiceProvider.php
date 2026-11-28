@@ -3,8 +3,16 @@
 namespace App\Providers;
 
 use App\Domains\Attendance\DoorList\DoorListSigner;
+use App\Domains\Billing\Models\CashCount;
+use App\Domains\Billing\Models\Payment;
+use App\Domains\Billing\Models\PaymentLink;
 use App\Domains\Identity\Models\User;
+use App\Domains\Identity\SignIns;
 use App\Domains\Members\Models\Member;
+use App\Domains\Memberships\Models\DiscountGroup;
+use App\Domains\Memberships\Models\Membership;
+use App\Domains\Memberships\Models\Plan;
+use App\Domains\Memberships\Models\PromoCode;
 use App\Domains\Notifications\Push\FcmPushSender;
 use App\Domains\Notifications\Push\LogPushSender;
 use App\Domains\Notifications\Push\PushSender;
@@ -29,6 +37,8 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use Laravel\Sanctum\PersonalAccessToken;
+use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -64,6 +74,17 @@ class AppServiceProvider extends ServiceProvider
         $this->describeApiCallsAsTakingBearerTokens();
         $this->letRolesSeeTheirInsights();
         $this->spellAmharicDatesInFull();
+        $this->letUnusedSignInsExpire();
+    }
+
+    /**
+     * A phone's sign-in unused for 30 days (staff app) or 90 (members app)
+     * no longer works, so a lost phone doesn't stay signed in for ever
+     * (ADR 0046). Each use moves its time on.
+     */
+    private function letUnusedSignInsExpire(): void
+    {
+        Sanctum::authenticateAccessTokensUsing(fn (PersonalAccessToken $token, bool $isValid): bool => $isValid && SignIns::isFresh($token));
     }
 
     /**
@@ -154,6 +175,14 @@ class AppServiceProvider extends ServiceProvider
             'user' => User::class,
             'member' => Member::class,
             'staff' => Staff::class,
+            // What the money log is about (ADR 0046).
+            'payment' => Payment::class,
+            'payment_link' => PaymentLink::class,
+            'membership' => Membership::class,
+            'plan' => Plan::class,
+            'promo_code' => PromoCode::class,
+            'discount_group' => DiscountGroup::class,
+            'cash_count' => CashCount::class,
         ]);
     }
 

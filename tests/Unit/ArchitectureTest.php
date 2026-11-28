@@ -50,6 +50,7 @@ arch('organization-owned models are scoped to the current organization')
         'App\Domains\Announcements\Models',
         'App\Domains\Imports\Models',
         'App\Domains\PlatformBilling\Models',
+        'App\Domains\Activity\Models',
     ])
     ->toUseTrait(BelongsToOrganization::class)
     ->ignoring([Organization::class, PlatformPlan::class]);
@@ -93,6 +94,10 @@ arch('no other domain depends on PlatformBilling, how the platform charges gyms 
 arch('PlatformBilling knows gyms and their branches, never their members, memberships, payments or visits')
     ->expect('App\Domains\PlatformBilling')
     ->not->toUse(['App\Domains\Members', 'App\Domains\Memberships', 'App\Domains\Billing', 'App\Domains\Attendance', 'App\Domains\Announcements', 'App\Domains\Imports']);
+
+arch('Activity, the money log every domain writes to, depends on no domain but Organizations, Identity and Shared (ADR 0046)')
+    ->expect('App\Domains\Activity')
+    ->not->toUse(['App\Domains\Members', 'App\Domains\Memberships', 'App\Domains\Billing', 'App\Domains\Attendance', 'App\Domains\Announcements', 'App\Domains\Imports', 'App\Domains\PlatformBilling', 'App\Domains\Notifications']);
 
 arch('the Notifications domain depends on no other domain but Shared')
     ->expect('App\Domains\Notifications')

@@ -8,6 +8,7 @@ use App\Filament\Staff\Middleware\ActAsTenant;
 use App\Filament\Staff\Middleware\UseStaffLanguage;
 use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Pages\Dashboard;
+use App\Filament\Staff\Pages\MyDevices;
 use App\Filament\Staff\Pages\MyNotifications;
 use App\Filament\Staff\Support\PlatformBillBanner;
 use Filament\Actions\Action;
@@ -80,6 +81,11 @@ class StaffPanelProvider extends PanelProvider
                     ->label('My notifications')
                     ->icon(Heroicon::OutlinedBellAlert)
                     ->url(fn (): string => MyNotifications::getUrl()),
+                // The phones signed in as them, to sign out a lost one (ADR 0046).
+                Action::make('myDevices')
+                    ->label('My devices')
+                    ->icon(Heroicon::OutlinedDevicePhoneMobile)
+                    ->url(fn (): string => MyDevices::getUrl()),
             ])
             ->discoverResources(in: app_path('Filament/Staff/Resources'), for: 'App\Filament\Staff\Resources')
             ->discoverPages(in: app_path('Filament/Staff/Pages'), for: 'App\Filament\Staff\Pages')

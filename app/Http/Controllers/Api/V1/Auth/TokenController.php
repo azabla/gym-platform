@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
-use App\Domains\Attendance\Enums\CredentialRevocation;
-use App\Domains\Attendance\Models\AccessCredential;
+use App\Domains\Identity\Enums\SignInApp;
 use App\Domains\Identity\Models\User;
+use App\Domains\Identity\SignIns;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\IssueTokenRequest;
 use App\Http\Resources\V1\UserResource;
@@ -37,7 +37,7 @@ class TokenController extends Controller
 
         $user = User::query()->where($field, $value)->sole();
 
-        $token = $user->createToken($request->string('device_name')->toString());
+        $token = SignIns::start($user, $request->string('device_name')->toString(), SignInApp::Staff);
 
         return response()->json([
             'data' => [
@@ -53,16 +53,7 @@ class TokenController extends Controller
      */
     public function destroy(Request $request): Response
     {
-        $token = $request->user()->currentAccessToken();
-
-        AccessCredential::query()
-            ->acrossOrganizations()
-            ->where('personal_access_token_id', $token->getKey())
-            ->active()
-            ->get()
-            ->each(fn (AccessCredential $credential) => $credential->revoke(CredentialRevocation::SignedOut));
-
-        $token->delete();
+        SignIns::end($request->user()->currentAccessToken());
 
         return response()->noContent();
     }

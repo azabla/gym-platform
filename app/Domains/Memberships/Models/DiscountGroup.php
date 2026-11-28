@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace App\Domains\Memberships\Models;
 
+use App\Domains\Activity\Enums\ActivityAction;
+use App\Domains\Activity\LogsMoneyChanges;
 use App\Domains\Memberships\Discount\Discount;
 use App\Domains\Memberships\Policies\DiscountGroupPolicy;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\BelongsToOrganization;
+use App\Domains\Shared\Money\Money;
+use Carbon\CarbonImmutable;
 use Database\Factories\DiscountGroupFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -31,7 +35,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class DiscountGroup extends Model
 {
     /** @use HasFactory<DiscountGroupFactory> */
-    use BelongsToOrganization, HasFactory, SoftDeletes;
+    use BelongsToOrganization, HasFactory, LogsMoneyChanges, SoftDeletes;
 
     /**
      * The gym's group that already has the name, ignoring capitals, if any.
@@ -46,6 +50,29 @@ class DiscountGroup extends Model
         }
 
         return $query->first();
+    }
+
+    protected function moneyChangeAction(): ActivityAction
+    {
+        return ActivityAction::DiscountGroupSaved;
+    }
+
+    /**
+     * A new group, or a change to what it takes off (ADR 0046).
+     *
+     * @return array<string, scalar|Money|CarbonImmutable|null>|null
+     */
+    protected function moneyChangeDetails(bool $created): ?array
+    {
+        if (! $created && ! $this->wasChanged('discount')) {
+            return null;
+        }
+
+        return [
+            'group' => $this->name,
+            'discount' => $this->discount,
+            'was_discount' => $created ? null : (string) $this->getRawOriginal('discount'),
+        ];
     }
 
     /**
