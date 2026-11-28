@@ -47,6 +47,16 @@ final class ExpenseRefused extends DomainException
         return new self(__('Choose cash, Telebirr, CBE Birr or a bank transfer.'), 'method');
     }
 
+    public static function receiptTooLarge(): self
+    {
+        return new self(__('The receipt is too large: up to 5 MB.'), 'receipt');
+    }
+
+    public static function receiptNotAccepted(): self
+    {
+        return new self(__('The receipt must be a photo (JPEG, PNG or WebP) or a PDF.'), 'receipt');
+    }
+
     public static function alreadyVoided(): self
     {
         return new self(__('This expense is already voided.'), 'expense');
