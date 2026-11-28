@@ -61,8 +61,9 @@ check: lint analyse test ## Everything CI will run
 fresh: ## Drop and re-run all migrations with seeders
 	$(EXEC) php artisan migrate:fresh --seed
 
-demo: ## Add two months of demo activity to Demo Gym (after make fresh)
+demo: ## Add two months of demo activity to Demo Gym, and the platform's bill to a few gyms (after make fresh)
 	$(EXEC) php artisan db:seed --class=DemoActivitySeeder
+	$(EXEC) php artisan db:seed --class=DemoBillingSeeder
 
 bucket: ## Create the local S3 bucket (once)
 	echo "s3.bucket.create -name gym-local" | $(DC) exec -T seaweedfs weed shell -master=localhost:9333
