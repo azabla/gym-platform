@@ -2,27 +2,14 @@
 
 declare(strict_types=1);
 
-use App\Domains\Identity\Models\User;
 use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\PlatformBilling\Models\PlatformPlan;
-use App\Filament\Admin\AdminUser;
 use App\Filament\Admin\Resources\PlatformPlans\Pages\CreatePlatformPlan;
 use App\Filament\Admin\Resources\PlatformPlans\Pages\EditPlatformPlan;
 use App\Filament\Admin\Resources\PlatformPlans\Pages\ListPlatformPlans;
 use App\Filament\Admin\Resources\PlatformPlans\PlatformPlanResource;
-use Filament\Facades\Filament;
 use Livewire\Livewire;
-
-function actingAsPlatformAdminInPanel(): User
-{
-    $admin = User::factory()->create(['name' => 'Selam Tadesse']);
-    $admin->makePlatformAdmin();
-    test()->actingAs(AdminUser::query()->findOrFail($admin->id), 'admin_panel');
-    Filament::setCurrentPanel('admin');
-
-    return $admin;
-}
 
 it('adds a plan, showing what a gym pays as it is filled in', function () {
     actingAsPlatformAdminInPanel();

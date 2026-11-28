@@ -12,6 +12,7 @@ use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Tenancy\CurrentOrganization;
 use App\Domains\Organizations\Tenancy\CurrentStaff;
+use App\Filament\Admin\AdminUser;
 use App\Filament\Staff\PanelUser;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -72,6 +73,19 @@ function actingAsStaffInPanel(Organization $organization, StaffRole $role, Branc
     app(CurrentStaff::class)->set($staff);
 
     return $staff;
+}
+
+/**
+ * Sign in to the admin panel as a new platform admin.
+ */
+function actingAsPlatformAdminInPanel(): User
+{
+    $admin = User::factory()->create(['name' => 'Selam Tadesse']);
+    $admin->makePlatformAdmin();
+    test()->actingAs(AdminUser::query()->findOrFail($admin->id), 'admin_panel');
+    Filament::setCurrentPanel('admin');
+
+    return $admin;
 }
 
 /**

@@ -11,6 +11,10 @@ use App\Domains\Organizations\Models\GymSuspension;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Models\Staff;
 use App\Domains\Organizations\Onboarding\NewGym;
+use App\Domains\PlatformBilling\Enums\GymBillStatus;
+use App\Domains\PlatformBilling\GymBills;
+use App\Domains\PlatformBilling\Models\GymSubscription;
+use App\Domains\PlatformBilling\Models\PlatformPlan;
 use App\Domains\Shared\Money\Money;
 use App\Filament\Admin\Resources\Gyms\Pages\CreateGym;
 use App\Filament\Admin\Resources\Gyms\Pages\EditGym;
@@ -74,6 +78,10 @@ class GymResource extends Resource
                     ->badge()
                     ->color(fn (string $state): string => $state === 'Paused' ? 'danger' : 'success')
                     ->icon(fn (string $state): Heroicon => $state === 'Paused' ? Heroicon::OutlinedPauseCircle : Heroicon::OutlinedCheckCircle),
+                TextColumn::make('bill')
+                    ->state(fn (Organization $record, HasTable $livewire): string => self::billStatusesOf($livewire)[(int) $record->getKey()]->label())
+                    ->badge()
+                    ->color(fn (Organization $record, HasTable $livewire): string => GymBilling::STATUS_COLORS[self::billStatusesOf($livewire)[(int) $record->getKey()]->value]),
                 TextColumn::make('owner')
                     ->state(fn (Organization $record, HasTable $livewire): string => self::ownersOf($livewire)[(int) $record->getKey()] ?? '—')
                     ->color('gray'),
@@ -101,6 +109,12 @@ class GymResource extends Resource
                         'paused' => $query->whereNotNull('suspended_at'),
                         default => $query,
                     }),
+                SelectFilter::make('bill')
+                    ->native(false)
+                    ->options(GymBilling::statusOptions())
+                    ->query(fn (Builder $query, array $data): Builder => ($status = GymBillStatus::tryFrom((string) ($data['value'] ?? ''))) === null
+                        ? $query
+                        : app(GymBills::class)->whereStatus($query, $status)),
             ])
             ->recordActions([
                 ViewAction::make(),
@@ -183,6 +197,38 @@ class GymResource extends Resource
                         ->required()
                         ->helperText('They sign in with it.'),
                 ]),
+            Section::make('Billing')
+                ->description('Optional: a gym without a plan isn\'t billed until you set it up on its page.')
+                ->icon(Heroicon::OutlinedBanknotes)
+                ->columns(['default' => 1, 'md' => 3])
+                ->visibleOn('create')
+                ->schema([
+                    Select::make('billing_plan')
+                        ->label('Plan')
+                        ->options(fn (): array => PlatformPlan::query()->offered()->orderBy('monthly_price_minor')->get()
+                            ->mapWithKeys(fn (PlatformPlan $plan): array => [(int) $plan->getKey() => $plan->name.' · '.$plan->monthly_price->format().' a month'])
+                            ->all())
+                        ->placeholder('Not billed for now')
+                        ->native(false)
+                        ->live(),
+                    TextInput::make('trial_days')
+                        ->label('Free trial')
+                        ->integer()
+                        ->minValue(0)
+                        ->maxValue(GymSubscription::MOST_TRIAL_DAYS)
+                        ->default(GymSubscription::DEFAULT_TRIAL_DAYS)
+                        ->suffix('days')
+                        ->helperText('0 to bill from today.')
+                        ->visible(fn (Get $get): bool => filled($get('billing_plan')))
+                        ->required(fn (Get $get): bool => filled($get('billing_plan'))),
+                    Select::make('months_per_invoice')
+                        ->label('Each invoice covers')
+                        ->options([1 => '1 month', 3 => '3 months', 6 => '6 months', 12 => '12 months'])
+                        ->default(1)
+                        ->native(false)
+                        ->visible(fn (Get $get): bool => filled($get('billing_plan')))
+                        ->required(fn (Get $get): bool => filled($get('billing_plan'))),
+                ]),
         ]);
     }
 
@@ -201,6 +247,7 @@ class GymResource extends Resource
                     TextEntry::make('taken_this_month')->state(fn (Organization $record): string => self::figuresOfOne($record)['taken_this_month']->format()),
                     TextEntry::make('last_activity')->state(fn (Organization $record): ?CarbonImmutable => self::figuresOfOne($record)['last_activity'])->since()->placeholder('Nothing yet'),
                 ]),
+            GymBilling::section(),
             Section::make('The gym')
                 ->icon(Heroicon::OutlinedBuildingStorefront)
                 ->columns(['default' => 1, 'md' => 3])
@@ -310,6 +357,16 @@ class GymResource extends Resource
     private static function figuresOfOne(Organization $gym): array
     {
         return once(fn (): array => app(GymFigures::class)->of([$gym])[(int) $gym->getKey()]);
+    }
+
+    /**
+     * Where each gym on the page stands with its bill, looked up once for the page.
+     *
+     * @return array<int, GymBillStatus>
+     */
+    private static function billStatusesOf(HasTable $livewire): array
+    {
+        return once(fn (): array => app(GymBills::class)->statusesOf(self::gymsOnThePage($livewire)));
     }
 
     /**
