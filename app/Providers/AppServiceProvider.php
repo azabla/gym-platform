@@ -7,6 +7,7 @@ use App\Domains\Billing\Models\CashCount;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Billing\Models\PaymentLink;
 use App\Domains\Identity\Models\User;
+use App\Domains\Identity\SignIns;
 use App\Domains\Members\Models\Member;
 use App\Domains\Memberships\Models\DiscountGroup;
 use App\Domains\Memberships\Models\Membership;
@@ -36,6 +37,8 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use Laravel\Sanctum\PersonalAccessToken;
+use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -71,6 +74,17 @@ class AppServiceProvider extends ServiceProvider
         $this->describeApiCallsAsTakingBearerTokens();
         $this->letRolesSeeTheirInsights();
         $this->spellAmharicDatesInFull();
+        $this->letUnusedSignInsExpire();
+    }
+
+    /**
+     * A phone's sign-in unused for 30 days (staff app) or 90 (members app)
+     * no longer works, so a lost phone doesn't stay signed in for ever
+     * (ADR 0046). Each use moves its time on.
+     */
+    private function letUnusedSignInsExpire(): void
+    {
+        Sanctum::authenticateAccessTokensUsing(fn (PersonalAccessToken $token, bool $isValid): bool => $isValid && SignIns::isFresh($token));
     }
 
     /**

@@ -18,6 +18,9 @@ Schedule::command('billing:check-payment-links')->everyTenMinutes()->withoutOver
 // and the rows of member imports, with their names and phones, 30 days after they finish (ADR 0044).
 Schedule::command('model:prune', ['--model' => [SignInCode::class, PasswordLink::class, MemberImportRow::class]])->daily();
 
+// Phones' sign-ins unused for 30 days (staff app) or 90 (members app) are ended (ADR 0046).
+Schedule::command('sign-ins:end-unused')->dailyAt('01:30')->withoutOverlapping();
+
 // Members hear before their membership ends, and the day after; each gym's go out from 09:00 its time (ADR 0012).
 Schedule::command('notifications:send-membership-reminders')->hourly()->withoutOverlapping();
 
