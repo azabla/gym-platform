@@ -18,6 +18,10 @@ use App\Domains\Organizations\Enums\StaffRole;
 use App\Domains\Organizations\Models\Branch;
 use App\Domains\Organizations\Models\BranchClosure;
 use App\Domains\Organizations\Models\Organization;
+use App\Domains\PlatformBilling\Models\GymInvoice;
+use App\Domains\PlatformBilling\Models\GymSubscription;
+use App\Domains\PlatformBilling\Models\PlatformPlan;
+use App\Domains\PlatformBilling\SubscriptionTerms;
 use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Model;
@@ -31,7 +35,7 @@ use Livewire\Livewire;
 */
 
 /** Words kept in Latin letters on purpose. */
-const KEPT_IN_LATIN = ['CSV', 'QR', 'JPEG', 'PNG', 'WebP', 'Excel', 'Google', 'Sheets', 'NEWYEAR', 'BOLE', 'GYM', 'CJ12ABC34D', 'CHASECK_TEST', 'CHASECK', 'Settings', 'API', 'px'];
+const KEPT_IN_LATIN = ['CSV', 'QR', 'JPEG', 'PNG', 'WebP', 'Excel', 'Google', 'Sheets', 'NEWYEAR', 'BOLE', 'GYM', 'CJ12ABC34D', 'CHASECK_TEST', 'CHASECK', 'Settings', 'API', 'px', 'INV'];
 
 beforeEach(function () {
     $this->travelTo(CarbonImmutable::parse('2026-11-24 10:00', 'Africa/Addis_Ababa'));
@@ -53,6 +57,10 @@ beforeEach(function () {
 ሀና ግርማ,0911223399,{$this->branch->name}
 ዳዊት,12,{$this->branch->name}
 ", CarbonImmutable::parse('2026-11-24'));
+    // An owner sees the platform's bill: its page, a banner while an invoice is due, and its message in their inbox, read in Amharic (ADR 0045).
+    Filament::auth()->user()?->forceFill(['message_language' => 'am'])->save();
+    GymSubscription::start($this->gym, new SubscriptionTerms(PlatformPlan::factory()->create()), firstBillingDay: CarbonImmutable::parse('2026-11-30'));
+    GymInvoice::issueDue($this->gym);
 
     app()->setLocale('am');
     CarbonImmutable::setLocale('am');
@@ -93,7 +101,7 @@ function dataOfTheGym(): array
 {
     $values = [];
 
-    foreach ([Organization::class, Branch::class, Plan::class, Member::class, Announcement::class, PromoCode::class, DiscountGroup::class, BranchClosure::class, Payment::class, PaymentLink::class, ChapaAccount::class, MemberImport::class, User::class] as $model) {
+    foreach ([Organization::class, Branch::class, Plan::class, Member::class, Announcement::class, PromoCode::class, DiscountGroup::class, BranchClosure::class, Payment::class, PaymentLink::class, ChapaAccount::class, MemberImport::class, PlatformPlan::class, GymInvoice::class, User::class] as $model) {
         $records = method_exists($model, 'acrossOrganizations') ? $model::acrossOrganizations()->get() : $model::query()->get();
 
         foreach ($records as $record) {

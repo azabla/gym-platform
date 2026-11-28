@@ -12,7 +12,7 @@ Route::get('/', function () {
 // Where Chapa sends a member after paying: back to the app, which has the API confirm the payment (ADR 0022).
 Route::view('payments/returned', 'payments.returned')->name('payments.returned');
 
-// The platform's invoice to a gym, to read or print, for platform admins (ADR 0045).
+// The platform's invoice to a gym, to read or print, for platform admins and the gym's owners (ADR 0045).
 Route::get('platform-bill/invoices/{invoice}', [PlatformBillController::class, 'show'])
     ->whereNumber('invoice')
     ->name('platform-bill.invoice');

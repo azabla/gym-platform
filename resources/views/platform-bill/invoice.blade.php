@@ -72,7 +72,7 @@
 
         <section class="dates">
             <div><h2>{{ __('Issued') }}</h2>{{ $date($invoice->issued_on) }}</div>
-            <div><h2>{{ __('Due') }}</h2>{{ $date($invoice->due_on) }}</div>
+            <div><h2>{{ __('Due on') }}</h2>{{ $date($invoice->due_on) }}</div>
             <div><h2>{{ __('Period') }}</h2>{{ $date($invoice->period_starts_on) }} – {{ $date($invoice->period_ends_on) }}</div>
         </section>
 

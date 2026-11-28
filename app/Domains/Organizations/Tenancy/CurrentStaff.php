@@ -27,4 +27,9 @@ final class CurrentStaff
     {
         return $this->staff ?? throw NoCurrentStaff::isSet();
     }
+
+    public function has(): bool
+    {
+        return $this->staff !== null;
+    }
 }

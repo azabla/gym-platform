@@ -9,6 +9,7 @@ use App\Filament\Staff\Middleware\UseStaffLanguage;
 use App\Filament\Staff\NavigationGroup;
 use App\Filament\Staff\Pages\Dashboard;
 use App\Filament\Staff\Pages\MyNotifications;
+use App\Filament\Staff\Support\PlatformBillBanner;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
@@ -48,6 +49,8 @@ class StaffPanelProvider extends PanelProvider
                     e(route('staff.password.forgot')),
                 )),
             )
+            // Owners see the platform's unpaid invoice on every page (ADR 0045).
+            ->renderHook(PanelsRenderHook::CONTENT_START, fn (): ?HtmlString => PlatformBillBanner::html())
             ->authGuard('staff_panel')
             ->tenant(Organization::class, slugAttribute: 'slug', ownershipRelationship: 'organization')
             // The language first, so a paused gym's page is in the staff member's language (ADR 0043).
