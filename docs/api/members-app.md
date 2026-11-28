@@ -27,12 +27,15 @@ Every endpoint's fields and answers are also in the generated API docs at `/docs
 | `POST /auth/sms-codes` `{"phone": "0922 34 56 78"}` | `202` `{"message": "If this number is registered at a gym, a code is on its way by SMS."}`, the same for every number |
 | `POST /auth/sms-tokens` `{"phone": "0922 34 56 78", "code": "123456", "device_name": "Tigist's Pixel 7"}` | `201` `{"data": {"token": "…", "user": {"id", "name", "email", "phone"}}}`; `422` on `code` if wrong or expired |
 | `DELETE /auth/tokens/current` | `204`. Signs out this phone and revokes its QR credential. |
+| `GET /me/devices` | `200` `{"data": [{"id", "name", "app": "members" or "staff", "last_used_at", "signed_in_at", "current": true/false}]}`: every phone signed in as this person, the most recently used first (ADR 0046) |
+| `DELETE /me/devices/{id}` | `204`. Signs that phone out and revokes its QR credential, say when it was lost; `404` for another person's |
 
 - A code is 6 digits, works for 10 minutes and 5 tries, and only the newest one works.
 - Send `Accept-Language` (`am` or `en`) with `POST /auth/sms-codes`: the code's SMS is written in it, English otherwise.
 - Limits: a code a minute and five an hour for each number; five sign-in tries a minute.
 - There is no self-registration: staff register members at the gym, and the member signs in with that phone number.
 - One token per phone. Keep it in secure storage.
+- **A token unused for 90 days expires** (30 days for the staff app): the next request gets `401` and the member signs in again with a new code. Every request moves the time on, so a member who opens the app now and then stays signed in (ADR 0046).
 
 ## Home screen
 
@@ -272,6 +275,13 @@ The staff app registers its push token like the members app, with `"app": "staff
   - `PATCH` with any of those topics, each with `push`, `sms` or both as `true` or `false`, returns them all.
   - An unknown topic or another value gets a `422`.
 - **Defaults.** Push is on and SMS off until changed. No SMS goes out between 21:00 and 07:00 gym time.
+- **Cash counts** in the staff app (ADR 0046):
+  - `GET cash-counts/expected` gives the cash the staff member should have at each of their branches since their last count;
+  - `POST cash-counts` `{"branch_id", "counted": "3,450", "note"}` closes their count, with a `422` on `note` when it is off without one, or on `counted` when there is nothing to count;
+  - `GET cash-counts` lists counts, their own, or everyone's at their branches for owners, managers and accountants; filters `?branch_id=`, `?staff_id=`, `?checked=0|1`;
+  - `POST cash-counts/{id}/check` `{"note"}` marks one checked, for owners and managers.
+
+  Amounts are Money objects (`amount_minor`, `currency`, `formatted`); `difference` is negative when short.
 - **The platform's bill** isn't a topic staff choose: its messages always reach owners by inbox, push and SMS, waiting for 07:00 when sent at night, and they come even while the gym is paused.
 
 ### Reason codes

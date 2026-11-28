@@ -174,6 +174,8 @@ This is how the project has been built so far; keep to it so any session, local 
 - Money-taken figures (takings, revenue, reports) use `Payment::moneyTaken()` or `PaymentMethod::moneyTaken()`: brought-in payments, recorded only by a member import, count towards balances but never as money taken; the desk offers `PaymentMethod::forTheDesk()` (ADR 0044).
 - There are two panels: staff at `/staff` (the default, tenant = gym) and admin at `/admin` (platform admins, English, no tenant; every gym-owned query there uses `acrossOrganizations()`). Inside a gym Filament also scopes resource models to it, so cross-gym lookups there use `withoutGlobalScopes()` (ADR 0042).
 - A paused gym (`Organization::isSuspended()`) refuses staff, the APIs (`403 GYM_PAUSED`) and the door, and sends nothing: new scheduled work loops over `Organization::query()->active()`, and new member or staff messages extend `MemberNotification`/`StaffNotification` or use `HeldWhileTheGymIsPaused` (ADR 0043).
+- Every action that moves a gym's money calls `Activity::record()` inside its own transaction (the one direct call between domains, so the log is never lost); records staff edit in forms use the `LogsMoneyChanges` trait. A new money action must log itself, and new log actions need a line in `ActivityText` and Amharic (ADR 0046).
+- Phones sign in through `SignIns::start()` with their app (staff or members) and are signed out through `SignIns::end()`, which revokes their QR credentials; never `createToken()` or `$token->delete()` directly (ADR 0046).
 - The platform bills gyms in `PlatformBilling`, which depends on Organizations only (ADR 0045). `platform-billing:run` is the one scheduled job that includes paused gyms; bill messages to owners extend `GymBillNotification`, which a pause never holds back. A pause for an unpaid bill (`SuspensionCause::UnpaidBill`) reopens on payment; an admin's never does. SQL for "today" uses `GymBills::gymTodaySql()` (the app's clock), never the database's `now()`.
 
 ### The staff panel standard (ADR 0033)
@@ -192,7 +194,7 @@ This is how the project has been built so far; keep to it so any session, local 
 ### Where to look
 
 - `docs/README.md`: where things live, conventions and the glossary.
-- `docs/adr/`: why things are the way they are (0001 to 0045 so far).
+- `docs/adr/`: why things are the way they are (0001 to 0046 so far).
 - `docs/api/members-app.md`: the contract with the members app.
 - `/docs/api`: the API docs Scramble generates from the code, for staff signed in to the panel (ADR 0021).
-- Not built yet, and candidates for the next piece (agreed 2026-11-28): admin 2FA, support access and closing a gym; a log of who did what with money, an end-of-day cash count and revoking a lost phone's sign-in; expenses and profit; a member's data on request and clearing old notifications; desk, door and report extras; the Ethiopian date picker and holidays. Trainers come later as one whole piece. The real server (always on, separate worker and scheduler, Redis, a domain; ADR 0028) waits until a server is bought; until then everything runs on staging.
+- Not built yet, and candidates for the next piece (agreed 2026-11-28): admin 2FA, support access and closing a gym; expenses and profit; a member's data on request and clearing old notifications; desk, door and report extras; the Ethiopian date picker and holidays. Trainers come later as one whole piece. The real server (always on, separate worker and scheduler, Redis, a domain; ADR 0028) waits until a server is bought; until then everything runs on staging.

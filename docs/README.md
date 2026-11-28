@@ -19,6 +19,7 @@ app/Domains/Billing/       Payments and refunds against memberships, receipts an
 app/Domains/Notifications/ Sending messages: SMS through AfroMessage, or to the log in development
 app/Domains/Announcements/ Announcements from a gym to its members, now or scheduled
 app/Domains/Imports/       Bringing in the members a gym had before joining, from a CSV file, with their memberships and what they paid
+app/Domains/Activity/      The money log: who did what with a gym's money, written in the same transaction as each action, never changed
 app/Domains/PlatformBilling/ What the platform charges gyms: plans, each gym's subscription, invoices, payments, reminders and pausing for an unpaid bill
 app/Http/                  The API: controllers, form requests, middleware and resources (v1); Me/ folders hold the members app's side
 app/Filament/Staff/        The staff panel at /staff (Filament): its user, tenant middleware, dashboard, widgets and lists
@@ -72,6 +73,9 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | Money brought in | What a member paid before their gym joined, recorded by a member import as a payment of method `brought_in`. It counts towards what they owe, never as money taken (ADR 0044). |
 | Paused gym | A gym the platform has stopped for now, keeping everything: its staff can't sign in, its API and members app answer `403 GYM_PAUSED`, the door refuses and it sends nothing, until it is resumed (ADR 0043). An admin pauses it, or the platform does for an unpaid bill and reopens it once paid (ADR 0045). |
 | Platform plan | What the platform charges a gym each month: a price for the first branch, one for each extra branch and discounts for paying 3, 6 or 12 months at once, VAT included (ADR 0045). |
+| Money log | Who did what with a gym's money: payments, refunds and voids, sales and cancellations, discounts, payment links, plan prices, promo codes and cash counts, each with what changed. Flagged entries are the ones an owner checks first. Owners and managers read it on the Activity page and in each record's History (ADR 0046). |
+| Cash count | A staff member's count, at the end of a shift, of the cash they took at a branch since their last count: what they should have, what they counted, and a note when it is off. Owners and managers mark it checked (ADR 0046). |
+| Sign-in (device) | One phone signed in to the staff app or the members app, with its own token. Unused for 30 days (staff) or 90 (members), it expires; it can be signed out from My devices or `/me/devices` (ADR 0046). |
 | Platform invoice | The platform's bill to a gym for 1, 3, 6 or 12 months (`INV-000123`), issued a week before its period, due on its first day, and pausing the gym if still unpaid after its grace. Admins record what the gym paid; owners see it on their Platform bill page (ADR 0045). |
 | Password link | A one-time link sent by SMS to set a staff member's first password (an invite, valid 7 days) or reset a forgotten one (valid 60 minutes). See ADR 0019. |
 | Archived staff | Staff who left: they can no longer act at the gym, what they recorded still names them, and they can be restored (ADR 0019). |
@@ -156,6 +160,7 @@ Tests live under `tests/` (mirroring the domain folders) instead of inside each 
 | [0043](adr/0043-pausing-a-gym.md) | Pausing a gym |
 | [0044](adr/0044-importing-members.md) | Importing members and money brought in |
 | [0045](adr/0045-billing-gyms.md) | Billing gyms for the platform |
+| [0046](adr/0046-money-safety.md) | Money safety: who did what, cash counts and lost phones |
 
 Write a new ADR whenever a decision is expensive to reverse. Copy the structure of an existing one: Context, Decision, Consequences.
 
